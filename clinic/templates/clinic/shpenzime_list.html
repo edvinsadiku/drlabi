@@ -1,0 +1,48 @@
+{% extends "clinic/base.html" %}
+{% block title %}Shpenzime{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-5">
+  <h1 class="text-xl font-semibold">Shpenzimet</h1>
+  <a href="{% url 'shpenzime_add' %}" class="px-3 py-2 bg-emerald-600 text-white rounded">+ Shto shpenzim</a>
+</div>
+
+<div class="bg-white border rounded-lg overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="p-2 text-left">Data</th>
+        <th class="p-2 text-left">Shpenzimi</th>
+        <th class="p-2 text-left">Vlera</th>
+        <th class="p-2 text-left">Paguar</th>
+        <th class="p-2 text-left">Përshkrimi</th>
+        <th class="p-2 text-right">Veprime</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in shpenzime %}
+      <tr class="border-t hover:bg-gray-50">
+        <td class="p-2">{{ s.muaji|date:"d.m.Y" }}</td>
+        <td class="p-2">{{ s.shpenzimi }}</td>
+        <td class="p-2">{{ s.vlera }}</td>
+        <td class="p-2">{% if s.paguar %}✅{% else %}❌{% endif %}</td>
+        <td class="p-2">{{ s.pershkrimi }}</td>
+        <td class="p-2 text-right">
+          <form method="post" action="{% url 'shpenzime_delete' s.id %}" onsubmit="return confirm('A je i sigurt që dëshiron ta fshish?');">
+            {% csrf_token %}
+            <button class="text-red-600 hover:underline">Fshij</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="p-3 text-center text-gray-500">S’ka shpenzime.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="mt-4 text-right font-semibold">
+  Totali i shpenzimeve: {{ total }} €
+</div>
+
+{% endblock %}

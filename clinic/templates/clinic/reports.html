@@ -1,0 +1,142 @@
+{% extends "clinic/base.html" %}
+{% block title %}Raportet{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="mb-5 flex items-center justify-between">
+  <div>
+    <h1 class="text-xl font-semibold tracking-tight">Raportet</h1>
+    <p class="text-sm text-gray-500">Filtro sipas periudhës dhe renditje: vetëm të dhënat e zgjedhura.</p>
+  </div>
+</div>
+
+<!-- Filtrat -->
+<form method="get" class="bg-white border rounded-2xl p-4 mb-5 grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+  <div class="md:col-span-2">
+    <label class="block text-xs text-gray-500 mb-1">Periudha</label>
+    <select name="mode" class="w-full border rounded-lg px-3 py-2" onchange="onModeChange(this.value)">
+      <option value="day"   {% if mode == 'day' %}selected{% endif %}>Ditor</option>
+      <option value="week"  {% if mode == 'week' %}selected{% endif %}>Javor</option>
+      <option value="month" {% if mode == 'month' %}selected{% endif %}>Mujor</option>
+      <option value="year"  {% if mode == 'year' %}selected{% endif %}>Vjetor</option>
+    </select>
+  </div>
+
+  <!-- Fusha për DITË -->
+  <div id="fld_day" class="{% if mode != 'day' %}hidden{% endif %}">
+    <label class="block text-xs text-gray-500 mb-1">Data</label>
+    <input type="date" name="day" value="{{ picked_day }}" class="w-full border rounded-lg px-3 py-2" />
+  </div>
+
+  <!-- Fusha për JAVË -->
+  <div id="fld_week" class="{% if mode != 'week' %}hidden{% endif %}">
+    <label class="block text-xs text-gray-500 mb-1">Java</label>
+    <input type="week" name="week" value="{{ picked_week }}" class="w-full border rounded-lg px-3 py-2" />
+  </div>
+
+  <!-- Fusha për MUAJ -->
+  <div id="fld_month" class="{% if mode != 'month' %}hidden{% endif %}">
+    <label class="block text-xs text-gray-500 mb-1">Muaji</label>
+    <input type="month" name="month" value="{{ picked_month }}" class="w-full border rounded-lg px-3 py-2" />
+  </div>
+
+  <!-- Fusha për VIT -->
+  <div id="fld_year" class="{% if mode != 'year' %}hidden{% endif %}">
+    <label class="block text-xs text-gray-500 mb-1">Viti</label>
+    <select name="year" class="w-full border rounded-lg px-3 py-2">
+      {% for y in years %}
+      <option value="{{ y }}" {% if picked_year|stringformat:"s" == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">Renditja</label>
+    <select name="order" class="w-full border rounded-lg px-3 py-2">
+      <option value="desc" {% if order == 'desc' %}selected{% endif %}>Më i riu → i vjetri</option>
+      <option value="asc"  {% if order == 'asc' %}selected{% endif %}>I vjetri → më i riu</option>
+    </select>
+  </div>
+
+  <div class="md:col-span-1">
+    <label class="block text-xs text-transparent mb-1">_</label>
+    <button class="w-full px-3 py-2 rounded-lg bg-emerald-600 text-white">Apliko</button>
+  </div>
+</form>
+
+<!-- KPI Totals -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
+  <div class="bg-white border rounded-2xl p-4">
+    <div class="text-xs text-gray-500">Totali</div>
+    <div class="text-2xl font-semibold">{{ total_vlera }}</div>
+  </div>
+  <div class="bg-white border rounded-2xl p-4">
+    <div class="text-xs text-gray-500">Paguar</div>
+    <div class="text-2xl font-semibold">{{ total_paguar }}</div>
+  </div>
+  <div class="bg-white border rounded-2xl p-4">
+    <div class="text-xs text-gray-500">Borxh</div>
+    <div class="text-2xl font-semibold text-red-600">{{ total_borgji }}</div>
+  </div>
+  <div class="bg-white border rounded-2xl p-4">
+    <div class="text-xs text-gray-500">Nr. i Historive</div>
+    <div class="text-2xl font-semibold">{{ items|length }}</div>
+  </div>
+</div>
+
+<!-- Lista e historive të filtruar -->
+<div class="bg-white border rounded-2xl overflow-hidden">
+  <div class="px-4 py-3 border-b flex items-center justify-between">
+    <h3 class="font-semibold">Rezultatet</h3>
+    <div class="text-sm text-gray-500">Renditur: {% if order == 'desc' %}zbritës{% else %}ngjitës{% endif %}</div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-gray-600">
+        <tr>
+          <th class="p-3 text-left">Data</th>
+          <th class="p-3 text-left">Pacienti</th>
+          <th class="p-3 text-left">Dhëmbi</th>
+          <th class="p-3 text-left">Diagnoza</th>
+          <th class="p-3 text-left">Trajtimi</th>
+          <th class="p-3 text-left">Doktori</th>
+          <th class="p-3 text-left">Vlera</th>
+          <th class="p-3 text-left">Paguar</th>
+          <th class="p-3 text-left">Borgji</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for r in items %}
+        <tr class="hover:bg-gray-50">
+          <td class="p-3 whitespace-nowrap">{{ r.d|date:"d.m.Y" }}</td>
+          <td class="p-3">
+            <a href="{% url 'patient_detail' r.obj.patient_id %}" class="hover:underline font-medium">{{ r.emri }}</a>
+          </td>
+          <td class="p-3">{{ r.obj.dhembi }}</td>
+          <td class="p-3">{{ r.obj.diagnoza }}</td>
+          <td class="p-3">{{ r.obj.trajtimi }}</td>
+          <td class="p-3 whitespace-nowrap">{{ r.obj.doctor }}</td>
+          <td class="p-3 whitespace-nowrap">{{ r.vlera }}</td>
+          <td class="p-3 whitespace-nowrap">{{ r.paguar }}</td>
+          <td class="p-3 whitespace-nowrap">{{ r.borgji }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" class="p-6 text-center text-gray-500">S’ka të dhëna për kriteret.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  function onModeChange(val){
+    document.getElementById('fld_day').classList.toggle('hidden',  val!=='day');
+    document.getElementById('fld_week').classList.toggle('hidden', val!=='week');
+    document.getElementById('fld_month').classList.toggle('hidden',val!=='month');
+    document.getElementById('fld_year').classList.toggle('hidden', val!=='year');
+  }
+  // re-render icons if you use lucide in this page
+  document.addEventListener('DOMContentLoaded', () => { if(window.lucide){ lucide.createIcons(); } });
+</script>
+
+{% endblock %}

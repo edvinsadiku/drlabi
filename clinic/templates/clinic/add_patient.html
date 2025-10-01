@@ -1,0 +1,60 @@
+{% extends "clinic/base.html" %}
+{% block title %}Shto pacient{% endblock %}
+
+{% block content %}
+<div class="bg-white/90 backdrop-blur rounded-2xl shadow-medium p-6 md:p-8 w-full fade-in">
+  <!-- Titulli -->
+  <h1 class="text-2xl font-bold text-medicalBlue mb-8 flex items-center gap-2">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    Shto pacient të ri
+  </h1>
+
+  <form method="post" class="space-y-8">
+    {% csrf_token %}
+
+    <!-- Seksioni: Info personale -->
+    <div>
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Informata personale</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Emri dhe mbiemri *</label>
+          <input type="text" name="emri_mbiemri" required
+                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
+                 placeholder="Shkruaj emrin dhe mbiemrin">
+        </div>
+      </div>
+    </div>
+
+    <!-- Seksioni: Kontakt -->
+    <div>
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Kontakti</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Telefoni</label>
+          <input type="text" name="telefoni"
+                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
+                 placeholder="+383 xx xxx xxx">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Email</label>
+          <input type="email" name="emaili"
+                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
+                 placeholder="shembull@email.com">
+        </div>
+      </div>
+    </div>
+
+    <!-- Veprimet -->
+    <div class="flex justify-end gap-3 pt-6 border-t border-slate-200">
+      <a href="{% url 'patient_list' %}" 
+         class="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm">Anulo</a>
+      <button type="submit"
+              class="px-5 py-2.5 rounded-lg bg-gradient-to-tr from-medicalBlue to-medicalGreen text-white font-medium hover:shadow-md text-sm shadow-soft">
+        Ruaj pacientin
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

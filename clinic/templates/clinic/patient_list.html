@@ -1,0 +1,154 @@
+{% extends "clinic/base.html" %}
+{% block title %}Pacientët{% endblock %}
+{% block content %}
+
+<!-- HEADER -->
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-semibold text-slate-900">Pacientët</h1>
+  <a href="{% url 'add_patient' %}" 
+     class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
+    ➕ Shto pacient
+  </a>
+</div>
+
+<!-- SEARCH + FILTER -->
+<div class="flex flex-wrap items-center gap-3 mb-4">
+  <!-- Search -->
+  <form method="get" class="relative flex-1 max-w-xs">
+    <input type="text" name="q" value="{{ q }}" placeholder="Kërko pacient..."
+           class="w-full rounded-lg border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" 
+         fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" 
+            d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 3a7.5 7.5 0 006.15 13.65z"/>
+    </svg>
+  </form>
+
+  <!-- Sort -->
+<!-- SORT BY (modern dropdown) -->
+<div class="relative">
+  <button type="button" onclick="toggleSortMenu()" 
+          class="inline-flex items-center gap-2 px-4 py-2 bg-white border rounded-lg shadow-sm text-sm text-slate-700 hover:bg-gray-50 focus:outline-none">
+    <span>
+      {% if request.GET.sort == "last_appointment" %}Sipas vizitës së fundit
+      {% elif request.GET.sort == "register_date" %}Sipas regjistrimit
+      {% elif request.GET.sort == "name" %}Sipas emrit
+      {% else %}Rendit sipas{% endif %}
+    </span>
+    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
+
+  <!-- Dropdown menu -->
+  <div id="sortMenu" class="hidden absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-20">
+    <a href="?sort=last_appointment{% if q %}&q={{ q|urlencode }}{% endif %}"
+       class="block px-4 py-2 text-sm text-slate-700 hover:bg-gray-50 {% if request.GET.sort == 'last_appointment' %}bg-emerald-50 text-emerald-700{% endif %}">
+      Sipas vizitës së fundit
+    </a>
+    <a href="?sort=register_date{% if q %}&q={{ q|urlencode }}{% endif %}"
+       class="block px-4 py-2 text-sm text-slate-700 hover:bg-gray-50 {% if request.GET.sort == 'register_date' %}bg-emerald-50 text-emerald-700{% endif %}">
+      Sipas regjistrimit
+    </a>
+    <a href="?sort=name{% if q %}&q={{ q|urlencode }}{% endif %}"
+       class="block px-4 py-2 text-sm text-slate-700 hover:bg-gray-50 {% if request.GET.sort == 'name' %}bg-emerald-50 text-emerald-700{% endif %}">
+      Sipas emrit
+    </a>
+  </div>
+</div>
+
+<script>
+function toggleSortMenu() {
+  document.getElementById("sortMenu").classList.toggle("hidden");
+}
+// Mbyll dropdown kur klikon jashtë
+document.addEventListener("click", function(e) {
+  if (!e.target.closest("#sortMenu") && !e.target.closest("button")) {
+    document.getElementById("sortMenu").classList.add("hidden");
+  }
+});
+</script>
+</div>
+
+<!-- TABLE -->
+<div class="overflow-x-auto bg-white border rounded-xl shadow-sm">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-slate-600 text-xs uppercase tracking-wide border-b">
+      <tr>
+        <th class="px-4 py-3 text-left">#</th>
+        <th class="px-4 py-3 text-left">Pacienti</th>
+        <th class="px-4 py-3 text-left">Telefoni</th>
+        <th class="px-4 py-3 text-left">Qyteti</th>
+        <th class="px-4 py-3 text-left">Vizita e fundit</th>
+        <th class="px-4 py-3 text-left">Data regjistrimit</th>
+        <th class="px-4 py-3 text-right">Veprime</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for p in page_obj %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">#{{ forloop.counter }}</td>
+
+        <!-- Basic info -->
+        <td class="px-4 py-3 flex items-center gap-3">
+          {% if p.photo %}
+            <img src="{{ p.photo.url }}" class="w-9 h-9 rounded-full object-cover" alt="{{ p.emri_mbiemri }}">
+          {% else %}
+            <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-semibold">
+              {{ p.emri_mbiemri|slice:":1"|upper }}
+            </div>
+          {% endif %}
+          <div>
+            <a href="{% url 'patient_detail' p.id %}" class="font-semibold text-slate-900 hover:underline">
+              {{ p.emri_mbiemri }}
+            </a>
+            <div class="text-xs text-slate-500">{{ p.emaili|default:"—" }}</div>
+          </div>
+        </td>
+
+        <td class="px-4 py-3">{{ p.telefoni|default:"—" }}</td>
+        <td class="px-4 py-3">{% if p.city %}{{ p.city }}{% elif p.adresa %}{{ p.adresa }}{% else %}—{% endif %}</td>
+        <td class="px-4 py-3 whitespace-nowrap">{% if p.last_appointment %}{{ p.last_appointment|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+        <td class="px-4 py-3 whitespace-nowrap">{% if p.register_date %}{{ p.register_date|date:"d/m/Y" }}{% elif p.created_at %}{{ p.created_at|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+
+        <!-- Actions -->
+        <td class="px-4 py-3 text-right whitespace-nowrap flex items-center gap-2 justify-end">
+          <a href="{% url 'patient_detail' p.id %}" class="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50">Shiko</a>
+          <a href="{% url 'add_history' p.id %}" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700">Histori</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="px-4 py-6 text-center text-gray-500">S’ka pacientë{% if q %} për "{{ q }}"{% endif %}.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- PAGINATION -->
+{% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between text-sm text-slate-500 mt-4">
+    <span>Duke shfaqur {{ page_obj.start_index }}–{{ page_obj.end_index }} nga {{ page_obj.paginator.count }}</span>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+           class="px-3 py-1.5 rounded-lg border hover:bg-slate-50">‹</a>
+      {% endif %}
+      {% for num in page_numbers %}
+        {% if page_obj.number == num %}
+          <span class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white">{{ num }}</span>
+        {% else %}
+          <a href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+             class="px-3 py-1.5 rounded-lg border hover:bg-slate-50">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+           class="px-3 py-1.5 rounded-lg border hover:bg-slate-50">›</a>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

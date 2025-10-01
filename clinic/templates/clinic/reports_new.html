@@ -1,0 +1,254 @@
+{% extends "clinic/base.html" %}
+{% block title %}Raportet (Sistemi i ri){% endblock %}
+{% block content %}
+
+<div class="mb-5 flex items-center justify-between print:hidden">
+  <div>
+    <h1 class="text-xl font-semibold tracking-tight">Raportet – Sistemi i ri</h1>
+    <p class="text-sm text-gray-500">Bazohet në CareHistory & Agreement, me ndarje sipas faturimit dhe pagesave.</p>
+  </div>
+  <button onclick="window.print()" class="px-3 py-2 rounded-lg border hover:bg-gray-50">Printo</button>
+</div>
+
+<!-- FILTRAT -->
+<form method="get" class="bg-white border rounded-2xl p-4 mb-5 grid grid-cols-1 md:grid-cols-6 gap-3 items-end print:hidden">
+  <div class="md:col-span-2">
+    <label class="block text-xs text-gray-500 mb-1">Periudha</label>
+    <select name="mode" class="w-full border rounded-lg px-3 py-2" onchange="onModeChange(this.value)">
+      <option value="day"   {% if mode == 'day' %}selected{% endif %}>Ditor</option>
+      <option value="week"  {% if mode == 'week' %}selected{% endif %}>Javor</option>
+      <option value="month" {% if mode == 'month' %}selected{% endif %}>Mujor</option>
+      <option value="year"  {% if mode == 'year' %}selected{% endif %}>Vjetor</option>
+    </select>
+  </div>
+
+  <div id="fld_day" class="{% if mode != 'day' %}hidden{% endif %}">
+    <label class="block text-xs text-gray-500 mb-1">Data</label>
+    <input type="text" id="day-picker" name="day" value="{{ picked_day }}" class="w-full border rounded-lg px-3 py-2" />
+  </div>
+
+  <div id="fld_week" class="{% if mode != 'week' %}hidden{% endif %}">
+    <label class="block text-xs text-gray-500 mb-1">Java</label>
+    <input type="week" name="week" value="{{ picked_week }}" class="w-full border rounded-lg px-3 py-2" />
+  </div>
+
+  <div id="fld_month" class="{% if mode != 'month' %}hidden{% endif %}">
+    <label class="block text-xs text-gray-500 mb-1">Muaji</label>
+    <input type="month" name="month" value="{{ picked_month }}" class="w-full border rounded-lg px-3 py-2" />
+  </div>
+
+  <div id="fld_year" class="{% if mode != 'year' %}hidden{% endif %}">
+    <label class="block text-xs text-gray-500 mb-1">Viti</label>
+    <select name="year" class="w-full border rounded-lg px-3 py-2">
+      {% for y in years %}
+      <option value="{{ y }}" {% if picked_year|stringformat:"s" == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label class="block text-xs text-gray-500 mb-1">Renditja</label>
+    <select name="order" class="w-full border rounded-lg px-3 py-2">
+      <option value="desc" {% if order == 'desc' %}selected{% endif %}>Më i riu → i vjetri</option>
+      <option value="asc"  {% if order == 'asc' %}selected{% endif %}>I vjetri → më i riu</option>
+    </select>
+  </div>
+
+  <div class="md:col-span-1">
+    <label class="block text-xs text-transparent mb-1">_</label>
+    <button class="w-full px-3 py-2 rounded-lg bg-emerald-600 text-white">Apliko</button>
+  </div>
+</form>
+
+<!-- KPI -->
+<div class="kpi-boxes grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+  <div class="bg-white border rounded-2xl p-4">
+    <div class="text-xs text-gray-500">Faturuar (Totali)</div>
+    <div class="text-2xl font-semibold">{{ total_billed }}€</div>
+  </div>
+  <div class="bg-white border rounded-2xl p-4">
+    <div class="text-xs text-gray-500">Paguar (Cash-in)</div>
+    <div class="text-2xl font-semibold text-emerald-700">{{ total_paid }}€</div>
+  </div>
+  <div class="bg-white border rounded-2xl p-4">
+    <div class="text-xs text-gray-500">Borxh</div>
+    <div class="text-2xl font-semibold {% if outstanding > 0 %}text-red-600{% endif %}">{{ outstanding }}€</div>
+  </div>
+</div>
+
+<!-- Ndarje sipas doktorit -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+  <div class="bg-white border rounded-2xl overflow-hidden">
+    <div class="px-4 py-3 border-b font-semibold">Pagesa sipas doktorit (nga histori)</div>
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-gray-600">
+        <tr><th class="p-3 text-left">Doktori</th><th class="p-3 text-left">Shuma</th></tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for r in payments_by_doctor %}
+        <tr class="hover:bg-gray-50">
+          <td class="p-3">{{ r.doctor_name|default:"-" }}</td>
+          <td class="p-3">{{ r.total }}€</td>
+        </tr>
+        {% empty %}
+        <tr><td class="p-3 text-gray-500" colspan="2">S’ka të dhëna.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Lista: Historitë & Marrëveshjet -->
+<div class="bg-white border rounded-2xl overflow-hidden">
+  <div class="px-4 py-3 border-b flex items-center justify-between">
+    <h3 class="font-semibold">Historitë & Marrëveshjet e paguara</h3>
+    <div class="text-sm text-gray-500">Nga {{ start_date }} deri {{ end_date }}</div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-gray-600">
+        <tr>
+          <th class="p-3 text-left">Data</th>
+          <th class="p-3 text-left">Pacienti</th>
+          <th class="p-3 text-left">Historia / Marrëveshja</th>
+          <th class="p-3 text-left">Doktori</th>
+          <th class="p-3 text-left">Vlera</th>
+          <th class="p-3 text-left">Paguar</th>
+          <th class="p-3 text-left">Borxh</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for h in histories_and_agreements %}
+        <tr class="hover:bg-gray-50">
+          <td class="p-3 whitespace-nowrap">
+            {% if h.obj_type == "history" %}
+              {{ h.date|date:"Y-m-d" }}
+            {% else %}
+              {{ h.created_at|date:"Y-m-d" }}
+            {% endif %}
+          </td>
+          <td class="p-3">{{ h.patient.emri_mbiemri }}</td>
+          <td class="p-3">
+            {% if h.obj_type == "history" %}
+              {{ h.diagnosis|default:"-" }}
+            {% else %}
+              Marrëveshje: {{ h.title }}
+            {% endif %}
+          </td>
+          <td class="p-3">
+            {% if h.obj_type == "history" %}
+              {{ h.doctor|default:"-" }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td class="p-3">
+            {% if h.obj_type == "history" %}
+              {{ h.amount|default:"0.00" }}€
+            {% else %}
+              {{ h.total_amount|default:"0.00" }}€
+            {% endif %}
+          </td>
+          <td class="p-3 font-semibold text-emerald-700">{{ h.paid_sum }}€</td>
+          <td class="p-3 {% if h.debt_sum > 0 %}text-red-600{% endif %}">{{ h.debt_sum }}€</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="p-6 text-center text-gray-500">S’ka të dhëna.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Totals only for print -->
+<div class="print-only">
+  <p><strong>Totali i vleres:</strong> {{ total_billed }}€</p>
+  <p><strong>Totali i paguar:</strong> {{ total_paid }}€</p>
+  <p><strong>Borxhi:</strong> {{ outstanding }}€</p>
+</div>
+
+<!-- PRINT STYLES -->
+<style>
+  @media print {
+    body {
+      background: white !important;
+      color: black !important;
+      font-family: "Arial", sans-serif !important;
+      font-size: 11pt;
+    }
+
+    .print\:hidden, button, form, .no-print, .kpi-boxes {
+      display: none !important;
+    }
+
+    h1 {
+      font-size: 16pt !important;
+      font-weight: bold !important;
+      margin-bottom: 10px !important;
+      text-align: center;
+    }
+
+    h3 {
+      font-size: 13pt !important;
+      margin-top: 15px !important;
+      margin-bottom: 6px !important;
+      border-bottom: 1px solid #000;
+      padding-bottom: 3px;
+    }
+
+    table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      margin-top: 8px;
+      margin-bottom: 15px;
+    }
+    thead {
+      background: #f2f2f2 !important;
+    }
+    th, td {
+      border: 1px solid #000 !important;
+      padding: 4px 6px !important;
+      text-align: left;
+    }
+    th {
+      font-weight: bold !important;
+    }
+
+    .print-only {
+      display: block !important;
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid #000;
+      font-size: 12pt;
+      text-align: right;
+    }
+    .print-only p { margin: 2px 0; }
+  }
+  @media screen {
+    .print-only { display: none; }
+  }
+</style>
+
+<!-- Scripts -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+  function onModeChange(val){
+    document.getElementById('fld_day').classList.toggle('hidden',  val!=='day');
+    document.getElementById('fld_week').classList.toggle('hidden', val!=='week');
+    document.getElementById('fld_month').classList.toggle('hidden',val!=='month');
+    document.getElementById('fld_year').classList.toggle('hidden', val!=='year');
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    if(document.getElementById("day-picker")){
+      flatpickr("#day-picker", {
+        dateFormat: "Y-m-d",
+        defaultDate: "{{ picked_day }}"
+      });
+    }
+  });
+</script>
+
+{% endblock %}
