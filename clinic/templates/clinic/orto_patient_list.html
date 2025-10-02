@@ -2,97 +2,139 @@
 {% block title %}Pacientët Orto{% endblock %}
 {% block content %}
 
-<!-- HEADER + SEARCH -->
-<div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-  <div class="flex items-center gap-2">
-    <h1 class="text-xl font-semibold">Pacientët Orto</h1>
-    {% if patients %}
-      <span class="px-2 py-0.5 text-xs rounded-full border bg-gray-50 text-gray-700">
-        {{ patients|length }} gjithsej
-      </span>
-    {% endif %}
-  </div>
+    <!-- HEADER -->
+    <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 
-  <form method="get" class="flex gap-2 w-full md:w-auto">
-    <div class="relative w-full md:w-80">
-      <input name="q" value="{{ q }}" placeholder="Kërko emër / telefon / email"
-             class="w-full rounded-lg border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 pl-9 pr-9 py-2.5 text-sm" />
-      <!-- search icon -->
-      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M10 4a6 6 0 104.472 10.027l4.25 4.25a1 1 0 001.415-1.414l-4.25-4.25A6 6 0 0010 4zm-4 6a4 4 0 118 0 4 4 0 01-8 0z"/>
-      </svg>
-      {% if q %}
-        <a href="?" class="absolute right-9 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">Pastro</a>
-      {% endif %}
+        <div>
+            <div class="flex items-center gap-x-3">
+                <h2 class="text-lg font-medium text-gray-800">Pacientët Orto</h2>
+                {% if patients %}
+                <span class="px-3 py-1 text-xs text-emerald-600 bg-emerald-100 rounded-full">
+                    {{ patients|length }} gjithsej
+                </span>
+                {% endif %}
+            </div>
+            <p class="mt-1 text-sm text-gray-500">Lista e pacientëve ortodontikë në sistem.</p>
+        </div>
+
+        <div class="flex items-center mt-4 gap-x-3">
+            <a href="{% url 'add_patient' %}" 
+               class="flex items-center justify-center px-5 py-2 text-sm tracking-wide text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Shto pacient</span>
+            </a>
+        </div>
     </div>
-    <button class="px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm">Kërko</button>
-  </form>
-</div>
 
-<!-- TABELA -->
-<div class="bg-white border rounded-2xl shadow-sm overflow-hidden">
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-50 text-gray-600">
-        <tr>
-          <th class="p-3 text-left">#</th>
-          <th class="p-3 text-left">Emri</th>
-          <th class="p-3 text-left">Telefoni</th>
-          <th class="p-3 text-left">Email</th>
-          <th class="p-3 text-left">Veprime</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y">
-        {% for p in patients %}
-        <tr class="hover:bg-gray-50/60">
-          <td class="p-3 whitespace-nowrap">{{ p.id }}</td>
+    <!-- SEARCH -->
+    <div class="mt-6 md:flex md:items-center md:justify-between">
+        <div class="relative flex items-center w-full md:w-80">
+            <span class="absolute">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                     stroke-width="1.5" stroke="currentColor" 
+                     class="w-5 h-5 mx-3 text-gray-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" 
+                          d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+            </span>
+            <form method="get" class="w-full">
+                <input type="text" name="q" value="{{ q }}" 
+                       placeholder="Kërko pacient orto..." 
+                       class="block w-full py-2 pl-11 pr-4 text-gray-700 bg-white border rounded-lg 
+                              border-gray-200 focus:border-emerald-500 focus:ring focus:ring-emerald-300 
+                              focus:ring-opacity-40">
+            </form>
+        </div>
+    </div>
 
-          <td class="p-3">
-            <a class="text-emerald-700 hover:underline font-medium" href="{% url 'orto_patient_detail' p.id %}">
-              {{ p.emri_mbiemri }}
-            </a>
-          </td>
+    <!-- TABLE -->
+    <div class="flex flex-col mt-6">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                <div class="overflow-hidden border border-gray-200 md:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Pacienti</th>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Telefoni</th>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Qyteti</th>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Vizita e fundit</th>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Regjistruar</th>
+                                <th class="px-4 py-3 text-sm font-medium text-right text-gray-500">Veprime</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for p in patients %}
+                            <tr>
+                                <!-- Pacienti -->
+                                <td class="px-4 py-4 text-sm font-medium whitespace-nowrap">
+                                    <div class="flex items-center gap-3">
+                                        {% if p.photo %}
+                                          <img class="w-10 h-10 rounded-full object-cover border" src="{{ p.photo.url }}" alt="{{ p.emri_mbiemri }}">
+                                        {% else %}
+                                          <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-semibold border">
+                                            {{ p.emri_mbiemri|default:"?"|slice:":1"|upper }}
+                                          </div>
+                                        {% endif %}
+                                        <div>
+                                            <a href="{% url 'orto_patient_detail' p.id %}" class="font-medium text-gray-800 hover:text-emerald-600">
+                                                {{ p.emri_mbiemri }}
+                                            </a>
+                                            <p class="text-xs text-gray-500">
+                                                {% if p.emaili %}<a href="mailto:{{ p.emaili }}">{{ p.emaili }}</a>{% else %}—{% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
 
-          <td class="p-3 whitespace-nowrap text-gray-700">
-            {% if p.telefoni %}
-              <span class="inline-flex items-center gap-1">
-                <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M2.25 3.75A1.5 1.5 0 013.75 2.25h2.5c.621 0 1.162.403 1.35.996l.84 2.58a1.5 1.5 0 01-.39 1.548l-1.29 1.29a12.75 12.75 0 006.926 6.926l1.29-1.29a1.5 1.5 0 011.548-.39l2.58.84c.593.188.996.729.996 1.35v2.5a1.5 1.5 0 01-1.5 1.5H18A15.75 15.75 0 012.25 6v-.75z"/></svg>
-                {{ p.telefoni }}
-              </span>
-            {% else %}
-              <span class="text-gray-400">—</span>
-            {% endif %}
-          </td>
+                                <!-- Telefoni -->
+                                <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                    {% if p.telefoni %}
+                                      <a href="tel:{{ p.telefoni }}" class="text-gray-700 hover:text-emerald-600">{{ p.telefoni }}</a>
+                                    {% else %}—{% endif %}
+                                </td>
 
-          <td class="p-3">
-            {% if p.emaili %}
-              <span class="inline-flex items-center gap-1">
-                <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M1.5 6.75A2.25 2.25 0 013.75 4.5h16.5a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0120.25 19.5H3.75A2.25 2.25 0 011.5 17.25V6.75zm2.62-.75l7.13 5.35a.75.75 0 00.9 0l7.13-5.35H4.12z"/></svg>
-                <span class="break-all">{{ p.emaili }}</span>
-              </span>
-            {% else %}
-              <span class="text-gray-400">—</span>
-            {% endif %}
-          </td>
+                                <!-- Qyteti -->
+                                <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                    {% if p.city %}{{ p.city }}{% elif p.adresa %}{{ p.adresa }}{% else %}—{% endif %}
+                                </td>
 
-          <td class="p-3">
-            <a href="{% url 'orto_patient_detail' p.id %}"
-               class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border hover:bg-gray-50 text-gray-700">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5c-7.633 0-11 6.5-11 6.5S4.367 18 12 18s11-6.5 11-6.5S19.633 5 12 5zm0 11a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/></svg>
-              Shiko
-            </a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td class="p-6 text-center text-gray-500" colspan="5">
-            S’ka pacientë ortodontikë{% if q %} për “<span class="font-medium">{{ q }}</span>”{% endif %}.
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+                                <!-- Vizita e fundit -->
+                                <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                    {% if p.last_appointment %}
+                                      {{ p.last_appointment|date:"d/m/Y" }}
+                                    {% else %}—{% endif %}
+                                </td>
+
+                                <!-- Data regjistrimit -->
+                                <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                    {% if p.register_date %}
+                                      {{ p.register_date|date:"d/m/Y" }}
+                                    {% elif p.created_at %}
+                                      {{ p.created_at|date:"d/m/Y" }}
+                                    {% else %}—{% endif %}
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
+                                    <a href="{% url 'orto_patient_detail' p.id %}" class="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50">Shiko</a>
+                                    <a href="{% url 'add_patient' %}?edit={{ p.id }}" class="px-3 py-1.5 text-sm rounded-md border border-emerald-600 text-emerald-600 hover:bg-emerald-50">Ndrysho</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="px-4 py-6 text-center text-gray-500">
+                                    S’ka pacientë ortodontikë{% if q %} për "{{ q }}"{% endif %}.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
 {% endblock %}
