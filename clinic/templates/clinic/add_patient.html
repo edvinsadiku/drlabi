@@ -3,92 +3,108 @@
 {% block title %}Shto pacient{% endblock %}
 
 {% block content %}
-<div class="bg-white/90 backdrop-blur rounded-2xl shadow-medium p-6 md:p-8 w-full fade-in">
-  <!-- Titulli -->
-  <div class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-medicalBlue flex items-center gap-2">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-      </svg>
-      Shto pacient të ri
-    </h1>
+<div class="max-w-5xl mx-auto bg-white shadow-lg rounded-2xl p-8 fade-in">
+
+  <!-- HEADER -->
+  <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-emerald-700 flex items-center gap-2">
+        <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Shto pacient të ri
+      </h1>
+      <p class="text-sm text-gray-500 mt-1">Plotësoni të dhënat kryesore të pacientit për regjistrim.</p>
+    </div>
     <a href="{% url 'patient_list' %}"
-       class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm">
-      Kthehu te lista
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-medium">
+      ← Kthehu te lista
     </a>
   </div>
 
-  <!-- Mesazhe sistemike -->
+  <!-- MESAZHET -->
   {% if messages %}
-    <div class="space-y-2 mb-6">
+    <div class="mb-6 space-y-2">
       {% for message in messages %}
-        <div class="px-4 py-3 rounded-lg text-sm
-                    {% if message.tags == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-200
-                    {% elif message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
-                    {% else %}bg-slate-50 text-slate-700 border border-slate-200{% endif %}">
+        <div class="px-4 py-3 rounded-lg text-sm font-medium
+                    {% if message.tags == 'success' %} bg-emerald-50 text-emerald-700 border border-emerald-200
+                    {% elif message.tags == 'error' %} bg-red-50 text-red-700 border border-red-200
+                    {% else %} bg-slate-50 text-slate-700 border border-slate-200 {% endif %}">
           {{ message }}
         </div>
       {% endfor %}
     </div>
   {% endif %}
 
-  <form method="post" class="space-y-8" novalidate>
+  <!-- FORMA -->
+  <form method="post" class="space-y-10" novalidate>
     {% csrf_token %}
 
-    <!-- Seksioni: Info personale -->
-    <section>
-      <h2 class="text-lg font-semibold text-slate-800 mb-4">Informata personale</h2>
+    <!-- Informata personale -->
+    <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
+      <h2 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
+        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A9 9 0 1112 21v-2.25"/>
+        </svg>
+        Informata personale
+      </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
-          <label for="emri_mbiemri" class="block text-sm font-medium text-slate-600 mb-1">Emri dhe mbiemri *</label>
+          <label for="emri_mbiemri" class="block text-sm font-medium text-gray-700 mb-1">Emri dhe mbiemri *</label>
           <input id="emri_mbiemri" name="emri_mbiemri" type="text" required
-                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
+                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
                  placeholder="Shkruaj emrin dhe mbiemrin">
         </div>
         <div>
-          <label for="data_e_lindjes" class="block text-sm font-medium text-slate-600 mb-1">Data e lindjes</label>
+          <label for="data_e_lindjes" class="block text-sm font-medium text-gray-700 mb-1">Data e lindjes</label>
           <input id="data_e_lindjes" name="data_e_lindjes" type="date"
-                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm">
+                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm">
         </div>
         <div>
-          <label for="id_leternjoftimit" class="block text-sm font-medium text-slate-600 mb-1">ID Letërnjoftimit</label>
-          <input id="id_leternjoftimit" name="id_leternjoftimit" type="text"
-                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
-                 placeholder="p.sh. 123456789">
+          <label for="leternjoftimi" class="block text-sm font-medium text-gray-700 mb-1">Letërnjoftimi</label>
+          <input id="leternjoftimi" name="leternjoftimi" type="text"
+                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
+                 placeholder="numri i letërnjoftimit">
         </div>
       </div>
     </section>
 
-    <!-- Seksioni: Kontakti -->
-    <section>
-      <h2 class="text-lg font-semibold text-slate-800 mb-4">Kontakti</h2>
+    <!-- Kontakti -->
+    <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
+      <h2 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
+        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3H12"/>
+        </svg>
+        Kontakti
+      </h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label for="telefoni" class="block text-sm font-medium text-slate-600 mb-1">Telefoni</label>
+          <label for="telefoni" class="block text-sm font-medium text-gray-700 mb-1">Telefoni</label>
           <input id="telefoni" name="telefoni" type="text"
-                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
+                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
                  placeholder="+383 xx xxx xxx">
         </div>
         <div>
-          <label for="emaili" class="block text-sm font-medium text-slate-600 mb-1">Email</label>
+          <label for="emaili" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input id="emaili" name="emaili" type="email"
-                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
+                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
                  placeholder="shembull@email.com">
         </div>
       </div>
     </section>
 
-    <!-- Veprimet -->
-    <div class="flex justify-end gap-3 pt-6 border-t border-slate-200">
+    <!-- Butonat -->
+    <div class="flex flex-col sm:flex-row justify-end gap-4 pt-4">
       <a href="{% url 'patient_list' %}"
-         class="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm">Anulo</a>
+         class="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium text-center">
+        Anulo
+      </a>
       <button type="submit"
-              class="px-5 py-2.5 rounded-lg bg-gradient-to-tr from-medicalBlue to-medicalGreen text-white font-medium hover:shadow-md text-sm shadow-soft">
+              class="px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold hover:shadow-lg transition text-sm">
         Ruaj pacientin
       </button>
     </div>
   </form>
 
-  <!-- Shënim: ID-ja e pacientit (auto increment) shfaqet vetëm pasi të ruhet pacienti -->
 </div>
 {% endblock %}

@@ -5,7 +5,6 @@
   <!-- Header -->
   <div class="mb-6 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <a href="{% url 'orto_patient_list' %}" class="text-emerald-700 hover:underline">&larr; Kthehu</a>
       <h1 class="text-lg font-semibold">Pacient (Orto): {{ patient.emri_mbiemri }}</h1>
     </div>
     <a class="px-4 py-2 bg-emerald-600 text-white rounded"
@@ -35,28 +34,6 @@
           <b>{{ patient.historyortodentics_set.all|length }}</b>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Pyetësori (pytja1…pytja15) -->
-  <div class="bg-white border rounded-lg p-4 mb-6">
-    <h2 class="font-semibold text-base mb-3">Pyetësori (Orto)</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-      <div><b>pytja1:</b> {{ patient.pytja1 }}</div>
-      <div><b>pytja2:</b> {{ patient.pytja2 }}</div>
-      <div><b>pytja3:</b> {{ patient.pytja3 }}</div>
-      <div><b>pytja4:</b> {{ patient.pytja4 }}</div>
-      <div><b>pytja5:</b> {{ patient.pytja5 }}</div>
-      <div><b>pytja6:</b> {{ patient.pytja6 }}</div>
-      <div><b>pytja7:</b> {{ patient.pytja7 }}</div>
-      <div><b>pytja8:</b> {{ patient.pytja8 }}</div>
-      <div><b>pytja9:</b> {{ patient.pytja9 }}</div>
-      <div><b>pytja10:</b> {{ patient.pytja10 }}</div>
-      <div><b>pytja11:</b> {{ patient.pytja11 }}</div>
-      <div><b>pytja12:</b> {{ patient.pytja12 }}</div>
-      <div><b>pytja13:</b> {{ patient.pytja13 }}</div>
-      <div><b>pytja14:</b> {{ patient.pytja14 }}</div>
-      <div><b>pytja15:</b> {{ patient.pytja15 }}</div>
     </div>
   </div>
 

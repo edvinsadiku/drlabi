@@ -6,7 +6,7 @@ class Patient(models.Model):
     emri_mbiemri = models.CharField(max_length=191, null=True, blank=True)
     data_e_lindjes = models.CharField(max_length=191, null=True, blank=True)
     adresa = models.CharField(max_length=191, null=True, blank=True)
-    
+    leternjoftimi = models.CharField(max_length=50, null=True, blank=True)
     telefoni = models.CharField(max_length=191, null=True, blank=True)
     emaili = models.CharField(max_length=191, null=True, blank=True)
     pytja1 = models.CharField(max_length=191, null=True, blank=True)

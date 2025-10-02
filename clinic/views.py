@@ -45,9 +45,7 @@ def patient_list(request):
 
     # ---- Lightweight annotations ----
     qs = qs.annotate(
-        historias_count=Count("historias", distinct=True),
-
-        # latest historia nga pacientet normale
+        historias_count=Count("historias"),  # heq distinct=True (shumë i rëndë)
         last_historia=Max("historias__created_at"),
     ).annotate(
         last_history=Coalesce(
@@ -55,16 +53,16 @@ def patient_list(request):
             Value(None, output_field=DateTimeField())
         ),
         register_date=F("created_at"),
-        city=Coalesce(F("adresa"), Value("", output_field=models.CharField())),
+        city=Coalesce(F("adresa"), Value("", output_field=None)),
     )
 
-    # Sorting
+    # Sorting - thjeshtuar
     if sort == "last_history":
-        qs = qs.order_by(F("last_history").desc(nulls_last=True), "-id")
+        qs = qs.order_by("-last_history", "-id")
     elif sort == "register_date":
-        qs = qs.order_by(F("register_date").desc(nulls_last=True), "-id")
+        qs = qs.order_by("-register_date", "-id")
     elif sort == "name":
-        qs = qs.order_by(F("emri_mbiemri").asc(nulls_last=True), "-id")
+        qs = qs.order_by("emri_mbiemri", "-id")
     else:
         qs = qs.order_by("-id")
 
@@ -85,6 +83,7 @@ def patient_list(request):
         "sort": sort,
         "total_patients": paginator.count,
     })
+
 
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
@@ -647,7 +646,7 @@ def add_patient(request):
         data_e_lindjes = request.POST.get("data_e_lindjes")
         telefoni = request.POST.get("telefoni")
         emaili = request.POST.get("emaili")
-        id_leternjoftimit = request.POST.get("id_leternjoftimit")
+        leternjoftimi = request.POST.get("leternjoftimi")
 
         if emri_mbiemri:  # vetëm emri i domosdoshëm
             patient = Patient.objects.create(
