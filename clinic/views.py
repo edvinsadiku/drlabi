@@ -653,7 +653,7 @@ def add_patient(request):
                 data_e_lindjes=data_e_lindjes,
                 telefoni=telefoni,
                 emaili=emaili,
-                id_leternjoftimit=id_leternjoftimit
+                leternjoftimi=leternjoftimi
             )
             messages.success(request, f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses.")
             return redirect("patient_list")
