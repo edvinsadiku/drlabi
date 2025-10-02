@@ -4,9 +4,9 @@ from django.db.models import Count
 from django.core.paginator import Paginator
 from decimal import Decimal, InvalidOperation
 from django.contrib.auth.decorators import login_required
-
+from .models import Payment
 from .models import Patient, PatienOrtodentics, Historia
-
+from .models import *
 @login_required
 def home(request):
     return patient_list(request)
@@ -284,7 +284,6 @@ def _parse_date_any(value):
 
 from django.utils.timezone import now
 # clinic/views.py (shto importet)
-from .models_new import Agreement, CareHistory, Payment
 from decimal import Decimal
 
 
@@ -986,7 +985,6 @@ from django.db.models import Sum, F, Value, DecimalField, OuterRef, Subquery
 from django.db.models.functions import Coalesce
 from django.shortcuts import render
 
-from .models_new import CareHistory, Agreement, Payment
 from .models import Patient
 
 
@@ -1299,3 +1297,13 @@ def search_patients(request):
         Q(emri_mbiemri__icontains=q) | Q(telefoni__icontains=q)
     ).values("id", "emri_mbiemri", "telefoni")[:10]
     return JsonResponse(list(patients), safe=False)
+
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def user_logout(request):
+    if request.method in ["POST", "GET"]:
+        logout(request)
+    return redirect("login")

@@ -21,21 +21,6 @@
       ← Kthehu te lista
     </a>
   </div>
-
-  <!-- MESAZHET -->
-  {% if messages %}
-    <div class="mb-6 space-y-2">
-      {% for message in messages %}
-        <div class="px-4 py-3 rounded-lg text-sm font-medium
-                    {% if message.tags == 'success' %} bg-emerald-50 text-emerald-700 border border-emerald-200
-                    {% elif message.tags == 'error' %} bg-red-50 text-red-700 border border-red-200
-                    {% else %} bg-slate-50 text-slate-700 border border-slate-200 {% endif %}">
-          {{ message }}
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-
   <!-- FORMA -->
   <form method="post" class="space-y-10" novalidate>
     {% csrf_token %}

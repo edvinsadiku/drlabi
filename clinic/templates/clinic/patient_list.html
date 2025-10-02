@@ -59,7 +59,6 @@
                                 <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Pacienti</th>
                                 <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Telefoni</th>
                                 <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Qyteti</th>
-                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Vizita e fundit</th>
                                 <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Regjistruar</th>
                                 <th class="px-4 py-3 text-sm font-medium text-right text-gray-500">Veprime</th>
                             </tr>
@@ -99,14 +98,6 @@
                                 <td class="px-4 py-4 text-sm whitespace-nowrap">
                                     {% if p.city %}{{ p.city }}{% elif p.adresa %}{{ p.adresa }}{% else %}—{% endif %}
                                 </td>
-
-                                <!-- Vizita e fundit -->
-                                <td class="px-4 py-4 text-sm whitespace-nowrap">
-                                    {% if p.last_appointment %}
-                                      {{ p.last_appointment|date:"d/m/Y" }}
-                                    {% else %}—{% endif %}
-                                </td>
-
                                 <!-- Data regjistrimit -->
                                 <td class="px-4 py-4 text-sm whitespace-nowrap">
                                     {% if p.register_date %}

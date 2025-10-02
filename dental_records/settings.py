@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+AUTH_USER_MODEL = "clinic.CustomUser"
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "patient_list"
