@@ -1168,3 +1168,134 @@ def delete_patient_document(request, pk):
         doc.file.delete(save=False)  # fshin file nga media/
         doc.delete()
     return redirect("patient_detail", pk=patient_id)
+
+
+
+@login_required
+def checkout(request):
+    patient = None
+    histories = []
+    agreements = []
+    payments = []
+    total_billed = total_paid = debt = Decimal("0.00")
+
+    DECIMAL = DecimalField(max_digits=18, decimal_places=2)
+    ZERO = Decimal("0.00")
+
+    patient_id = request.GET.get("patient")
+    if patient_id:
+        patient = get_object_or_404(Patient, pk=patient_id)
+
+        # Pagesat ekzistuese
+        payments = Payment.objects.filter(patient=patient).order_by("-created_at")
+
+        total_paid = payments.aggregate(
+            s=Coalesce(Sum("amount", output_field=DECIMAL), ZERO)
+        )["s"] or Decimal("0.00")
+
+        # Histori të pacientit
+        histories = (
+            CareHistory.objects
+            .filter(patient=patient, agreement__isnull=True, included_in_agreement=False)
+            .annotate(
+                paid_sum=Coalesce(Sum("payments__amount", output_field=DECIMAL), ZERO),
+                debt_sum=F("amount") - Coalesce(Sum("payments__amount", output_field=DECIMAL), ZERO),
+            )
+            .order_by("date")
+        )
+
+        # Marrëveshje aktive
+        agreements = (
+            Agreement.objects
+            .filter(patient=patient, status="active")
+            .annotate(
+                paid_sum=Coalesce(Sum("payments__amount", output_field=DECIMAL), ZERO),
+                debt_sum=F("total_amount") - Coalesce(Sum("payments__amount", output_field=DECIMAL), ZERO),
+            )
+            .order_by("-created_at")
+        )
+
+        # Totali i faturuar
+        total_billed = (
+            (CareHistory.objects.filter(patient=patient).aggregate(
+                s=Coalesce(Sum("amount", output_field=DECIMAL), ZERO)
+            )["s"] or Decimal("0.00"))
+            + (Agreement.objects.filter(patient=patient).aggregate(
+                s=Coalesce(Sum("total_amount", output_field=DECIMAL), ZERO)
+            )["s"] or Decimal("0.00"))
+        )
+
+        debt = max(total_billed - total_paid, Decimal("0.00"))
+
+    # POST – krijo pagesë
+    if request.method == "POST":
+        patient_id = request.POST.get("patient")
+        amount = Decimal(request.POST.get("amount") or "0")
+        method = request.POST.get("method") or "cash"
+        notes  = request.POST.get("notes") or ""
+
+        history_ids = request.POST.getlist("history_ids")
+        agreement_id = request.POST.get("agreement_id")
+
+        patient = get_object_or_404(Patient, pk=patient_id)
+
+        if amount <= 0:
+            messages.error(request, "Shuma nuk është e vlefshme.")
+            return redirect(f"/checkout/?patient={patient.id}")
+
+        if agreement_id and history_ids:
+            messages.error(request, "Zgjidh ose marrëveshje, ose histori – jo të dyja.")
+            return redirect(f"/checkout/?patient={patient.id}")
+
+        # Pagesë për marrëveshje
+        if agreement_id:
+            agreement = get_object_or_404(Agreement, pk=agreement_id, patient=patient)
+            Payment.objects.create(
+                patient=patient,
+                amount=amount,
+                method=method,
+                notes=notes,
+                agreement=agreement,
+                created_by=request.user,
+            )
+            messages.success(request, f"Pagesa {amount}€ u shtua për marrëveshjen {agreement.title}.")
+            return redirect(f"/checkout/?patient={patient.id}")
+
+        # Pagesë për histori
+        if history_ids:
+            for hid in history_ids:
+                h = CareHistory.objects.filter(id=hid, patient=patient).first()
+                if h:
+                    Payment.objects.create(
+                        patient=patient,
+                        amount=amount,
+                        method=method,
+                        notes=notes,
+                        history=h,
+                        created_by=request.user,
+                    )
+            messages.success(request, f"Pagesa {amount}€ u shtua për {len(history_ids)} histori.")
+            return redirect(f"/checkout/?patient={patient.id}")
+
+        messages.error(request, "Zgjidh një histori ose marrëveshje për të kryer pagesën.")
+        return redirect(f"/checkout/?patient={patient.id}")
+
+    return render(request, "clinic/checkout.html", {
+        "patient": patient,
+        "histories": histories,
+        "agreements": agreements,
+        "payments": payments,
+        "total_billed": total_billed,
+        "total_paid": total_paid,
+        "debt": debt,
+    })
+
+
+# 🔹 API për autocomplete të pacientëve
+@login_required
+def search_patients(request):
+    q = request.GET.get("q", "")
+    patients = Patient.objects.filter(
+        Q(emri_mbiemri__icontains=q) | Q(telefoni__icontains=q)
+    ).values("id", "emri_mbiemri", "telefoni")[:10]
+    return JsonResponse(list(patients), safe=False)

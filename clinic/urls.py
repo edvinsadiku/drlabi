@@ -35,6 +35,9 @@ urlpatterns = [
     path("reports/new/", views.reports_new, name="reports_new"),
     path("patients/<int:pk>/upload-document/", views.upload_document, name="upload_document"),
     path("documents/<int:pk>/delete/", views.delete_patient_document, name="delete_patient_document"),
+    path("checkout/", views.checkout, name="checkout"),
+    path("patients/search/", views.search_patients, name="search_patients"),
+
 
 
 
