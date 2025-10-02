@@ -311,22 +311,29 @@ def add_history(request, pk):
 
         # --- MARRËVESHJE ---
         agreement_id = request.POST.get("agreement_id") or None
-        included = bool(request.POST.get("included_in_agreement"))
-
+        included = False
         agreement = None
+
         if agreement_id and str(agreement_id).isdigit():
             agreement = Agreement.objects.filter(
                 id=int(agreement_id), patient=patient, status="active"
             ).first()
+            if agreement:
+                included = True  # automatikisht e përfshirë në marrëveshje
 
-        # 1) KRIJO VETËM CareHistory (sistemi i ri)
+        # --- VALIDIMI: nëse nuk ka marrëveshje, vlera është e detyrueshme
+        if not agreement and (not vlera or vlera <= 0):
+            messages.error(request, "Ju lutem shënoni vlerën e shërbimit ose zgjidhni një marrëveshje.")
+            return redirect("add_history", pk=patient.pk)
+
+        # 1) KRIJO CareHistory
         ch = CareHistory.objects.create(
             patient=patient,
             date=date_obj,
             tooth=dhembi,
             diagnosis=diagnoza,
             treatment=trajtimi,
-            amount=(None if included else (vlera or Decimal("0"))),
+            amount=(None if included else vlera),
             notes=verejtje,
             doctor=doctor,
             agreement=(agreement if included else None),
@@ -976,21 +983,19 @@ def agreement_close(request, agreement_id):
     return redirect("patient_detail", pk=agreement.patient_id)
 
 
-# clinic/views.py
-from datetime import datetime, date, timedelta, time
+from datetime import datetime, date, time, timedelta
 from decimal import Decimal
-from django.utils.timezone import now
-from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, F, Value, DecimalField, OuterRef, Subquery
+from django.db.models import Sum, F, Value, DecimalField, OuterRef, Subquery, CharField
 from django.db.models.functions import Coalesce
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
+from .models import CareHistory, Agreement, Payment
 
-from .models import Patient
 
-
+# ---------------- HELPER ----------------
 def _period_range(request):
     mode = (request.GET.get("mode") or "day").lower()
-    today = now().date()
+    today = datetime.now().date()
 
     if mode == "day":
         d_str = request.GET.get("day")
@@ -1028,12 +1033,22 @@ def _period_range(request):
     return date(y, 1, 1), date(y, 12, 31)
 
 
+def _obj_date(obj):
+    """Gjithmonë kthen datetime për sortim."""
+    if hasattr(obj, "date") and obj.date:  # CareHistory
+        return datetime.combine(obj.date, datetime.min.time())
+    if hasattr(obj, "created_at") and obj.created_at:  # Agreement / Payment
+        return obj.created_at
+    return datetime.min
+
+
+# ---------------- MAIN VIEW ----------------
 @login_required
 def reports_new(request):
     start_date, end_date = _period_range(request)
     order = (request.GET.get("order") or "desc").lower()
 
-    # ---------------- NEW: ruajmë mode + picked values ----------------
+    # ---------------- filters për UI ----------------
     mode = (request.GET.get("mode") or "day").lower()
     picked_day = request.GET.get("day") or start_date.strftime("%Y-%m-%d")
     picked_week = request.GET.get("week") or f"{start_date.isocalendar()[0]}-W{start_date.isocalendar()[1]:02d}"
@@ -1065,7 +1080,7 @@ def reports_new(request):
     # ---------------- AGREEMENTS ----------------
     agreements_qs = (
         Agreement.objects
-        .filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+        .filter(created_at__date__lte=end_date)  # marrim ato që ekzistojnë deri në fund të periudhës
         .annotate(paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL))
     )
 
@@ -1084,19 +1099,27 @@ def reports_new(request):
         included_in_agreement=False
     ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
 
-    total_billed_agreements = agreements_qs.aggregate(
-        t=Coalesce(Sum("total_amount"), ZERO, output_field=DECIMAL)
-    )["t"]
+    # ⚠️ FIX: faturuar për marrëveshje llogaritet nga pagesat brenda periudhës
+    billed_agreements = Payment.objects.filter(
+        agreement__isnull=False,
+        created_at__gte=start_datetime,
+        created_at__lte=end_datetime
+    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
 
-    total_billed = (total_billed_histories or Decimal("0")) + (total_billed_agreements or Decimal("0"))
+    total_billed = (total_billed_histories or Decimal("0")) + (billed_agreements or Decimal("0"))
 
-    paid_histories = care_qs_all.aggregate(
-        t=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
-    )["t"]
+    # Paguar = gjithmonë pagesat brenda periudhës
+    paid_histories = Payment.objects.filter(
+        history__in=care_qs_all,
+        created_at__gte=start_datetime,
+        created_at__lte=end_datetime
+    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
 
-    paid_agreements = agreements_qs.aggregate(
-        t=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
-    )["t"]
+    paid_agreements = Payment.objects.filter(
+        agreement__isnull=False,
+        created_at__gte=start_datetime,
+        created_at__lte=end_datetime
+    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
 
     total_paid = (paid_histories or Decimal("0")) + (paid_agreements or Decimal("0"))
 
@@ -1106,6 +1129,8 @@ def reports_new(request):
 
     # ---------------- LISTA ----------------
     histories_and_agreements = []
+
+    # Histories
     for h in care_qs_all:
         h.obj_type = "history"
         h.amount_display = h.amount or Decimal("0.00")
@@ -1113,14 +1138,29 @@ def reports_new(request):
         if h.amount_display > 0:
             histories_and_agreements.append(h)
 
+    # Agreements
     for a in agreements_qs:
         a.obj_type = "agreement"
         a.amount_display = a.total_amount or Decimal("0.00")
         a.debt_sum = max((a.total_amount or Decimal("0.00")) - (a.paid_sum or Decimal("0.00")), Decimal("0.00"))
         histories_and_agreements.append(a)
 
+    # Payments për marrëveshje
+    payments_for_agreements = Payment.objects.filter(
+        created_at__gte=start_datetime,
+        created_at__lte=end_datetime,
+        agreement__isnull=False
+    ).select_related("agreement", "patient")
+
+    for p in payments_for_agreements:
+        p.obj_type = "payment_agreement"
+        p.amount_display = p.amount or Decimal("0.00")
+        p.debt_sum = Decimal("0.00")
+        histories_and_agreements.append(p)
+
+    # Rendit sipas datës
     histories_and_agreements.sort(
-        key=lambda x: getattr(x, "date", getattr(x, "created_at", date.min)),
+        key=lambda x: (_obj_date(x), getattr(x, "id", 0)),
         reverse=(order == "desc")
     )
 
@@ -1137,7 +1177,7 @@ def reports_new(request):
         "picked_week": picked_week,
         "picked_month": picked_month,
         "picked_year": picked_year,
-        "years": range(2020, now().year + 2),
+        "years": range(2020, datetime.now().year + 2),
         "order": order,
     })
 
