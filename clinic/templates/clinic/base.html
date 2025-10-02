@@ -27,15 +27,14 @@
          class="fixed inset-y-0 left-0 z-40 w-72 bg-white border-r shadow-sm transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:flex md:flex-col">
 
     <!-- Logo -->
-    <div class="flex items-center justify-between px-6 h-16 border-b">
-      <a href="{% url 'home' %}" class="flex items-center gap-3">
-        <img src="{% static 'assets/img/Labi-Logo-BG.png' %}" alt="Clinic Logo" class="h-9 w-auto">
-      </a>
-      <button class="md:hidden p-2" onclick="toggleSidebar()">
-        <i class="ph ph-x text-xl"></i>
-      </button>
-    </div>
-
+<!-- Logo -->
+<div class="flex items-center justify-center px-5 py-3 border-b">
+  <a href="{% url 'home' %}" class="flex items-center gap-3">
+    <img src="{% static 'assets/img/logo.svg' %}" 
+         alt="Clinic Logo" 
+         class="h-16 w-auto">
+  </a>
+</div>
     <!-- Nav -->
     <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-6 text-sm">
 
