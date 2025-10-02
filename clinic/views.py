@@ -664,16 +664,20 @@ from django.contrib import messages
 def add_patient(request):
     if request.method == "POST":
         emri_mbiemri = request.POST.get("emri_mbiemri")
+        data_e_lindjes = request.POST.get("data_e_lindjes")
         telefoni = request.POST.get("telefoni")
         emaili = request.POST.get("emaili")
+        id_leternjoftimit = request.POST.get("id_leternjoftimit")
 
         if emri_mbiemri:  # vetëm emri i domosdoshëm
             patient = Patient.objects.create(
                 emri_mbiemri=emri_mbiemri,
+                data_e_lindjes=data_e_lindjes,
                 telefoni=telefoni,
-                emaili=emaili
+                emaili=emaili,
+                id_leternjoftimit=id_leternjoftimit
             )
-            messages.success(request, f"Pacienti {patient.emri_mbiemri} u shtua me sukses.")
+            messages.success(request, f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses.")
             return redirect("patient_list")
         else:
             messages.error(request, "Ju lutem plotësoni emrin e pacientit.")

@@ -1,54 +1,86 @@
 {% extends "clinic/base.html" %}
+{% load static %}
 {% block title %}Shto pacient{% endblock %}
 
 {% block content %}
 <div class="bg-white/90 backdrop-blur rounded-2xl shadow-medium p-6 md:p-8 w-full fade-in">
   <!-- Titulli -->
-  <h1 class="text-2xl font-bold text-medicalBlue mb-8 flex items-center gap-2">
-    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-    </svg>
-    Shto pacient të ri
-  </h1>
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-medicalBlue flex items-center gap-2">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Shto pacient të ri
+    </h1>
+    <a href="{% url 'patient_list' %}"
+       class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm">
+      Kthehu te lista
+    </a>
+  </div>
 
-  <form method="post" class="space-y-8">
+  <!-- Mesazhe sistemike -->
+  {% if messages %}
+    <div class="space-y-2 mb-6">
+      {% for message in messages %}
+        <div class="px-4 py-3 rounded-lg text-sm
+                    {% if message.tags == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                    {% elif message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+                    {% else %}bg-slate-50 text-slate-700 border border-slate-200{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="space-y-8" novalidate>
     {% csrf_token %}
 
     <!-- Seksioni: Info personale -->
-    <div>
+    <section>
       <h2 class="text-lg font-semibold text-slate-800 mb-4">Informata personale</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">Emri dhe mbiemri *</label>
-          <input type="text" name="emri_mbiemri" required
+          <label for="emri_mbiemri" class="block text-sm font-medium text-slate-600 mb-1">Emri dhe mbiemri *</label>
+          <input id="emri_mbiemri" name="emri_mbiemri" type="text" required
                  class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
                  placeholder="Shkruaj emrin dhe mbiemrin">
         </div>
+        <div>
+          <label for="data_e_lindjes" class="block text-sm font-medium text-slate-600 mb-1">Data e lindjes</label>
+          <input id="data_e_lindjes" name="data_e_lindjes" type="date"
+                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm">
+        </div>
+        <div>
+          <label for="id_leternjoftimit" class="block text-sm font-medium text-slate-600 mb-1">ID Letërnjoftimit</label>
+          <input id="id_leternjoftimit" name="id_leternjoftimit" type="text"
+                 class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
+                 placeholder="p.sh. 123456789">
+        </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Seksioni: Kontakt -->
-    <div>
+    <!-- Seksioni: Kontakti -->
+    <section>
       <h2 class="text-lg font-semibold text-slate-800 mb-4">Kontakti</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">Telefoni</label>
-          <input type="text" name="telefoni"
+          <label for="telefoni" class="block text-sm font-medium text-slate-600 mb-1">Telefoni</label>
+          <input id="telefoni" name="telefoni" type="text"
                  class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
                  placeholder="+383 xx xxx xxx">
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">Email</label>
-          <input type="email" name="emaili"
+          <label for="emaili" class="block text-sm font-medium text-slate-600 mb-1">Email</label>
+          <input id="emaili" name="emaili" type="email"
                  class="w-full rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-medicalBlue focus:border-medicalBlue py-2.5 px-3 text-sm"
                  placeholder="shembull@email.com">
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Veprimet -->
     <div class="flex justify-end gap-3 pt-6 border-t border-slate-200">
-      <a href="{% url 'patient_list' %}" 
+      <a href="{% url 'patient_list' %}"
          class="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm">Anulo</a>
       <button type="submit"
               class="px-5 py-2.5 rounded-lg bg-gradient-to-tr from-medicalBlue to-medicalGreen text-white font-medium hover:shadow-md text-sm shadow-soft">
@@ -56,5 +88,7 @@
       </button>
     </div>
   </form>
+
+  <!-- Shënim: ID-ja e pacientit (auto increment) shfaqet vetëm pasi të ruhet pacienti -->
 </div>
 {% endblock %}

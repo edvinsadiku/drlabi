@@ -6,8 +6,8 @@
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-xl font-semibold text-slate-900">Pacientët</h1>
   <a href="{% url 'add_patient' %}" 
-     class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
-    ➕ Shto pacient
+     class="text-green-700 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-green-500 dark:text-green-500 dark:hover:text-white dark:hover:bg-green-600 dark:focus:ring-green-800">
+    + Shto pacient
   </a>
 </div>
 
@@ -87,7 +87,7 @@ document.addEventListener("click", function(e) {
     <tbody class="divide-y divide-gray-100">
       {% for p in page_obj %}
       <tr class="hover:bg-gray-50">
-        <td class="px-4 py-3">#{{ forloop.counter }}</td>
+        <td class="px-4 py-3">{{ forloop.counter }}</td>
 
         <!-- Basic info -->
         <td class="px-4 py-3 flex items-center gap-3">
@@ -114,7 +114,6 @@ document.addEventListener("click", function(e) {
         <!-- Actions -->
         <td class="px-4 py-3 text-right whitespace-nowrap flex items-center gap-2 justify-end">
           <a href="{% url 'patient_detail' p.id %}" class="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50">Shiko</a>
-          <a href="{% url 'add_history' p.id %}" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700">Histori</a>
         </td>
       </tr>
       {% empty %}
