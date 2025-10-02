@@ -2,7 +2,7 @@ from django.db import models
 
 
 class Patient(models.Model):
-    id = models.AutoField(primary_key=True)
+    id = models.BigAutoField(primary_key=True)
     emri_mbiemri = models.CharField(max_length=191, null=True, blank=True)
     data_e_lindjes = models.CharField(max_length=191, null=True, blank=True)
     adresa = models.CharField(max_length=191, null=True, blank=True)
@@ -214,6 +214,7 @@ class PatientDocument(models.Model):
 
     class Meta:
         db_table = "patient_documents"
+        managed = False
 
     def __str__(self):
         return f"{self.patient.emri_mbiemri} - {self.file.name}"

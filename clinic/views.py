@@ -295,10 +295,8 @@ def add_history(request, pk):
 
     if request.method == "POST":
         # --- DATA ---
-        data_raw = request.POST.get("data")  # nga <input type="date"> vjen YYYY-MM-DD
+        data_raw = request.POST.get("data")
         date_obj = _parse_date_any(data_raw)
-        # Ruajmë në Historia si tekst dd.mm.yyyy (për raportet ekzistuese)
-        data_char = date_obj.strftime("%d.%m.%Y")
 
         # --- FUSHA TË TJERA ---
         dhembi   = request.POST.get("dhembi") or None
@@ -313,24 +311,7 @@ def add_history(request, pk):
         tekniku  = request.POST.get("tekniku") or None
         verejtje = request.POST.get("verejtje") or None
 
-        # 1) KRIJO LEGACY Historia (managed=False, s’ka audit user)
-        h = Historia.objects.create(
-            patient=patient,
-            data=data_char,
-            dhembi=dhembi,
-            diagnoza=diagnoza,
-            trajtimi=trajtimi,
-            vlera=vlera,
-            paguar=paguar,
-            borgji=borgji,
-            doctor=doctor,
-            pasqyra_e_dhembit=pasqyra,
-            punim_protetikor=punim,
-            tekniku=tekniku,
-            verejtje=verejtje,
-        )
-
-        # 2) KRIJO CareHistory (sistemi i ri) paralelisht
+        # --- MARRËVESHJE ---
         agreement_id = request.POST.get("agreement_id") or None
         included = bool(request.POST.get("included_in_agreement"))
 
@@ -340,9 +321,10 @@ def add_history(request, pk):
                 id=int(agreement_id), patient=patient, status="active"
             ).first()
 
+        # 1) KRIJO VETËM CareHistory (sistemi i ri)
         ch = CareHistory.objects.create(
             patient=patient,
-            date=date_obj,                         # ruhet si DateField
+            date=date_obj,
             tooth=dhembi,
             diagnosis=diagnoza,
             treatment=trajtimi,
@@ -351,20 +333,18 @@ def add_history(request, pk):
             doctor=doctor,
             agreement=(agreement if included else None),
             included_in_agreement=included,
-            legacy_historia_id=h.id,
             created_by=request.user,
             updated_by=request.user,
         )
 
-        # 3) Nqs është shënuar pagesë “Paguar” dhe kjo histori NUK është pjesë e marrëveshjes,
-        #    regjistro pagesën si Payment i lidhur me këtë histori
+        # 2) Nëse ka pagesë → fut Payment
         if (paguar or Decimal("0")) > 0 and not included:
             Payment.objects.create(
                 patient=patient,
                 amount=paguar,
                 method="cash",
                 history=ch,
-                notes="Pagesë nga forma e vjetër (auto)",
+                notes="Pagesë nga forma e re",
                 created_by=request.user,
                 updated_by=request.user,
             )

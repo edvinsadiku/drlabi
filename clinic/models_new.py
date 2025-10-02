@@ -32,6 +32,7 @@ class Agreement(models.Model):
     class Meta:
         db_table = "lp_agreements"   # tabela e re
         ordering = ["-created_at"]
+        managed = False
 
     def __str__(self):
         return f"{self.patient.emri_mbiemri or 'Pacient'} – {self.title} ({self.total_amount}€)"
@@ -85,6 +86,7 @@ class CareHistory(models.Model):
     class Meta:
         db_table = "lp_care_histories"
         ordering = ["-date", "-id"]
+        managed = False
 
     def __str__(self):
         return f"{self.patient.emri_mbiemri or 'Pacient'} – {self.diagnosis or 'Histori'}"
@@ -123,6 +125,7 @@ class Payment(models.Model):
     class Meta:
         db_table = "lp_payments"
         ordering = ["-date", "-id"]
+        managed = False
 
     def __str__(self):
         t = "histori" if self.history_id else "marrëveshje"
