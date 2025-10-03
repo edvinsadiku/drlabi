@@ -1,33 +1,33 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.db import models
-from django.db.models import Count
-from django.core.paginator import Paginator
+from datetime import datetime, date, time, timedelta
 from decimal import Decimal, InvalidOperation
+import json
+
+from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
-from .models import Payment
-from .models import Patient, PatienOrtodentics, Historia
-from .models import *
+from django.core.paginator import Paginator
+from django.db import models, transaction
+from django.db.models import (
+    Q, F, Value, Case, When, ExpressionWrapper, Sum,
+    Count, OuterRef, Subquery, DecimalField, DateTimeField, Max
+)
+from django.db.models.functions import Coalesce, Greatest
+from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.utils.timezone import now
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+from .models import (
+    Patient, Historia, HistoryOrtodentics, PatienOrtodentics,
+    PatientDocument, Appointment, Shpenzimet,
+    CareHistory, Agreement, Payment
+)
+
 @login_required
 def home(request):
     return patient_list(request)
-# views.py
-from django.db import models
-from django.db.models import Count, OuterRef, Subquery, F, Q
-from django.core.paginator import Paginator
-from django.utils.timezone import now
-from django.shortcuts import render
 
-from .models import Patient, Appointment  # your models
-
-# views.py
-from django.shortcuts import render
-from django.core.paginator import Paginator
-from django.db import models
-from django.db.models import Q, F, Count, Value, DateTimeField, Max
-from django.db.models.functions import Coalesce, Greatest
-
-from .models import Patient  # your managed=False model
-from .models import Historia, HistoryOrtodentics  # same tables
 
 def patient_list(request):
     q = (request.GET.get("q") or "").strip()
@@ -75,33 +75,6 @@ def patient_list(request):
         "total_patients": paginator.count,
     })
 
-
-from decimal import Decimal
-from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, F, Value, DecimalField, Case, When, ExpressionWrapper
-from django.db.models.functions import Coalesce
-from django.shortcuts import get_object_or_404, render
-
-
-
-from decimal import Decimal
-from django.db.models import Sum, F, Value, Case, When, ExpressionWrapper
-from django.db.models.functions import Coalesce
-from django.db.models.fields import DecimalField, DateTimeField
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.decorators import login_required
-
-from .models import Patient, Historia, HistoryOrtodentics, PatienOrtodentics
-
-from django.db.models import Sum, F, Value, Case, When, ExpressionWrapper, DecimalField
-from django.db.models.functions import Coalesce
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from decimal import Decimal
-
-from .models import (
-    Patient, Historia, HistoryOrtodentics, PatientDocument
-)
 
 
 @login_required
@@ -227,8 +200,6 @@ def history_detail(request, pk):
         "history": history,
     })
 
-# … (orto views + add_history si i ke më lart) …
-
 
 
 # -------------------- ORTO --------------------
@@ -272,11 +243,6 @@ def _parse_date_any(value):
         except Exception:
             pass
     return now().date()
-
-from django.utils.timezone import now
-# clinic/views.py (shto importet)
-from decimal import Decimal
-
 
 @login_required
 def add_history(request, pk):
@@ -353,7 +319,6 @@ def add_history(request, pk):
         "agreements": patient.agreements.filter(status="active").order_by("-created_at"),
     })
 
-# clinic/views.py
 @login_required
 def history_detail(request, pk):
     history = get_object_or_404(Historia, pk=pk)
@@ -424,7 +389,6 @@ def edit_history(request, pk):
     })
 
 
-# ---- DELETE ----
 @login_required
 def delete_history(request, pk):
     historia = get_object_or_404(Historia, pk=pk)
@@ -439,21 +403,6 @@ def delete_history(request, pk):
     })
 
 
-
-# views.py
-from django.db.models import Sum
-from django.utils.timezone import now
-from django.shortcuts import render
-from datetime import timedelta
-from .models import Historia
-
-# views.py
-from datetime import datetime, timedelta
-from django.db.models import Sum
-from django.utils.timezone import now
-from django.shortcuts import render
-from .models import Historia
-
 def _num(x):
     if x in (None, "", "None"):
         return 0
@@ -462,13 +411,6 @@ def _num(x):
     except Exception:
         return 0
 
-# views.py
-from datetime import datetime, date, timedelta
-from decimal import Decimal, InvalidOperation
-from django.shortcuts import render
-from django.db.models import Q
-from django.utils.timezone import now
-from .models import Historia
 
 def _parse_ddmmyyyy(s: str):
     try:
@@ -483,6 +425,7 @@ def _dec(x):
         return Decimal(str(x).replace(",", "."))
     except (InvalidOperation, Exception):
         return Decimal("0")
+
 
 @login_required
 def reports(request):
@@ -674,10 +617,6 @@ def add_or_edit_patient(request, pk=None):
 
     return render(request, "clinic/add_patient.html", {"patient": patient})
 
-# clinic/views.py
-from django.shortcuts import render, redirect, get_object_or_404
-from django.utils.timezone import now
-from .models import Shpenzimet
 @login_required
 def shpenzime_list(request):
     shpenzime = Shpenzimet.objects.all().order_by("-muaji")
@@ -708,6 +647,8 @@ def shpenzime_add(request):
         return redirect("shpenzime_list")
 
     return render(request, "clinic/shpenzime_form.html")
+
+
 @login_required
 def shpenzime_delete(request, pk):
     s = get_object_or_404(Shpenzimet, pk=pk)
@@ -716,15 +657,6 @@ def shpenzime_delete(request, pk):
         return redirect("shpenzime_list")
     return render(request, "clinic/shpenzime_confirm_delete.html", {"shpenzim": s})
 
-
-
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
-from django.utils.timezone import now
-from django.shortcuts import get_object_or_404
-from .models import Appointment, Patient
 
 
 def appointments_calendar(request):
@@ -809,15 +741,6 @@ def appointments_delete(request, pk):
         return JsonResponse({"status": "deleted"})
     return JsonResponse({"error": "Invalid request"}, status=400)
     
-
-from django.views.decorators.http import require_POST
-from django.contrib import messages
-
-from decimal import Decimal
-from django.contrib import messages
-from django.db import transaction
-from django.db.models import Sum, Value, DecimalField
-from django.db.models.functions import Coalesce
 
 @login_required
 @require_POST
@@ -944,14 +867,6 @@ def agreement_create(request, pk):
     return render(request, "clinic/agreement_form.html", {"patient": patient})
 
 
-from decimal import Decimal
-from django.contrib import messages
-from django.db.models import Sum, Value, DecimalField
-from django.db.models.functions import Coalesce
-from django.shortcuts import get_object_or_404, redirect
-from django.utils.timezone import now
-from datetime import datetime, date, timedelta, time
-
 @login_required
 def agreement_close(request, agreement_id):
     # Marrëveshja + total i paguar deri tani
@@ -993,17 +908,6 @@ def agreement_close(request, agreement_id):
 
     messages.success(request, "Marrëveshja u mbyll me sukses.")
     return redirect("patient_detail", pk=agreement.patient_id)
-
-
-from datetime import datetime, date, time, timedelta
-from decimal import Decimal
-from django.db.models import Sum, F, Value, DecimalField, OuterRef, Subquery
-from django.db.models.functions import Coalesce
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-
-from .models import CareHistory, Agreement, Payment, Patient
 
 
 # ---------------- HELPER ----------------
@@ -1236,11 +1140,6 @@ def agreement_create(request, pk):
     return render(request, "clinic/agreement_form.html", {"patient": patient})
 
 
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from .models import Patient, PatientDocument
-
 @login_required
 def upload_document(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
@@ -1392,10 +1291,6 @@ def search_patients(request):
         Q(emri_mbiemri__icontains=q) | Q(telefoni__icontains=q)
     ).values("id", "emri_mbiemri", "telefoni")[:10]
     return JsonResponse(list(patients), safe=False)
-
-from django.contrib.auth import logout
-from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
 
 @login_required
 def user_logout(request):
