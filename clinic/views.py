@@ -837,33 +837,32 @@ def add_payment(request, pk):
 
     return redirect("patient_detail", pk=patient.pk)
 
-@login_required
-def agreement_create(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
-    if request.method == "POST":
-        title        = request.POST.get("title") or "Marrëveshje trajtimi"
-        total_amount = _to_decimal(request.POST.get("total_amount")) or Decimal("0")
-        start_date   = request.POST.get("start_date") or None
-        end_date     = request.POST.get("end_date") or None
-        doctor       = request.POST.get("doctor") or None   # 👉 merr doktorin
-        notes        = request.POST.get("notes") or ""
-        status       = request.POST.get("status") or "active"
+from django.utils.timezone import now
 
-        Agreement.objects.create(
-            patient=patient,
-            title=title,
-            total_amount=total_amount,
-            start_date=start_date,
-            end_date=end_date,
-            notes=notes,
-            status=status,
-            doctor=doctor,   # 👉 ruaj doktorin
-            created_by=request.user,
-            updated_by=request.user,
-        )
-        return redirect("patient_detail", pk=patient.pk)
-    return render(request, "clinic/agreement_form.html", {"patient": patient})
+# @login_required
+# def agreement_create(request, pk):
+#     patient = get_object_or_404(Patient, pk=pk)
 
+#     if request.method == "POST":
+#         Agreement.objects.create(
+#             patient=patient,
+#             title=request.POST.get("title") or "Marrëveshje trajtimi",
+#             total_amount=_to_decimal(request.POST.get("total_amount")) or Decimal("0"),
+#             start_date=now().date(),   # gjithmonë sot
+#             end_date=request.POST.get("end_date") or None,
+#             notes=request.POST.get("notes") or "",
+#             status=request.POST.get("status") or "active",
+#             doctor=request.POST.get("doctor") or None,
+#             created_by=request.user,
+#             updated_by=request.user,
+#         )
+#         return redirect("patient_detail", pk=patient.pk)
+
+#     # 🚨 Kjo mungonte tek ty
+#     return render(request, "clinic/agreement_form.html", {
+#         "patient": patient,
+#         "today": now().date(),   # shtohet në context
+#     })
 
 @login_required
 def agreement_close(request, agreement_id):
@@ -1109,16 +1108,18 @@ def reports_new(request):
 
 
 # ---------------- AGREEMENT CREATE ----------------
+from django.utils.timezone import now
+
 @login_required
 def agreement_create(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
+
     if request.method == "POST":
-        title = request.POST.get("title") or "Marrëveshje trajtimi"
+        title        = request.POST.get("title") or "Marrëveshje trajtimi"
         total_amount = Decimal(request.POST.get("total_amount") or "0")
-        notes = request.POST.get("notes") or ""
-        start_date = request.POST.get("start_date") or None
-        end_date = request.POST.get("end_date") or None
-        doctor = request.POST.get("doctor") or None  # Doktori
+        notes        = request.POST.get("notes") or ""
+        end_date     = request.POST.get("end_date") or None
+        doctor       = request.POST.get("doctor") or None
 
         Agreement.objects.create(
             patient=patient,
@@ -1126,16 +1127,19 @@ def agreement_create(request, pk):
             total_amount=total_amount,
             notes=notes,
             status=request.POST.get("status", "active"),
-            start_date=start_date or datetime.now().date(),
+            start_date=now().date(),   # 🚀 gjithmonë sot, pa u bazuar në POST
             end_date=end_date,
-            doctor=doctor,  # ruhet doktori
+            doctor=doctor,
             created_by=request.user,
             updated_by=request.user,
         )
         messages.success(request, f"Marrëveshja për {patient.emri_mbiemri} u krijua me sukses.")
         return redirect("patient_detail", pk=patient.pk)
 
-    return render(request, "clinic/agreement_form.html", {"patient": patient})
+    return render(request, "clinic/agreement_form.html", {
+        "patient": patient,
+        "today": now().date(),   # 🚀 për template
+    })
 
 
 @login_required

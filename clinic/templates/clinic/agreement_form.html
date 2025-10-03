@@ -25,14 +25,16 @@
       </div>
       <div>
         <label class="block text-xs text-gray-500 mb-1">Data e fillimit</label>
-        <input type="date" name="start_date" class="border rounded w-full p-2">
+        <input type="hidden" name="start_date" value="{{ today|date:'Y-m-d' }}">
+        <input type="text" value="{{ today|date:'d.m.Y' }}"
+              class="border rounded w-full p-2 bg-gray-100" readonly>
       </div>
       <div>
         <label class="block text-xs text-gray-500 mb-1">Data e mbarimit</label>
         <input type="date" name="end_date" class="border rounded w-full p-2">
       </div>
 
-      <!-- 🚑 SELECT për Doktorin -->
+      <!--  SELECT për Doktorin -->
       <div>
         <label class="block text-xs text-gray-500 mb-1">Doktori *</label>
         <select name="doctor" required class="border rounded w-full p-2">
