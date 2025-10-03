@@ -76,29 +76,36 @@
   </div>
 </div>
 
-<!-- Ndarje sipas doktorit -->
+<!-- Pagesa sipas doktorit (vetëm total) -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
   <div class="bg-white border rounded-2xl overflow-hidden">
-    <div class="px-4 py-3 border-b font-semibold">Pagesa sipas doktorit (nga histori)</div>
+    <div class="px-4 py-3 border-b font-semibold">Pagesa sipas doktorit (histori + marrëveshje)</div>
     <table class="w-full text-sm">
       <thead class="bg-gray-50 text-gray-600">
-        <tr><th class="p-3 text-left">Doktori</th><th class="p-3 text-left">Shuma</th></tr>
+        <tr>
+          <th class="p-3 text-left">Doktori</th>
+          <th class="p-3 text-right">Nga histori (€)</th>
+          <th class="p-3 text-right">Nga marrëveshje (€)</th>
+          <th class="p-3 text-right">Totali (€)</th>
+        </tr>
       </thead>
       <tbody class="divide-y">
-        {% for r in payments_by_doctor %}
+        {% for doctor, vals in payments_by_doctor_total.items %}
         <tr class="hover:bg-gray-50">
-          <td class="p-3">{{ r.doctor_name|default:"-" }}</td>
-          <td class="p-3">{{ r.total }}€</td>
+          <td class="p-3">{{ doctor|default:"-" }}</td>
+          <td class="p-3 text-right">{{ vals.from_histories }}</td>
+          <td class="p-3 text-right">{{ vals.from_agreements }}</td>
+          <td class="p-3 text-right font-semibold">{{ vals.total }}</td>
         </tr>
         {% empty %}
-        <tr><td class="p-3 text-gray-500" colspan="2">S’ka të dhëna.</td></tr>
+        <tr><td colspan="4" class="p-3 text-gray-500">S’ka të dhëna.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- Lista: Historitë & Marrëveshjet -->
+<!-- Lista -->
 <div class="bg-white border rounded-2xl overflow-hidden">
   <div class="px-4 py-3 border-b flex items-center justify-between">
     <h3 class="font-semibold">Historitë, Marrëveshjet & Pagesat</h3>
@@ -106,61 +113,58 @@
   </div>
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
-      <thead class="bg-gray-50 text-gray-600">
+      <thead class="bg-gray-100 text-gray-700 text-xs uppercase tracking-wide">
         <tr>
           <th class="p-3 text-left">Data</th>
           <th class="p-3 text-left">Pacienti</th>
           <th class="p-3 text-left">Lloji</th>
           <th class="p-3 text-left">Doktori</th>
-          <th class="p-3 text-left">Vlera</th>
-          <th class="p-3 text-left">Paguar</th>
-          <th class="p-3 text-left">Borxh</th>
+          <th class="p-3 text-right">Vlera</th>
+          <th class="p-3 text-right">Paguar</th>
+          <th class="p-3 text-right">Borxh</th>
         </tr>
       </thead>
       <tbody class="divide-y">
         {% for h in histories_and_agreements %}
-        <tr class="hover:bg-gray-50">
+        <tr class="hover:bg-gray-50 transition">
+          <!-- Data -->
           <td class="p-3 whitespace-nowrap">
-            {% if h.obj_type == "history" %}
-              {{ h.date|date:"Y-m-d" }}
-            {% elif h.obj_type == "agreement" %}
-              {{ h.created_at|date:"Y-m-d" }}
-            {% elif h.obj_type == "payment_agreement" %}
-              {{ h.created_at|date:"Y-m-d H:i" }}
+            {% if h.obj_type == "history" %}{{ h.date|date:"Y-m-d" }}
+            {% elif h.obj_type == "agreement" %}{{ h.created_at|date:"Y-m-d" }}
+            {% elif h.obj_type == "payment_agreement" %}{{ h.created_at|date:"Y-m-d H:i" }}
             {% endif %}
           </td>
 
-          <td class="p-3">{{ h.patient.emri_mbiemri }}</td>
+          <!-- Pacienti -->
+          <td class="p-3 font-medium text-gray-800">{{ h.patient.emri_mbiemri }}</td>
 
+          <!-- Lloji -->
           <td class="p-3">
             {% if h.obj_type == "history" %}
-              Historia: {{ h.diagnosis|default:"-" }}
+              Historia: <span class="text-gray-700">{{ h.diagnosis|default:"-" }}</span>
             {% elif h.obj_type == "agreement" %}
-              Marrëveshje: {{ h.title }}
+              Marrëveshje: <span class="font-medium text-emerald-700">{{ h.title }}</span>
             {% elif h.obj_type == "payment_agreement" %}
               <span class="text-emerald-700 font-semibold">Pagesë për marrëveshje:</span> {{ h.agreement.title }}
             {% endif %}
           </td>
 
-          <td class="p-3">
+          <!-- Doktori -->
+          <td class="p-3 text-gray-700">
             {% if h.obj_type == "history" %}
               {{ h.doctor|default:"-" }}
-            {% else %}
-              -
-            {% endif %}
-          </td>
-
-          <td class="p-3">
-            {% if h.obj_type == "history" %}
-              {{ h.amount|default:"0.00" }}€
             {% elif h.obj_type == "agreement" %}
-              {{ h.total_amount|default:"0.00" }}€
+              {{ h.doctor|default:"-" }}
             {% elif h.obj_type == "payment_agreement" %}
-              {{ h.amount_display }}€
+              {{ h.agreement.doctor|default:"-" }}
             {% endif %}
           </td>
 
-          <td class="p-3 font-semibold {% if h.obj_type == 'payment_agreement' %}text-emerald-700{% endif %}">
+          <!-- Vlera -->
+          <td class="p-3 text-right">{{ h.amount_display }}€</td>
+
+          <!-- Paguar -->
+          <td class="p-3 text-right font-medium {% if h.obj_type == 'payment_agreement' %}text-emerald-700{% endif %}">
             {% if h.obj_type == "payment_agreement" %}
               {{ h.amount_display }}€
             {% else %}
@@ -168,7 +172,8 @@
             {% endif %}
           </td>
 
-          <td class="p-3 {% if h.debt_sum > 0 %}text-red-600{% endif %}">
+          <!-- Borxh -->
+          <td class="p-3 text-right {% if h.debt_sum > 0 %}text-red-600 font-semibold{% endif %}">
             {% if h.obj_type == "payment_agreement" %}
               -
             {% else %}
@@ -186,13 +191,7 @@
   </div>
 </div>
 
-<!-- Totals only for print -->
-<div class="print-only">
-  <p><strong>Totali i vleres:</strong> {{ total_billed }}€</p>
-  <p><strong>Totali i paguar:</strong> {{ total_paid }}€</p>
-  <p><strong>Borxhi:</strong> {{ outstanding }}€</p>
-</div>
-
+<!-- PRINT STYLES -->
 <!-- PRINT STYLES -->
 <style>
   @media print {
@@ -210,10 +209,16 @@
   @media screen { .print-only { display: none; } }
 </style>
 
+<!-- Totals only for print -->
+<div class="print-only">
+  <p><strong>Totali i faturuar:</strong> {{ total_billed }}€</p>
+  <p><strong>Totali i paguar:</strong> {{ total_paid }}€</p>
+  <p><strong>Borxhi:</strong> {{ outstanding }}€</p>
+</div>
+
 <!-- Scripts -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
 <script>
   function onModeChange(val){
     document.getElementById('fld_day').classList.toggle('hidden',  val!=='day');

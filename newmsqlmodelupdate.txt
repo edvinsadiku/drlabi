@@ -1,0 +1,20 @@
+ALTER TABLE lp_agreements
+ADD COLUMN doctor VARCHAR(191) NULL AFTER notes;
+
+-- 2) (Opsionale) Vendos kufizim vetëm për dy doktorët
+ALTER TABLE lp_agreements
+ADD CONSTRAINT chk_doctor CHECK (doctor IN ('Dr. Labi', 'Dr. Linda'));
+
+-- 3) Kontrollo nëse kolona u shtua
+DESCRIBE lp_agreements;
+
+-- 4) Shembull për të përditësuar manualisht marrëveshjet ekzistuese
+--    (vendos sipas nevojës)
+UPDATE lp_agreements SET doctor = 'Dr. Labi' WHERE id IN (1,2,3);
+UPDATE lp_agreements SET doctor = 'Dr. Linda' WHERE id IN (4,5);
+
+-- 5) Kontrollo të dhënat
+SELECT id, patient_id, title, total_amount, doctor
+FROM lp_agreements
+ORDER BY id DESC
+LIMIT 20;

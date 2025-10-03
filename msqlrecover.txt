@@ -1,92 +1,24 @@
--- ======================================================
--- 0) BACKUP para se të ekzekutosh këtë skript!
---    mysqldump -u root -p h205760_admin_labi > backup.sql
--- ======================================================
-
--- ------------------------------------------------------
--- 1) Unifiko databazën në utf8mb4 / unicode_ci
--- ------------------------------------------------------
+-- 1) Charset i databazës
 ALTER DATABASE h205760_admin_labi CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- ------------------------------------------------------
--- 2) Standardizo të gjitha tabelat kryesore
--- ------------------------------------------------------
+-- 2) Charset i tabelave kryesore
 ALTER TABLE patients CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ALTER TABLE historias CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ALTER TABLE history_ortodentics CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-ALTER TABLE appointments CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ALTER TABLE patient_documents CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- ------------------------------------------------------
--- 3) Normalizo patients.id -> BIGINT SIGNED
--- ------------------------------------------------------
-ALTER TABLE patients 
-    MODIFY id BIGINT NOT NULL AUTO_INCREMENT;
+-- 3) Normalizo ID te patients
+ALTER TABLE patients MODIFY id BIGINT NOT NULL AUTO_INCREMENT;
 
--- ------------------------------------------------------
--- 4) HISTORIAS
--- ------------------------------------------------------
--- Hiq foreign key ekzistues (gjej emrin real nëse është ndryshe)
-ALTER TABLE historias DROP FOREIGN KEY IF EXISTS fk_historias_patient;
-ALTER TABLE historias DROP FOREIGN KEY IF EXISTS historias_id_pacienti_foreign;
+-- 4) Normalizo ID te historias
+ALTER TABLE historias MODIFY id BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE historias MODIFY id_pacienti BIGINT NULL;
 
--- Hiq index të vjetër (nëse Laravel e ka krijuar si thjesht KEY)
-DROP INDEX IF EXISTS historias_id_pacienti_foreign ON historias;
+-- 5) Normalizo ID te history_ortodentics
+ALTER TABLE history_ortodentics MODIFY id BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE history_ortodentics MODIFY id_pacienti BIGINT NOT NULL;
 
--- Normalizo kolonat
-ALTER TABLE historias 
-    MODIFY id BIGINT NOT NULL AUTO_INCREMENT,
-    MODIFY id_pacienti BIGINT NULL;
 
--- Rikrijo foreign key
-ALTER TABLE historias
-    ADD CONSTRAINT fk_historias_patient
-    FOREIGN KEY (id_pacienti) REFERENCES patients(id) ON DELETE CASCADE;
-
--- ------------------------------------------------------
--- 5) HISTORY_ORTODENTICS
--- ------------------------------------------------------
-ALTER TABLE history_ortodentics DROP FOREIGN KEY IF EXISTS fk_history_ortodentics_patient;
-ALTER TABLE history_ortodentics DROP FOREIGN KEY IF EXISTS history_ortodentics_id_pacienti_foreign;
-
-DROP INDEX IF EXISTS history_ortodentics_id_pacienti_foreign ON history_ortodentics;
-
-ALTER TABLE history_ortodentics 
-    MODIFY id BIGINT NOT NULL AUTO_INCREMENT,
-    MODIFY id_pacienti BIGINT NOT NULL;
-
-ALTER TABLE history_ortodentics
-    ADD CONSTRAINT fk_history_ortodentics_patient
-    FOREIGN KEY (id_pacienti) REFERENCES patients(id) ON DELETE CASCADE;
-
--- ------------------------------------------------------
--- 6) APPOINTMENTS
--- ------------------------------------------------------
-ALTER TABLE appointments DROP FOREIGN KEY IF EXISTS fk_appointments_patient;
-ALTER TABLE appointments DROP FOREIGN KEY IF EXISTS appointments_patient_id_foreign;
-
-DROP INDEX IF EXISTS appointments_patient_id_foreign ON appointments;
-
-ALTER TABLE appointments 
-    MODIFY id BIGINT NOT NULL AUTO_INCREMENT,
-    MODIFY patient_id BIGINT NOT NULL;
-
-ALTER TABLE appointments
-    ADD CONSTRAINT fk_appointments_patient
-    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE;
-
--- ------------------------------------------------------
--- 7) PATIENT_DOCUMENTS
--- ------------------------------------------------------
-ALTER TABLE patient_documents DROP FOREIGN KEY IF EXISTS fk_patient_documents_patient;
-ALTER TABLE patient_documents DROP FOREIGN KEY IF EXISTS patient_documents_patient_id_foreign;
-
-DROP INDEX IF EXISTS patient_documents_patient_id_foreign ON patient_documents;
-
-ALTER TABLE patient_documents 
-    MODIFY id BIGINT NOT NULL AUTO_INCREMENT,
-    MODIFY patient_id BIGINT NOT NULL;
-
-ALTER TABLE patient_documents
-    ADD CONSTRAINT fk_patient_documents_patient
-    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE;
+-- 7) Normalizo ID te patient_documents
+ALTER TABLE patient_documents MODIFY id BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE patient_documents MODIFY patient_id BIGINT NOT NULL;

@@ -252,6 +252,12 @@ class Agreement(models.Model):
     notes = models.TextField(null=True, blank=True)
     start_date = models.DateField(default=now)
     end_date = models.DateField(null=True, blank=True)
+    doctor = models.CharField(
+        max_length=191,
+        choices=[("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")],
+        null=True,
+        blank=True
+    )
     created_at = models.DateTimeField(default=now)
     updated_at = models.DateTimeField(default=now)
     created_by = models.ForeignKey(
