@@ -244,14 +244,15 @@ def _parse_date_any(value):
             pass
     return now().date()
 
+from django.utils.timezone import now
+
 @login_required
 def add_history(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
 
     if request.method == "POST":
-        # --- DATA ---
-        data_raw = request.POST.get("data")
-        date_obj = _parse_date_any(data_raw)
+        # Data fikse = sot
+        date_obj = now().date()
 
         # --- FUSHA TË TJERA ---
         dhembi   = request.POST.get("dhembi") or None
@@ -276,17 +277,15 @@ def add_history(request, pk):
                 id=int(agreement_id), patient=patient, status="active"
             ).first()
             if agreement:
-                included = True  # automatikisht e përfshirë në marrëveshje
+                included = True
 
-        # --- VALIDIMI: nëse nuk ka marrëveshje, vlera është e detyrueshme
         if not agreement and (not vlera or vlera <= 0):
             messages.error(request, "Ju lutem shënoni vlerën e shërbimit ose zgjidhni një marrëveshje.")
             return redirect("add_history", pk=patient.pk)
 
-        # 1) KRIJO CareHistory
         ch = CareHistory.objects.create(
             patient=patient,
-            date=date_obj,
+            date=date_obj,   # gjithmonë sot
             tooth=dhembi,
             diagnosis=diagnoza,
             treatment=trajtimi,
@@ -299,7 +298,6 @@ def add_history(request, pk):
             updated_by=request.user,
         )
 
-        # 2) Nëse ka pagesë → fut Payment
         if (paguar or Decimal("0")) > 0 and not included:
             Payment.objects.create(
                 patient=patient,
@@ -315,7 +313,7 @@ def add_history(request, pk):
 
     return render(request, "clinic/history_form_simple.html", {
         "patient": patient,
-        "today": now().date(),
+        "today": now().date(),  # për t’ia treguar përdoruesit
         "agreements": patient.agreements.filter(status="active").order_by("-created_at"),
     })
 

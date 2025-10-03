@@ -17,12 +17,12 @@
   <section class="space-y-3">
     <h3 class="text-sm font-semibold text-gray-700">Të dhënat kryesore</h3>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">Data</label>
-        <input name="data" type="date"
-               value="{{ historia.data|date:'Y-m-d'|default:today }}"
-               class="border rounded w-full p-2" />
-      </div>
+     <div>
+  <label class="block text-xs text-gray-500 mb-1">Data</label>
+  <input type="hidden" name="data" value="{{ today|date:'Y-m-d' }}">
+  <input type="text" value="{{ today|date:'d.m.Y' }}" class="border rounded w-full p-2 bg-gray-100" readonly>
+</div>
+
       <div>
         <label class="block text-xs text-gray-500 mb-1">Doktori</label>
         <select name="doctor" class="border rounded w-full p-2" required>
