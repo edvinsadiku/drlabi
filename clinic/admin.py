@@ -51,13 +51,6 @@ class ShpenzimetAdmin(admin.ModelAdmin):
     list_display = ("id", "shpenzimi", "muaji", "vlera", "paguar")
 
 
-#Appointment
-@admin.register(models.Appointment)
-class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ("id", "patient", "doctor", "title", "start", "status")
-    list_filter = ("doctor", "status", "start")
-    search_fields = ("title", "notes", "doctor")
-
 
 #Patient Documents
 @admin.register(models.PatientDocument)
