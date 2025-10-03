@@ -31,7 +31,6 @@ from .models import Historia, HistoryOrtodentics  # same tables
 
 def patient_list(request):
     q = (request.GET.get("q") or "").strip()
-    sort = (request.GET.get("sort") or "").strip()
 
     qs = Patient.objects.all()
 
@@ -45,7 +44,7 @@ def patient_list(request):
 
     # ---- Lightweight annotations ----
     qs = qs.annotate(
-        historias_count=Count("historias"),  # heq distinct=True (shumë i rëndë)
+        historias_count=Count("historias"),
         last_historia=Max("historias__created_at"),
     ).annotate(
         last_history=Coalesce(
@@ -56,15 +55,8 @@ def patient_list(request):
         city=Coalesce(F("adresa"), Value("", output_field=None)),
     )
 
-    # Sorting - thjeshtuar
-    if sort == "last_history":
-        qs = qs.order_by("-last_history", "-id")
-    elif sort == "register_date":
-        qs = qs.order_by("-register_date", "-id")
-    elif sort == "name":
-        qs = qs.order_by("emri_mbiemri", "-id")
-    else:
-        qs = qs.order_by("-id")
+    # Sorting default: nga historia e fundit
+    qs = qs.order_by("-last_history", "-id")
 
     # Pagination
     paginator = Paginator(qs, 20)
@@ -80,7 +72,6 @@ def patient_list(request):
         "page_obj": page_obj,
         "page_numbers": page_numbers,
         "q": q,
-        "sort": sort,
         "total_patients": paginator.count,
     })
 
@@ -646,29 +637,42 @@ def reports(request):
 
 from django.contrib import messages
 @login_required
-def add_patient(request):
+def add_or_edit_patient(request, pk=None):
+    patient = None
+    if pk:
+        patient = get_object_or_404(Patient, pk=pk)
+
     if request.method == "POST":
         emri_mbiemri = request.POST.get("emri_mbiemri")
-        data_e_lindjes = request.POST.get("data_e_lindjes")
+        data_e_lindjes = request.POST.get("data_e_lindjes") or None
         telefoni = request.POST.get("telefoni")
         emaili = request.POST.get("emaili")
         leternjoftimi = request.POST.get("leternjoftimi")
 
-        if emri_mbiemri:  # vetëm emri i domosdoshëm
-            patient = Patient.objects.create(
-                emri_mbiemri=emri_mbiemri,
-                data_e_lindjes=data_e_lindjes,
-                telefoni=telefoni,
-                emaili=emaili,
-                leternjoftimi=leternjoftimi
-            )
-            messages.success(request, f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses.")
-            return redirect("patient_list")
-        else:
+        if not emri_mbiemri:
             messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
+        else:
+            if patient:  # EDIT
+                patient.emri_mbiemri = emri_mbiemri
+                patient.data_e_lindjes = data_e_lindjes
+                patient.telefoni = telefoni
+                patient.emaili = emaili
+                patient.leternjoftimi = leternjoftimi
+                patient.save()
+                messages.success(request, f"Pacienti {patient.emri_mbiemri} u përditësua me sukses.")
+            else:  # CREATE
+                patient = Patient.objects.create(
+                    emri_mbiemri=emri_mbiemri,
+                    data_e_lindjes=data_e_lindjes,
+                    telefoni=telefoni,
+                    emaili=emaili,
+                    leternjoftimi=leternjoftimi
+                )
+                messages.success(request, f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses.")
 
-    return render(request, "clinic/add_patient.html")
+            return redirect("patient_list")
 
+    return render(request, "clinic/add_patient.html", {"patient": patient})
 
 # clinic/views.py
 from django.shortcuts import render, redirect, get_object_or_404
