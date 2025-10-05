@@ -1,8 +1,10 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser
-from django.utils.timezone import now
 from decimal import Decimal
+
 from django.conf import settings
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django.utils.timezone import now
+
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
@@ -46,9 +48,9 @@ class Patient(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'patients'
-        verbose_name = 'Patient'
-        verbose_name_plural = 'Patients'
+        db_table = "patients"
+        verbose_name = "Patient"
+        verbose_name_plural = "Patients"
 
     def __str__(self):
         return self.emri_mbiemri or f"Patient #{self.pk}"
@@ -66,7 +68,9 @@ class Historia(models.Model):
     borgji = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
     verejtje = models.CharField(max_length=191, null=True, blank=True)
     pasqyra_e_dhembit = models.CharField(max_length=191, null=True, blank=True)
-    patient = models.ForeignKey('Patient', models.DO_NOTHING, db_column='id_pacienti', related_name='historias')
+    patient = models.ForeignKey(
+        "Patient", models.DO_NOTHING, db_column="id_pacienti", related_name="historias"
+    )
     created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
     doctor = models.CharField(max_length=191, null=True, blank=True)
@@ -75,9 +79,9 @@ class Historia(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'historias'
-        verbose_name = 'Historia'
-        verbose_name_plural = 'Historias'
+        db_table = "historias"
+        verbose_name = "Historia"
+        verbose_name_plural = "Historias"
 
     def __str__(self):
         return f"{self.data or ''} – {self.diagnoza or 'Pa diagnozë'}"
@@ -98,19 +102,19 @@ class HistoryOrtodentics(models.Model):
     punim_protetikor = models.TextField(null=True, blank=True)
     tekniku = models.CharField(max_length=191, null=True, blank=True)
     patient = models.ForeignKey(
-        'PatienOrtodentics',
+        "PatienOrtodentics",
         models.DO_NOTHING,
-        db_column='id_pacienti',
-        related_name='ortho_histories'
+        db_column="id_pacienti",
+        related_name="ortho_histories",
     )
     created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         managed = False
-        db_table = 'history_ortodentics'
-        verbose_name = 'Ortodentics History'
-        verbose_name_plural = 'Ortodentics Histories'
+        db_table = "history_ortodentics"
+        verbose_name = "Ortodentics History"
+        verbose_name_plural = "Ortodentics Histories"
 
 
 class PatienOrtodentics(models.Model):
@@ -140,9 +144,9 @@ class PatienOrtodentics(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'patien_ortodentics'
-        verbose_name = 'Patient (Ortodentics)'
-        verbose_name_plural = 'Patients (Ortodentics)'
+        db_table = "patien_ortodentics"
+        verbose_name = "Patient (Ortodentics)"
+        verbose_name_plural = "Patients (Ortodentics)"
 
     def __str__(self):
         return self.emri_mbiemri or f"Orto Patient #{self.pk}"
@@ -160,9 +164,9 @@ class Shpenzimet(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'shpenzimets'
-        verbose_name = 'Shpenzim'
-        verbose_name_plural = 'Shpenzime'
+        db_table = "shpenzimets"
+        verbose_name = "Shpenzim"
+        verbose_name_plural = "Shpenzime"
 
     def __str__(self):
         return self.shpenzimi or f"Shpenzim #{self.pk}"
@@ -170,6 +174,7 @@ class Shpenzimet(models.Model):
 
 from django.db import models
 from django.utils.timezone import now
+
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
@@ -181,29 +186,22 @@ class Appointment(models.Model):
     patient = models.ForeignKey(
         "Patient",
         on_delete=models.CASCADE,
-        db_column="patient_id",          # 🔑 lidhja e saktë me kolonën ekzistuese
+        db_column="patient_id",  # 🔑 lidhja e saktë me kolonën ekzistuese
         related_name="appointments",
-        
     )
     doctor = models.CharField(
-        max_length=100,
-        choices=[("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")]
+        max_length=100, choices=[("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")]
     )
-    title = models.CharField(
-        max_length=191,
-        help_text="Shërbimi ose arsyeja e vizitës"
-    )
+    title = models.CharField(max_length=191, help_text="Shërbimi ose arsyeja e vizitës")
     start = models.DateTimeField(default=now)
     end = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="scheduled"
+        max_length=20, choices=STATUS_CHOICES, default="scheduled"
     )
     notes = models.TextField(null=True, blank=True)
 
     class Meta:
-        managed = False 
+        managed = False
         db_table = "appointments"
         ordering = ["-start"]
 
@@ -213,19 +211,21 @@ class Appointment(models.Model):
 
 from django.conf import settings
 
+
 class PatientDocument(models.Model):
     patient = models.ForeignKey(
         "Patient",
         on_delete=models.CASCADE,
         db_column="patient_id",
-        related_name="documents"
+        related_name="documents",
     )
     file = models.FileField(upload_to="patient_documents/")
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name="uploaded_documents"
+        null=True,
+        blank=True,
+        related_name="uploaded_documents",
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -245,7 +245,13 @@ class Agreement(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    patient = models.ForeignKey("Patient", on_delete=models.CASCADE, related_name="agreements",db_constraint=False,db_column="patient_id")
+    patient = models.ForeignKey(
+        "Patient",
+        on_delete=models.CASCADE,
+        related_name="agreements",
+        db_constraint=False,
+        db_column="patient_id",
+    )
     title = models.CharField(max_length=191, default="Marrëveshje trajtimi")
     total_amount = models.DecimalField(max_digits=18, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS, default="active")
@@ -256,21 +262,27 @@ class Agreement(models.Model):
         max_length=191,
         choices=[("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")],
         null=True,
-        blank=True
+        blank=True,
     )
     created_at = models.DateTimeField(default=now)
     updated_at = models.DateTimeField(default=now)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="created_agreements"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_agreements",
     )
     updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="updated_agreements"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="updated_agreements",
     )
 
     class Meta:
-        db_table = "lp_agreements"   # tabela e re
+        db_table = "lp_agreements"  # tabela e re
         ordering = ["-created_at"]
         managed = False
 
@@ -293,8 +305,15 @@ class CareHistory(models.Model):
     Nëse është e lidhur me marrëveshje dhe 'included_in_agreement' është True,
     atëherë s’ka nevojë të ketë çmim (ose mund të jetë 0).
     """
+
     id = models.AutoField(primary_key=True)
-    patient = models.ForeignKey("Patient", on_delete=models.CASCADE, related_name="care_histories",db_constraint=False,db_column="patient_id")
+    patient = models.ForeignKey(
+        "Patient",
+        on_delete=models.CASCADE,
+        related_name="care_histories",
+        db_constraint=False,
+        db_column="patient_id",
+    )
     date = models.DateField(default=now)
     tooth = models.CharField(max_length=50, null=True, blank=True)
     diagnosis = models.CharField(max_length=191, null=True, blank=True)
@@ -306,7 +325,13 @@ class CareHistory(models.Model):
     doctor = models.CharField(max_length=191, null=True, blank=True)
 
     # Lidhje opsionale me marrëveshje
-    agreement = models.ForeignKey(Agreement, null=True, blank=True, on_delete=models.SET_NULL, related_name="histories")
+    agreement = models.ForeignKey(
+        Agreement,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="histories",
+    )
     included_in_agreement = models.BooleanField(default=False)
 
     # referencë opsionale te rekordi i vjetër (për audit/trace)
@@ -315,12 +340,18 @@ class CareHistory(models.Model):
     created_at = models.DateTimeField(default=now)
     updated_at = models.DateTimeField(default=now)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="created_care_histories"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_care_histories",
     )
     updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="updated_care_histories"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="updated_care_histories",
     )
 
     class Meta:
@@ -329,7 +360,9 @@ class CareHistory(models.Model):
         managed = False
 
     def __str__(self):
-        return f"{self.patient.emri_mbiemri or 'Pacient'} – {self.diagnosis or 'Histori'}"
+        return (
+            f"{self.patient.emri_mbiemri or 'Pacient'} – {self.diagnosis or 'Histori'}"
+        )
 
 
 class Payment(models.Model):
@@ -341,25 +374,49 @@ class Payment(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    patient = models.ForeignKey("Patient", on_delete=models.CASCADE, related_name="payments",db_constraint=False,db_column="patient_id")
+    patient = models.ForeignKey(
+        "Patient",
+        on_delete=models.CASCADE,
+        related_name="payments",
+        db_constraint=False,
+        db_column="patient_id",
+    )
     amount = models.DecimalField(max_digits=18, decimal_places=2)
     method = models.CharField(max_length=20, choices=METHOD, default="cash")
     date = models.DateTimeField(default=now)
     notes = models.CharField(max_length=255, null=True, blank=True)
 
     # Një pagesë mund të jetë për një histori TË RE specifike...
-    history = models.ForeignKey(CareHistory, null=True, blank=True, on_delete=models.SET_NULL, related_name="payments")
+    history = models.ForeignKey(
+        CareHistory,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="payments",
+    )
     # ... ose për një marrëveshje (akontim ose këst)
-    agreement = models.ForeignKey(Agreement, null=True, blank=True, on_delete=models.SET_NULL, related_name="payments")
+    agreement = models.ForeignKey(
+        Agreement,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="payments",
+    )
 
     created_at = models.DateTimeField(default=now)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="created_payments"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_payments",
     )
     updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="updated_payments"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="updated_payments",
     )
 
     class Meta:

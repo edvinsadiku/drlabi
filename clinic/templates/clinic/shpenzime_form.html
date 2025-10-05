@@ -1,37 +1,34 @@
 {% extends "clinic/base.html" %}
 {% block title %}Shto Shpenzim{% endblock %}
 {% block content %}
-
-<h2 class="text-lg font-semibold mb-4">Shto shpenzim</h2>
-
-<form method="post" class="bg-white border rounded-lg p-5 space-y-4">
-  {% csrf_token %}
-  <div>
-    <label class="block text-sm text-gray-600 mb-1">Shpenzimi</label>
-    <input name="shpenzimi" class="border rounded w-full p-2" required>
-  </div>
-  <div>
-    <label class="block text-sm text-gray-600 mb-1">Data</label>
-    <input type="date" name="muaji" class="border rounded w-full p-2">
-  </div>
-  <div>
-    <label class="block text-sm text-gray-600 mb-1">Vlera (€)</label>
-    <input type="number" name="vlera" class="border rounded w-full p-2">
-  </div>
-  <div>
-    <label class="inline-flex items-center gap-2">
-      <input type="checkbox" name="paguar" class="rounded">
-      <span class="text-sm">Paguar</span>
-    </label>
-  </div>
-  <div>
-    <label class="block text-sm text-gray-600 mb-1">Përshkrimi</label>
-    <textarea name="pershkrimi" rows="2" class="border rounded w-full p-2"></textarea>
-  </div>
-  <div class="flex items-center gap-3">
-    <button class="px-4 py-2 bg-emerald-600 text-white rounded">Ruaj</button>
-    <a href="{% url 'shpenzime_list' %}" class="px-4 py-2 border rounded">Anulo</a>
-  </div>
-</form>
-
+    <h2 class="text-lg font-semibold mb-4">Shto shpenzim</h2>
+    <form method="post" class="bg-white border rounded-lg p-5 space-y-4">
+        {% csrf_token %}
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Shpenzimi</label>
+            <input name="shpenzimi" class="border rounded w-full p-2" required>
+        </div>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Data</label>
+            <input type="date" name="muaji" class="border rounded w-full p-2">
+        </div>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Vlera (€)</label>
+            <input type="number" name="vlera" class="border rounded w-full p-2">
+        </div>
+        <div>
+            <label class="inline-flex items-center gap-2">
+                <input type="checkbox" name="paguar" class="rounded">
+                <span class="text-sm">Paguar</span>
+            </label>
+        </div>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Përshkrimi</label>
+            <textarea name="pershkrimi" rows="2" class="border rounded w-full p-2"></textarea>
+        </div>
+        <div class="flex items-center gap-3">
+            <button class="px-4 py-2 bg-emerald-600 text-white rounded">Ruaj</button>
+            <a href="{% url 'shpenzime_list' %}" class="px-4 py-2 border rounded">Anulo</a>
+        </div>
+    </form>
 {% endblock %}

@@ -1,45 +1,39 @@
 <!DOCTYPE html>
 <html lang="sq">
-<head>
-  <meta charset="UTF-8">
-  <title>Kyçu</title>
-  {% load static %}
-</head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-
-  <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-sm">
-    <!-- LOGO -->
-    <div class="flex justify-center mb-6">
-      <img src="{% static 'assets/img/logo.svg' %}"  alt="Logo" class="h-16">
-    </div>
-
-    <form method="post" class="space-y-4">
-      {% csrf_token %}
-
-      {% if form.errors %}
-        <div class="p-3 bg-red-100 text-red-700 rounded">
-          Përdoruesi ose fjalëkalimi është i pasaktë.
+    <head>
+        <meta charset="UTF-8">
+        <title>Kyçu</title>
+        {% load static %}
+    </head>
+    <body class="bg-gray-100 flex items-center justify-center h-screen">
+        <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-sm">
+            <!-- LOGO -->
+            <div class="flex justify-center mb-6">
+                <img src="{% static 'assets/img/logo.svg' %}"  alt="Logo" class="h-16">
+            </div>
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                {% if form.errors %}
+                    <div class="p-3 bg-red-100 text-red-700 rounded">Përdoruesi ose fjalëkalimi është i pasaktë.</div>
+                {% endif %}
+                <div>
+                    <label class="block text-sm mb-1">Përdoruesi</label>
+                    <input type="text"
+                           name="username"
+                           autofocus
+                           class="w-full border rounded p-2"
+                           required>
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Fjalëkalimi</label>
+                    <input type="password"
+                           name="password"
+                           class="w-full border rounded p-2"
+                           required>
+                </div>
+                <button class="w-full bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700">Kyçu</button>
+            </form>
         </div>
-      {% endif %}
-
-      <div>
-        <label class="block text-sm mb-1">Përdoruesi</label>
-        <input type="text" name="username" autofocus
-               class="w-full border rounded p-2" required>
-      </div>
-
-      <div>
-        <label class="block text-sm mb-1">Fjalëkalimi</label>
-        <input type="password" name="password"
-               class="w-full border rounded p-2" required>
-      </div>
-
-      <button class="w-full bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700">
-        Kyçu
-      </button>
-    </form>
-  </div>
-  <script src="https://cdn.tailwindcss.com"></script>
-
-</body>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </body>
 </html>

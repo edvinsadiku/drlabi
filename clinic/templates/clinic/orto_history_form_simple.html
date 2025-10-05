@@ -1,8 +1,7 @@
 {% extends "clinic/base.html" %}
 {% block title %}Shto ORTO histori – {{ patient.emri_mbiemri }}{% endblock %}
 {% block content %}
-
-<style>
+    <style>
   :root {
     --medical-blue: #0ea5e9;
     --medical-green: #10b981;
@@ -42,82 +41,102 @@
   .toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
   .toolbar h2 { color: var(--text-primary); }
   .label { display:block; font-size:.875rem; color: var(--text-secondary); margin-bottom:.35rem; }
-</style>
-
-<div class="max-w-4xl mx-auto">
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <h2 class="text-xl font-semibold">
-      Shto ORTO histori për: <span class="text-medicalBlue">{{ patient.emri_mbiemri }}</span>
-    </h2>
-    <a href="{% url 'orto_patient_detail' patient.id %}" class="btn-outline-medical">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-      </svg>
-      Kthehu
-    </a>
-  </div>
-
-  <!-- Forma -->
-  <form method="post" class="medical-card p-6 md:p-8">
-    {% csrf_token %}
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Data -->
-      <div>
-        <label class="label">Data</label>
-        <input type="date" name="data" class="modern-input" placeholder="p.sh. 2025-08-28" />
-      </div>
-
-      <!-- Doktori -->
-      <div>
-        <label class="label">Doktori</label>
-        <input type="text" name="doctor" class="modern-input" placeholder="Emri i mjekut" />
-      </div>
-
-      <!-- Diagnoza -->
-      <div class="md:col-span-2">
-        <label class="label">Diagnoza</label>
-        <input type="text" name="diagnoza" class="modern-input" placeholder="P.sh. Malokluzion klasa II ..." />
-      </div>
-
-      <!-- Trajtimi -->
-      <div class="md:col-span-2">
-        <label class="label">Trajtimi</label>
-        <textarea name="trajtimi" rows="4" class="modern-input" placeholder="Përshkruaj trajtimin, aparatët, seancat..."></textarea>
-      </div>
-
-      <!-- Vlerat financiare -->
-      <div>
-        <label class="label">Vlera</label>
-        <input type="number" step="0.01" name="vlera" class="modern-input" placeholder="0.00" />
-      </div>
-      <div>
-        <label class="label">Paguar</label>
-        <input type="number" step="0.01" name="paguar" class="modern-input" placeholder="0.00" />
-      </div>
-      <div>
-        <label class="label">Borgji</label>
-        <input type="number" step="0.01" name="borgji" class="modern-input" placeholder="0.00" />
-      </div>
-
-      <!-- Vërejtje -->
-      <div class="md:col-span-2">
-        <label class="label">Vërejtje</label>
-        <input type="text" name="verejtje" class="modern-input" placeholder="Opsionale" />
-      </div>
+    </style>
+    <div class="max-w-4xl mx-auto">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <h2 class="text-xl font-semibold">
+                Shto ORTO histori për: <span class="text-medicalBlue">{{ patient.emri_mbiemri }}</span>
+            </h2>
+            <a href="{% url 'orto_patient_detail' patient.id %}"
+               class="btn-outline-medical">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Kthehu
+            </a>
+        </div>
+        <!-- Forma -->
+        <form method="post" class="medical-card p-6 md:p-8">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Data -->
+                <div>
+                    <label class="label">Data</label>
+                    <input type="date"
+                           name="data"
+                           class="modern-input"
+                           placeholder="p.sh. 2025-08-28" />
+                </div>
+                <!-- Doktori -->
+                <div>
+                    <label class="label">Doktori</label>
+                    <input type="text"
+                           name="doctor"
+                           class="modern-input"
+                           placeholder="Emri i mjekut" />
+                </div>
+                <!-- Diagnoza -->
+                <div class="md:col-span-2">
+                    <label class="label">Diagnoza</label>
+                    <input type="text"
+                           name="diagnoza"
+                           class="modern-input"
+                           placeholder="P.sh. Malokluzion klasa II ..." />
+                </div>
+                <!-- Trajtimi -->
+                <div class="md:col-span-2">
+                    <label class="label">Trajtimi</label>
+                    <textarea name="trajtimi"
+                              rows="4"
+                              class="modern-input"
+                              placeholder="Përshkruaj trajtimin, aparatët, seancat..."></textarea>
+                </div>
+                <!-- Vlerat financiare -->
+                <div>
+                    <label class="label">Vlera</label>
+                    <input type="number"
+                           step="0.01"
+                           name="vlera"
+                           class="modern-input"
+                           placeholder="0.00" />
+                </div>
+                <div>
+                    <label class="label">Paguar</label>
+                    <input type="number"
+                           step="0.01"
+                           name="paguar"
+                           class="modern-input"
+                           placeholder="0.00" />
+                </div>
+                <div>
+                    <label class="label">Borgji</label>
+                    <input type="number"
+                           step="0.01"
+                           name="borgji"
+                           class="modern-input"
+                           placeholder="0.00" />
+                </div>
+                <!-- Vërejtje -->
+                <div class="md:col-span-2">
+                    <label class="label">Vërejtje</label>
+                    <input type="text"
+                           name="verejtje"
+                           class="modern-input"
+                           placeholder="Opsionale" />
+                </div>
+            </div>
+            <!-- Veprimet -->
+            <div class="flex justify-end gap-3 pt-6 mt-6 border-t border-[color:var(--border-soft)]">
+                <a href="{% url 'orto_patient_detail' patient.id %}"
+                   class="btn-outline-medical">Anulo</a>
+                <button type="submit" class="btn-medical">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Ruaj
+                </button>
+            </div>
+        </form>
     </div>
-
-    <!-- Veprimet -->
-    <div class="flex justify-end gap-3 pt-6 mt-6 border-t border-[color:var(--border-soft)]">
-      <a href="{% url 'orto_patient_detail' patient.id %}" class="btn-outline-medical">Anulo</a>
-      <button type="submit" class="btn-medical">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-        Ruaj
-      </button>
-    </div>
-  </form>
-</div>
 {% endblock %}

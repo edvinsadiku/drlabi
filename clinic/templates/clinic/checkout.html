@@ -1,168 +1,165 @@
 {% extends "clinic/base.html" %}
 {% block title %}Checkout Pagesa{% endblock %}
 {% block content %}
-
-<!-- HEADER -->
-<div class="mb-6">
-  <h1 class="text-2xl font-bold text-gray-800">Pagesat</h1>
-  <p class="text-gray-500 text-sm">Kërko pacientin, kontrollo historitë/marrëveshjet dhe regjistro pagesën.</p>
-</div>
-
-<!-- SEARCH BOX -->
-<div x-data="{ query: '', results: [] }" class="mb-6 relative">
-  <input type="text" x-model="query" @input.debounce.300ms="
-      fetch('/patients/search/?q=' + query)
-        .then(r => r.json())
-        .then(data => results = data)" 
-      placeholder="Kërko pacientin me emër ose telefon..."
-      class="w-full rounded-lg border-gray-300 focus:border-emerald-500 shadow-sm pl-3 pr-4 py-2">
-
-  <!-- Autocomplete results -->
-  <ul class="absolute z-10 bg-white border rounded-lg mt-1 w-full shadow-lg divide-y divide-gray-100"
-      x-show="results.length > 0">
-    <template x-for="p in results" :key="p.id">
-      <li @click="window.location='?patient='+p.id"
-          class="px-4 py-2 hover:bg-emerald-50 cursor-pointer text-sm"
-          x-text="p.emri_mbiemri + ' – ' + p.telefoni">
-      </li>
-    </template>
-  </ul>
-</div>
-
-{% if patient %}
-  <!-- PATIENT INFO -->
-  <div class="bg-white shadow-sm rounded-xl p-5 mb-8 flex items-center gap-4">
-    <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg">
-      {{ patient.emri_mbiemri|first }}
+    <!-- HEADER -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Pagesat</h1>
+        <p class="text-gray-500 text-sm">Kërko pacientin, kontrollo historitë/marrëveshjet dhe regjistro pagesën.</p>
     </div>
-    <div>
-      <h2 class="text-lg font-semibold text-gray-800">{{ patient.emri_mbiemri }}</h2>
-      <p class="text-sm text-gray-500">
-        {% if patient.data_e_lindjes %}{{ patient.data_e_lindjes }}{% endif %}
-        {% if patient.telefoni %} &nbsp;| {{ patient.telefoni }}{% endif %}
-      </p>
+    <!-- SEARCH BOX -->
+    <div x-data="{ query: '', results: [] }" class="mb-6 relative">
+        <input type="text"
+               x-model="query"
+               @input.debounce.300ms=" fetch('/patients/search/?q=' + query) .then(r => r.json()) .then(data => results = data)"
+               placeholder="Kërko pacientin me emër ose telefon..."
+               class="w-full rounded-lg border-gray-300 focus:border-emerald-500 shadow-sm pl-3 pr-4 py-2">
+        <!-- Autocomplete results -->
+        <ul class="absolute z-10 bg-white border rounded-lg mt-1 w-full shadow-lg divide-y divide-gray-100"
+            x-show="results.length > 0">
+            <template x-for="p in results" :key="p.id">
+                <li @click="window.location='?patient='+p.id"
+                    class="px-4 py-2 hover:bg-emerald-50 cursor-pointer text-sm"
+                    x-text="p.emri_mbiemri + ' – ' + p.telefoni"></li>
+            </template>
+        </ul>
     </div>
-  </div>
-
-  <!-- KPI BOXES -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <div class="bg-white shadow-sm rounded-xl p-4">
-      <p class="text-sm text-gray-500">Totali i Faturuar</p>
-      <p class="text-2xl font-semibold text-gray-800">{{ total_billed }} €</p>
-    </div>
-    <div class="bg-white shadow-sm rounded-xl p-4">
-      <p class="text-sm text-gray-500">Totali i Paguar</p>
-      <p class="text-2xl font-semibold text-emerald-600">{{ total_paid }} €</p>
-    </div>
-    <div class="bg-white shadow-sm rounded-xl p-4">
-      <p class="text-sm text-gray-500">Borxhi</p>
-      <p class="text-2xl font-semibold text-red-600">{{ debt }} €</p>
-    </div>
-  </div>
-
-  <!-- FORM NEW PAYMENT -->
-  <form method="post" class="bg-white shadow-sm rounded-xl p-6 mb-8 space-y-6">
-    {% csrf_token %}
-    <input type="hidden" name="patient" value="{{ patient.id }}">
-
-    <!-- HISTORIES -->
-    <div>
-      <h2 class="text-base font-semibold text-gray-700 mb-2">Histori</h2>
-      {% if histories %}
-        <div class="space-y-2">
-          {% for h in histories %}
-            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 text-sm">
-              <input type="checkbox" name="history_ids" value="{{ h.id }}" class="h-4 w-4 text-emerald-600">
-              <span>{{ h.date }} – {{ h.diagnosis|default:"Histori" }} (Borxh: {{ h.debt_sum }} €)</span>
-            </label>
-          {% endfor %}
+    {% if patient %}
+        <!-- PATIENT INFO -->
+        <div class="bg-white shadow-sm rounded-xl p-5 mb-8 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg">
+                {{ patient.emri_mbiemri|first }}
+            </div>
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">{{ patient.emri_mbiemri }}</h2>
+                <p class="text-sm text-gray-500">
+                    {% if patient.data_e_lindjes %}{{ patient.data_e_lindjes }}{% endif %}
+                    {% if patient.telefoni %}&nbsp;| {{ patient.telefoni }}{% endif %}
+                </p>
+            </div>
         </div>
-      {% else %}
-        <p class="text-gray-400 text-sm">Nuk ka histori për këtë pacient.</p>
-      {% endif %}
-    </div>
-
-    <!-- AGREEMENTS -->
-    <div>
-      <h2 class="text-base font-semibold text-gray-700 mb-2">Marrëveshje Aktive</h2>
-      {% if agreements %}
-        <div class="space-y-2">
-          {% for a in agreements %}
-            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 text-sm">
-              <input type="radio" name="agreement_id" value="{{ a.id }}" class="h-4 w-4 text-emerald-600">
-              <span>{{ a.title }} – Borxh: {{ a.debt_sum }} €</span>
-            </label>
-          {% endfor %}
+        <!-- KPI BOXES -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white shadow-sm rounded-xl p-4">
+                <p class="text-sm text-gray-500">Totali i Faturuar</p>
+                <p class="text-2xl font-semibold text-gray-800">{{ total_billed }} €</p>
+            </div>
+            <div class="bg-white shadow-sm rounded-xl p-4">
+                <p class="text-sm text-gray-500">Totali i Paguar</p>
+                <p class="text-2xl font-semibold text-emerald-600">{{ total_paid }} €</p>
+            </div>
+            <div class="bg-white shadow-sm rounded-xl p-4">
+                <p class="text-sm text-gray-500">Borxhi</p>
+                <p class="text-2xl font-semibold text-red-600">{{ debt }} €</p>
+            </div>
         </div>
-      {% else %}
-        <p class="text-gray-400 text-sm">Nuk ka marrëveshje aktive.</p>
-      {% endif %}
-    </div>
-
-    <!-- AMOUNT + METHOD -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="text-sm font-medium text-gray-700">Shuma (€)</label>
-        <input type="number" step="0.01" name="amount" required
-               class="mt-1 w-full rounded-lg border-gray-300 focus:border-emerald-500 shadow-sm">
-      </div>
-      <div>
-        <label class="text-sm font-medium text-gray-700">Metoda</label>
-        <select name="method" class="mt-1 w-full rounded-lg border-gray-300 focus:border-emerald-500 shadow-sm">
-          <option value="cash">Cash</option>
-          <option value="card">Kartë</option>
-          <option value="bank">Bankë</option>
-          <option value="other">Tjetër</option>
-        </select>
-      </div>
-      <div>
-        <label class="text-sm font-medium text-gray-700">Shënime</label>
-        <input type="text" name="notes"
-               class="mt-1 w-full rounded-lg border-gray-300 focus:border-emerald-500 shadow-sm">
-      </div>
-    </div>
-
-    <!-- BUTTON -->
-    <div class="flex justify-end">
-      <button class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 transition text-white font-medium rounded-lg shadow-sm">
-        Paguaj
-      </button>
-    </div>
-  </form>
-
-  <!-- PAYMENTS LIST -->
-  <div class="bg-white shadow-sm rounded-xl overflow-hidden">
-    <div class="px-6 py-3 bg-gray-50 border-b">
-      <h3 class="text-gray-700 font-medium">Pagesat e Kryera</h3>
-    </div>
-    <table class="min-w-full text-sm divide-y divide-gray-200">
-      <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
-        <tr>
-          <th class="px-4 py-3 text-left">Data</th>
-          <th class="px-4 py-3 text-left">Metoda</th>
-          <th class="px-4 py-3 text-left">Shënime</th>
-          <th class="px-4 py-3 text-right">Shuma</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100">
-        {% for p in payments %}
-        <tr>
-          <td class="px-4 py-2">{{ p.created_at|date:"d.m.Y H:i" }}</td>
-          <td class="px-4 py-2">{{ p.method|title }}</td>
-          <td class="px-4 py-2">{{ p.notes }}</td>
-          <td class="px-4 py-2 text-right font-semibold text-emerald-600">{{ p.amount }} €</td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="4" class="px-4 py-6 text-center text-gray-400">S’ka pagesa për këtë pacient.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% endif %}
-
-<!-- Alpine.js për autocomplete -->
-<script src="https://unpkg.com/alpinejs" defer></script>
-
+        <!-- FORM NEW PAYMENT -->
+        <form method="post"
+              class="bg-white shadow-sm rounded-xl p-6 mb-8 space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="patient" value="{{ patient.id }}">
+            <!-- HISTORIES -->
+            <div>
+                <h2 class="text-base font-semibold text-gray-700 mb-2">Histori</h2>
+                {% if histories %}
+                    <div class="space-y-2">
+                        {% for h in histories %}
+                            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 text-sm">
+                                <input type="checkbox"
+                                       name="history_ids"
+                                       value="{{ h.id }}"
+                                       class="h-4 w-4 text-emerald-600">
+                                <span>{{ h.date }} – {{ h.diagnosis|default:"Histori" }} (Borxh: {{ h.debt_sum }} €)</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-400 text-sm">Nuk ka histori për këtë pacient.</p>
+                {% endif %}
+            </div>
+            <!-- AGREEMENTS -->
+            <div>
+                <h2 class="text-base font-semibold text-gray-700 mb-2">Marrëveshje Aktive</h2>
+                {% if agreements %}
+                    <div class="space-y-2">
+                        {% for a in agreements %}
+                            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 text-sm">
+                                <input type="radio"
+                                       name="agreement_id"
+                                       value="{{ a.id }}"
+                                       class="h-4 w-4 text-emerald-600">
+                                <span>{{ a.title }} – Borxh: {{ a.debt_sum }} €</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-400 text-sm">Nuk ka marrëveshje aktive.</p>
+                {% endif %}
+            </div>
+            <!-- AMOUNT + METHOD -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Shuma (€)</label>
+                    <input type="number"
+                           step="0.01"
+                           name="amount"
+                           required
+                           class="mt-1 w-full rounded-lg border-gray-300 focus:border-emerald-500 shadow-sm">
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Metoda</label>
+                    <select name="method"
+                            class="mt-1 w-full rounded-lg border-gray-300 focus:border-emerald-500 shadow-sm">
+                        <option value="cash">Cash</option>
+                        <option value="card">Kartë</option>
+                        <option value="bank">Bankë</option>
+                        <option value="other">Tjetër</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Shënime</label>
+                    <input type="text"
+                           name="notes"
+                           class="mt-1 w-full rounded-lg border-gray-300 focus:border-emerald-500 shadow-sm">
+                </div>
+            </div>
+            <!-- BUTTON -->
+            <div class="flex justify-end">
+                <button class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 transition text-white font-medium rounded-lg shadow-sm">
+                    Paguaj
+                </button>
+            </div>
+        </form>
+        <!-- PAYMENTS LIST -->
+        <div class="bg-white shadow-sm rounded-xl overflow-hidden">
+            <div class="px-6 py-3 bg-gray-50 border-b">
+                <h3 class="text-gray-700 font-medium">Pagesat e Kryera</h3>
+            </div>
+            <table class="min-w-full text-sm divide-y divide-gray-200">
+                <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Data</th>
+                        <th class="px-4 py-3 text-left">Metoda</th>
+                        <th class="px-4 py-3 text-left">Shënime</th>
+                        <th class="px-4 py-3 text-right">Shuma</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for p in payments %}
+                        <tr>
+                            <td class="px-4 py-2">{{ p.created_at|date:"d.m.Y H:i" }}</td>
+                            <td class="px-4 py-2">{{ p.method|title }}</td>
+                            <td class="px-4 py-2">{{ p.notes }}</td>
+                            <td class="px-4 py-2 text-right font-semibold text-emerald-600">{{ p.amount }} €</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-4 py-6 text-center text-gray-400">S’ka pagesa për këtë pacient.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+    <!-- Alpine.js për autocomplete -->
+    <script src="https://unpkg.com/alpinejs" defer></script>
 {% endblock %}

@@ -1,103 +1,140 @@
 {% extends "clinic/base.html" %}
 {% load static %}
-{% block title %}{% if patient %}Edito pacient{% else %}Shto pacient{% endif %}{% endblock %}
-
+{% block title %}
+    {% if patient %}
+        Edito pacient
+    {% else %}
+        Shto pacient
+    {% endif %}
+{% endblock %}
 {% block content %}
-<div class="max-w-5xl mx-auto bg-white shadow-lg rounded-2xl p-8 fade-in">
-
-  <!-- HEADER -->
-  <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-    <div>
-      <h1 class="text-2xl font-bold text-emerald-700 flex items-center gap-2">
-        <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-        </svg>
-        {% if patient %}Edito pacient{% else %}Shto pacient të ri{% endif %}
-      </h1>
-      <p class="text-sm text-gray-500 mt-1">
-        {% if patient %}Ndrysho të dhënat e pacientit.{% else %}Plotësoni të dhënat kryesore të pacientit për regjistrim.{% endif %}
-      </p>
+    <div class="max-w-5xl mx-auto bg-white shadow-lg rounded-2xl p-8 fade-in">
+        <!-- HEADER -->
+        <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+                <h1 class="text-2xl font-bold text-emerald-700 flex items-center gap-2">
+                    <svg class="w-7 h-7 text-emerald-600"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {% if patient %}
+                        Edito pacient
+                    {% else %}
+                        Shto pacient të ri
+                    {% endif %}
+                </h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    {% if patient %}
+                        Ndrysho të dhënat e pacientit.
+                    {% else %}
+                        Plotësoni të dhënat kryesore të pacientit për regjistrim.
+                    {% endif %}
+                </p>
+            </div>
+            <a href="{% url 'patient_list' %}"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-medium">
+                ← Kthehu te lista
+            </a>
+        </div>
+        <!-- FORMA -->
+        <form method="post" class="space-y-10" novalidate>
+            {% csrf_token %}
+            <!-- Informata personale -->
+            <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
+                <h2 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-600"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A9 9 0 1112 21v-2.25" />
+                    </svg>
+                    Informata personale
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="emri_mbiemri"
+                               class="block text-sm font-medium text-gray-700 mb-1">Emri dhe mbiemri *</label>
+                        <input id="emri_mbiemri"
+                               name="emri_mbiemri"
+                               type="text"
+                               required
+                               value="{{ patient.emri_mbiemri|default_if_none:'' }}"
+                               class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
+                               placeholder="Shkruaj emrin dhe mbiemrin">
+                    </div>
+                    <div>
+                        <label for="data_e_lindjes"
+                               class="block text-sm font-medium text-gray-700 mb-1">Data e lindjes</label>
+                        <input id="data_e_lindjes"
+                               name="data_e_lindjes"
+                               type="date"
+                               value="{% if patient and patient.data_e_lindjes %}{{ patient.data_e_lindjes|slice:'6:' }}-{{ patient.data_e_lindjes|slice:'3:5' }}-{{ patient.data_e_lindjes|slice:':2' }}{% endif %}"
+                               class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm">
+                    </div>
+                    <div>
+                        <label for="leternjoftimi"
+                               class="block text-sm font-medium text-gray-700 mb-1">Letërnjoftimi</label>
+                        <input id="leternjoftimi"
+                               name="leternjoftimi"
+                               type="text"
+                               value="{{ patient.leternjoftimi|default_if_none:'' }}"
+                               class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
+                               placeholder="numri i letërnjoftimit">
+                    </div>
+                </div>
+            </section>
+            <!-- Kontakti -->
+            <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
+                <h2 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-600"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3H12" />
+                    </svg>
+                    Kontakti
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="telefoni" class="block text-sm font-medium text-gray-700 mb-1">Telefoni</label>
+                        <input id="telefoni"
+                               name="telefoni"
+                               type="text"
+                               value="{{ patient.telefoni|default_if_none:'' }}"
+                               class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
+                               placeholder="+383 xx xxx xxx">
+                    </div>
+                    <div>
+                        <label for="emaili" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input id="emaili"
+                               name="emaili"
+                               type="email"
+                               value="{{ patient.emaili|default_if_none:'' }}"
+                               class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
+                               placeholder="shembull@email.com">
+                    </div>
+                </div>
+            </section>
+            <!-- Butonat -->
+            <div class="flex flex-col sm:flex-row justify-end gap-4 pt-4">
+                <a href="{% url 'patient_list' %}"
+                   class="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium text-center">
+                    Anulo
+                </a>
+                <button type="submit"
+                        class="px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold hover:shadow-lg transition text-sm">
+                    {% if patient %}
+                        Ruaj ndryshimet
+                    {% else %}
+                        Ruaj pacientin
+                    {% endif %}
+                </button>
+            </div>
+        </form>
     </div>
-    <a href="{% url 'patient_list' %}"
-       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-medium">
-      ← Kthehu te lista
-    </a>
-  </div>
-
-  <!-- FORMA -->
-  <form method="post" class="space-y-10" novalidate>
-    {% csrf_token %}
-
-    <!-- Informata personale -->
-    <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
-      <h2 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
-        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A9 9 0 1112 21v-2.25"/>
-        </svg>
-        Informata personale
-      </h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <label for="emri_mbiemri" class="block text-sm font-medium text-gray-700 mb-1">Emri dhe mbiemri *</label>
-          <input id="emri_mbiemri" name="emri_mbiemri" type="text" required
-                 value="{{ patient.emri_mbiemri|default_if_none:'' }}"
-                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
-                 placeholder="Shkruaj emrin dhe mbiemrin">
-        </div>
-        <div>
-          <label for="data_e_lindjes" class="block text-sm font-medium text-gray-700 mb-1">Data e lindjes</label>
-<input id="data_e_lindjes" name="data_e_lindjes" type="date"
-       value="{% if patient and patient.data_e_lindjes %}{{ patient.data_e_lindjes|slice:'6:' }}-{{ patient.data_e_lindjes|slice:'3:5' }}-{{ patient.data_e_lindjes|slice:':2' }}{% endif %}"
-       class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm">
-
-        </div>
-        <div>
-          <label for="leternjoftimi" class="block text-sm font-medium text-gray-700 mb-1">Letërnjoftimi</label>
-          <input id="leternjoftimi" name="leternjoftimi" type="text"
-                 value="{{ patient.leternjoftimi|default_if_none:'' }}"
-                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
-                 placeholder="numri i letërnjoftimit">
-        </div>
-      </div>
-    </section>
-
-    <!-- Kontakti -->
-    <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
-      <h2 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
-        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3H12"/>
-        </svg>
-        Kontakti
-      </h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label for="telefoni" class="block text-sm font-medium text-gray-700 mb-1">Telefoni</label>
-          <input id="telefoni" name="telefoni" type="text"
-                 value="{{ patient.telefoni|default_if_none:'' }}"
-                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
-                 placeholder="+383 xx xxx xxx">
-        </div>
-        <div>
-          <label for="emaili" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input id="emaili" name="emaili" type="email"
-                 value="{{ patient.emaili|default_if_none:'' }}"
-                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
-                 placeholder="shembull@email.com">
-        </div>
-      </div>
-    </section>
-
-    <!-- Butonat -->
-    <div class="flex flex-col sm:flex-row justify-end gap-4 pt-4">
-      <a href="{% url 'patient_list' %}"
-         class="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium text-center">
-        Anulo
-      </a>
-      <button type="submit"
-              class="px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold hover:shadow-lg transition text-sm">
-        {% if patient %}Ruaj ndryshimet{% else %}Ruaj pacientin{% endif %}
-      </button>
-    </div>
-  </form>
-</div>
 {% endblock %}

@@ -1,163 +1,180 @@
 {% extends "clinic/base.html" %}
 {% block title %}Pacientët{% endblock %}
 {% block content %}
-
-<!-- HEADER -->
-<div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-
-  <div>
-    <div class="flex items-center gap-x-3">
-      <h2 class="text-lg font-medium text-gray-800">Pacientët</h2>
-      <span class="px-3 py-1 text-xs text-emerald-600 bg-emerald-100 rounded-full">
-        {{ page_obj.paginator.count }} total
-      </span>
+    <!-- HEADER -->
+    <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+            <div class="flex items-center gap-x-3">
+                <h2 class="text-lg font-medium text-gray-800">Pacientët</h2>
+                <span class="px-3 py-1 text-xs text-emerald-600 bg-emerald-100 rounded-full">
+                    {{ page_obj.paginator.count }} total
+                </span>
+            </div>
+            <p class="mt-1 text-sm text-gray-500">Lista e pacientëve në sistem.</p>
+        </div>
+        <div class="flex items-center mt-4 gap-x-3">
+            <a href="{% url 'add_patient' %}"
+               class="flex items-center justify-center px-5 py-2 text-sm tracking-wide text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="1.5"
+                     stroke="currentColor"
+                     class="w-5 h-5 mr-2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Shto pacient</span>
+            </a>
+        </div>
     </div>
-    <p class="mt-1 text-sm text-gray-500">Lista e pacientëve në sistem.</p>
-  </div>
-
-  <div class="flex items-center mt-4 gap-x-3">
-    <a href="{% url 'add_patient' %}" 
-       class="flex items-center justify-center px-5 py-2 text-sm tracking-wide text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span>Shto pacient</span>
-    </a>
-  </div>
-</div>
-
-<!-- SEARCH -->
-<div class="mt-6 md:flex md:items-center md:justify-between">
-  <div class="relative flex items-center w-full md:w-80">
-    <span class="absolute">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-           stroke-width="1.5" stroke="currentColor" 
-           class="w-5 h-5 mx-3 text-gray-400">
-        <path stroke-linecap="round" stroke-linejoin="round" 
-              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-      </svg>
-    </span>
-    <form method="get" class="w-full" id="searchForm">
-      <input type="text" name="q" value="{{ q }}" id="searchInput"
-             placeholder="Kërko pacient..." 
-             class="block w-full py-2 pl-11 pr-4 text-gray-700 bg-white border rounded-lg 
-                    border-gray-200 focus:border-emerald-500 focus:ring focus:ring-emerald-300 
-                    focus:ring-opacity-40">
-    </form>
-  </div>
-</div>
-
-<!-- TABLE -->
-<div class="flex flex-col mt-6">
-  <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-    <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-      <div class="overflow-hidden border border-gray-200 md:rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Pacienti</th>
-              <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Telefoni</th>
-              <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Qyteti</th>
-              <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Historia e fundit</th>
-              <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Regjistruar</th>
-              <th class="px-4 py-3 text-sm font-medium text-right text-gray-500">Veprime</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            {% for p in page_obj %}
-            <tr>
-              <!-- Pacienti -->
-              <td class="px-4 py-4 text-sm font-medium whitespace-nowrap">
-                <div class="flex items-center gap-3">
-                  {% if p.photo %}
-                    <img class="w-10 h-10 rounded-full object-cover border" src="{{ p.photo.url }}" alt="{{ p.emri_mbiemri }}">
-                  {% else %}
-                    <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-semibold border">
-                      {{ p.emri_mbiemri|default:"?"|slice:":1"|upper }}
-                    </div>
-                  {% endif %}
-                  <div>
-                    <a href="{% url 'patient_detail' p.id %}" class="font-medium text-gray-800 hover:text-emerald-600">
-                      {{ p.emri_mbiemri }}
-                    </a>
-                    <p class="text-xs text-gray-500">
-                      {% if p.emaili %}<a href="mailto:{{ p.emaili }}">{{ p.emaili }}</a>{% else %}—{% endif %}
-                    </p>
-                  </div>
+    <!-- SEARCH -->
+    <div class="mt-6 md:flex md:items-center md:justify-between">
+        <div class="relative flex items-center w-full md:w-80">
+            <span class="absolute">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="1.5"
+                     stroke="currentColor"
+                     class="w-5 h-5 mx-3 text-gray-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+            </span>
+            <form method="get" class="w-full" id="searchForm">
+                <input type="text"
+                       name="q"
+                       value="{{ q }}"
+                       id="searchInput"
+                       placeholder="Kërko pacient..."
+                       class="block w-full py-2 pl-11 pr-4 text-gray-700 bg-white border rounded-lg border-gray-200 focus:border-emerald-500 focus:ring focus:ring-emerald-300 focus:ring-opacity-40">
+            </form>
+        </div>
+    </div>
+    <!-- TABLE -->
+    <div class="flex flex-col mt-6">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                <div class="overflow-hidden border border-gray-200 md:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Pacienti</th>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Telefoni</th>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Qyteti</th>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Historia e fundit</th>
+                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Regjistruar</th>
+                                <th class="px-4 py-3 text-sm font-medium text-right text-gray-500">Veprime</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for p in page_obj %}
+                                <tr>
+                                    <!-- Pacienti -->
+                                    <td class="px-4 py-4 text-sm font-medium whitespace-nowrap">
+                                        <div class="flex items-center gap-3">
+                                            {% if p.photo %}
+                                                <img class="w-10 h-10 rounded-full object-cover border"
+                                                     src="{{ p.photo.url }}"
+                                                     alt="{{ p.emri_mbiemri }}">
+                                            {% else %}
+                                                <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-semibold border">
+                                                    {{ p.emri_mbiemri|default:"?"|slice:":1"|upper }}
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <a href="{% url 'patient_detail' p.id %}"
+                                                   class="font-medium text-gray-800 hover:text-emerald-600">
+                                                    {{ p.emri_mbiemri }}
+                                                </a>
+                                                <p class="text-xs text-gray-500">
+                                                    {% if p.emaili %}
+                                                        <a href="mailto:{{ p.emaili }}">{{ p.emaili }}</a>
+                                                    {% else %}
+                                                        —
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <!-- Telefoni -->
+                                    <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                        {% if p.telefoni %}
+                                            <a href="tel:{{ p.telefoni }}"
+                                               class="text-gray-700 hover:text-emerald-600">{{ p.telefoni }}</a>
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <!-- Qyteti -->
+                                    <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                        {% if p.city %}
+                                            {{ p.city }}
+                                        {% elif p.adresa %}
+                                            {{ p.adresa }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <!-- Historia e fundit -->
+                                    <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                        {% if p.last_history %}
+                                            {{ p.last_history|date:"d/m/Y" }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <!-- Data regjistrimit -->
+                                    <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                        {% if p.register_date %}
+                                            {{ p.register_date|date:"d/m/Y" }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <!-- Actions -->
+                                    <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
+                                        <a href="{% url 'patient_detail' p.id %}"
+                                           class="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50">Shiko</a>
+                                        <a href="{% url 'edit_patient' p.id %}"
+                                           class="px-3 py-1.5 text-sm rounded-md border border-emerald-600 text-emerald-600 hover:bg-emerald-50">Ndrysho</a>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="px-4 py-6 text-center text-gray-500">
+                                        S’ka pacientë
+                                        {% if q %}për "{{ q }}"{% endif %}
+                                        .
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-              </td>
-
-              <!-- Telefoni -->
-              <td class="px-4 py-4 text-sm whitespace-nowrap">
-                {% if p.telefoni %}
-                  <a href="tel:{{ p.telefoni }}" class="text-gray-700 hover:text-emerald-600">{{ p.telefoni }}</a>
-                {% else %}—{% endif %}
-              </td>
-
-              <!-- Qyteti -->
-              <td class="px-4 py-4 text-sm whitespace-nowrap">
-                {% if p.city %}{{ p.city }}{% elif p.adresa %}{{ p.adresa }}{% else %}—{% endif %}
-              </td>
-
-              <!-- Historia e fundit -->
-              <td class="px-4 py-4 text-sm whitespace-nowrap">
-                {% if p.last_history %}
-                  {{ p.last_history|date:"d/m/Y H:i" }}
-                {% else %}
-                  —
-                {% endif %}
-              </td>
-
-              <!-- Data regjistrimit -->
-              <td class="px-4 py-4 text-sm whitespace-nowrap">
-                {% if p.register_date %}
-                  {{ p.register_date|date:"d/m/Y" }}
-                {% else %}—{% endif %}
-              </td>
-
-              <!-- Actions -->
-              <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
-                <a href="{% url 'patient_detail' p.id %}" class="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50">Shiko</a>
-                <a href="{% url 'edit_patient' p.id %}" class="px-3 py-1.5 text-sm rounded-md border border-emerald-600 text-emerald-600 hover:bg-emerald-50">Ndrysho</a>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="6" class="px-4 py-6 text-center text-gray-500">
-                S’ka pacientë{% if q %} për "{{ q }}"{% endif %}.
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
-
-<!-- PAGINATION -->
-{% if page_obj.paginator.num_pages > 1 %}
-<div class="mt-6 flex items-center justify-between">
-  <div class="text-sm text-gray-500">
-    Faqe <span class="font-medium text-gray-700">{{ page_obj.number }}</span> nga 
-    <span class="font-medium text-gray-700">{{ page_obj.paginator.num_pages }}</span>
-  </div>
-
-  <div class="flex items-center gap-x-2">
-    {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}" 
-         class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">‹ Mbrapa</a>
+    <!-- PAGINATION -->
+    {% if page_obj.paginator.num_pages > 1 %}
+        <div class="mt-6 flex items-center justify-between">
+            <div class="text-sm text-gray-500">
+                Faqe <span class="font-medium text-gray-700">{{ page_obj.number }}</span> nga
+                <span class="font-medium text-gray-700">{{ page_obj.paginator.num_pages }}</span>
+            </div>
+            <div class="flex items-center gap-x-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+                       class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">‹ Mbrapa</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+                       class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">Para ›</a>
+                {% endif %}
+            </div>
+        </div>
     {% endif %}
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}" 
-         class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">Para ›</a>
-    {% endif %}
-  </div>
-</div>
-{% endif %}
-
-<!-- Auto-search script -->
-<script>
+    <!-- Auto-search script -->
+    <script>
   const input = document.getElementById("searchInput");
   const form = document.getElementById("searchForm");
   let timeout = null;
@@ -168,6 +185,5 @@
       form.submit();
     }, 400); // 0.4 sekonda vonesë
   });
-</script>
-
+    </script>
 {% endblock %}
