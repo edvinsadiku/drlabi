@@ -731,6 +731,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">{{ h.doctor }}</td>
+                                {% if request.user.is_admin %}
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
                                     <a href="{% url 'edit_history' h.id %}"
                                        class="px-2 py-1 text-xs rounded border hover:bg-gray-50 transition">Edito</a>
@@ -745,6 +746,7 @@
                                         </button>
                                     </form>
                                 </td>
+                                {% endif %}
                             </tr>
                         {% empty %}
                             <tr>

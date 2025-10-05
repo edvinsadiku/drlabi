@@ -89,6 +89,7 @@
                 </div>
             {% endif %}
         </dl>
+        {% if request.user.is_admin %}
         <div class="mt-6 flex gap-3">
             <a href="{% url 'edit_history' history.id %}"
                class="px-4 py-2 rounded-lg bg-emerald-600 text-white">Edito</a>
@@ -100,4 +101,5 @@
             </form>
         </div>
     </div>
+    {% endif %}
 {% endblock %}
