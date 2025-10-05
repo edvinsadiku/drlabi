@@ -49,8 +49,8 @@ class Patient(models.Model):
     class Meta:
         managed = False
         db_table = "patients"
-        verbose_name = "Patient"
-        verbose_name_plural = "Patients"
+        verbose_name = "Pacientet"
+        verbose_name_plural = "Pacientet"
 
     def __str__(self):
         return self.emri_mbiemri or f"Patient #{self.pk}"
@@ -80,8 +80,8 @@ class Historia(models.Model):
     class Meta:
         managed = False
         db_table = "historias"
-        verbose_name = "Historia"
-        verbose_name_plural = "Historias"
+        verbose_name = "Historia(Arkiva)"
+        verbose_name_plural = "Historia(Arkiva)"
 
     def __str__(self):
         return f"{self.data or ''} – {self.diagnoza or 'Pa diagnozë'}"
@@ -113,8 +113,8 @@ class HistoryOrtodentics(models.Model):
     class Meta:
         managed = False
         db_table = "history_ortodentics"
-        verbose_name = "Ortodentics History"
-        verbose_name_plural = "Ortodentics Histories"
+        verbose_name = "Orto Histori(Arkiva)"
+        verbose_name_plural = "Orto Histori(Arkiva)"
 
 
 class PatienOrtodentics(models.Model):
@@ -145,8 +145,8 @@ class PatienOrtodentics(models.Model):
     class Meta:
         managed = False
         db_table = "patien_ortodentics"
-        verbose_name = "Patient (Ortodentics)"
-        verbose_name_plural = "Patients (Ortodentics)"
+        verbose_name = "Pacientet orto(Arkiva)"
+        verbose_name_plural = "Pacientet orto(Arkiva)"
 
     def __str__(self):
         return self.emri_mbiemri or f"Orto Patient #{self.pk}"
@@ -165,8 +165,8 @@ class Shpenzimet(models.Model):
     class Meta:
         managed = False
         db_table = "shpenzimets"
-        verbose_name = "Shpenzim"
-        verbose_name_plural = "Shpenzime"
+        verbose_name = "Shpenzimet"
+        verbose_name_plural = "Shpenzimet"
 
     def __str__(self):
         return self.shpenzimi or f"Shpenzim #{self.pk}"
@@ -232,6 +232,8 @@ class PatientDocument(models.Model):
     class Meta:
         db_table = "patient_documents"
         managed = False
+        verbose_name = "Dokumentet"
+        verbose_name_plural = "Dokumentet"
 
     def __str__(self):
         return f"{self.patient.emri_mbiemri} - {self.file.name}"
@@ -285,6 +287,9 @@ class Agreement(models.Model):
         db_table = "lp_agreements"  # tabela e re
         ordering = ["-created_at"]
         managed = False
+        verbose_name = "Marreveshjet"
+        verbose_name_plural = "Marreveshjet"
+
 
     def __str__(self):
         return f"{self.patient.emri_mbiemri or 'Pacient'} – {self.title} ({self.total_amount}€)"
@@ -358,6 +363,10 @@ class CareHistory(models.Model):
         db_table = "lp_care_histories"
         ordering = ["-date", "-id"]
         managed = False
+        verbose_name = "Historia"
+        verbose_name_plural = "Historia"
+
+    
 
     def __str__(self):
         return (
@@ -423,6 +432,9 @@ class Payment(models.Model):
         db_table = "lp_payments"
         ordering = ["-date", "-id"]
         managed = False
+        verbose_name = "Pagesat"
+        verbose_name_plural = "Pagesat"
+
 
     def __str__(self):
         t = "histori" if self.history_id else "marrëveshje"
