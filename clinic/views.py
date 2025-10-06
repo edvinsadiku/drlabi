@@ -749,10 +749,11 @@ def appointments_events(request):
         "cancelled": "#EF4444",  # red
     }
 
-    events = [
-        {
+    events = []
+    for appt in qs:
+        events.append({
             "id": appt.id,
-            "title": f"{appt.patient.emri_mbiemri} – {appt.title}",
+            "title": f"{appt.patient.emri_mbiemri if appt.patient else 'Pa pacient'} – {appt.title}",
             "start": appt.start.isoformat(),
             "end": appt.end.isoformat() if appt.end else None,
             "backgroundColor": color_map.get(appt.status, "#9CA3AF"),
@@ -761,11 +762,11 @@ def appointments_events(request):
                 "doctor": appt.doctor,
                 "status": appt.status,
                 "notes": appt.notes,
-                "patient": appt.patient.id,
+                "patient": appt.patient.id if appt.patient else None,
+                "patient_name": appt.patient.emri_mbiemri if appt.patient else "",
             },
-        }
-        for appt in qs
-    ]
+        })
+
     return JsonResponse(events, safe=False)
 
 

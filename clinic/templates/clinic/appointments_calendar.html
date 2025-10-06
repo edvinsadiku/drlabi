@@ -7,7 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
 <style>
-  /* --- Stil Klinik Minimal --- */
   body { font-family: 'Inter', sans-serif; }
   .fc {
     --fc-border-color: #e5e7eb;
@@ -28,27 +27,20 @@
     font-size: 0.85rem;
     padding: 2px 6px;
   }
-  /* ngjyrat për pamjet e ditës (timeGrid) */
   .fc-view-timeGridDay .fc-event.scheduled { background-color: #10b981 !important; color: #fff !important; }
   .fc-view-timeGridDay .fc-event.completed { background-color: #2563eb !important; color: #fff !important; }
   .fc-view-timeGridDay .fc-event.cancelled { background-color: #ef4444 !important; color: #fff !important; }
-
-  /* pamja e listës (listWeek) - pa ngjyra */
   .fc-view-listWeek .fc-event {
-    background-color: #ffffff !important;
+    background-color: #fff !important;
     border: 1px solid #e5e7eb !important;
     color: #111827 !important;
     border-radius: 8px !important;
     transition: all 0.15s ease-in-out;
   }
-  .fc-view-listWeek .fc-event:hover {
-    background-color: #f9fafb !important;
-    transform: scale(1.01);
-  }
+  .fc-view-listWeek .fc-event:hover { background-color: #f9fafb !important; transform: scale(1.01); }
 </style>
 
 <div class="flex flex-col gap-4">
-  <!-- Header -->
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
     <div>
       <h2 class="text-2xl font-semibold text-gray-800 flex items-center gap-2">
@@ -56,13 +48,11 @@
       </h2>
       <p class="text-sm text-gray-500">Orari i punës: <span class="font-medium text-gray-700">09:00 – 20:00</span></p>
     </div>
-    <button id="addNew"
-      class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm shadow hover:bg-emerald-700 transition flex items-center gap-2">
+    <button id="addNew" class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm shadow hover:bg-emerald-700 transition flex items-center gap-2">
       <i class="ph ph-plus"></i> Shto Termin
     </button>
   </div>
 
-  <!-- Calendar -->
   <div id="calendar" class="bg-white rounded-xl border border-gray-200 shadow-sm p-3"></div>
 </div>
 
@@ -73,17 +63,13 @@
     <form id="appointmentForm" class="space-y-4">
       <input type="hidden" id="apptId">
 
-      <!-- AUTOCOMPLETE Pacienti -->
+      <!-- Autocomplete Pacienti -->
       <div class="relative">
         <label class="text-sm text-gray-600">Pacienti</label>
-        <input id="apptPatientInput"
-              type="text"
-              class="border rounded-lg w-full p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="Shkruaj emrin ose numrin e pacientit..."
-              autocomplete="off" required>
-        <input type="hidden" id="apptPatient"> <!-- ID ruhet këtu -->
-        <ul id="patientSuggestions"
-            class="absolute z-10 bg-white border rounded-lg mt-1 w-full shadow hidden max-h-48 overflow-y-auto text-sm"></ul>
+        <input id="apptPatientInput" type="text" class="border rounded-lg w-full p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+               placeholder="Shkruaj emrin ose numrin e pacientit..." autocomplete="off" required>
+        <input type="hidden" id="apptPatient">
+        <ul id="patientSuggestions" class="absolute z-10 bg-white border rounded-lg mt-1 w-full shadow hidden max-h-48 overflow-y-auto text-sm"></ul>
       </div>
 
       <div>
@@ -126,10 +112,19 @@
       </div>
 
       <div class="flex justify-between pt-3">
-        <button type="button" id="btnDelete" class="text-red-600 text-sm hidden hover:underline">Fshij</button>
+        <button type="button" id="btnDelete"
+                class="hidden px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 hover:border-red-400 transition">
+          <i class="ph ph-trash"></i> Fshij
+        </button>
         <div class="flex gap-2">
-          <button type="button" id="btnCancel" class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">Anulo</button>
-          <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition">Ruaj</button>
+          <button type="button" id="btnCancel"
+                  class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">
+            Anulo
+          </button>
+          <button type="submit"
+                  class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition">
+            Ruaj
+          </button>
         </div>
       </div>
     </form>
@@ -167,8 +162,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
     initialView: "timeGridDay",
     locale: "sq",
-    firstDay: 1, // fillon me e hënë
-    hiddenDays: [0], // fsheh të dielën (0 = Sunday)
+    firstDay: 1,
+    hiddenDays: [0], // fsheh të dielën
     slotMinTime: "09:00:00",
     slotMaxTime: "20:00:00",
     allDaySlot: false,
@@ -179,25 +174,17 @@ document.addEventListener("DOMContentLoaded", function () {
       right: "timeGridDay,listWeek"
     },
     dayHeaderFormat: { weekday: 'long' },
-    slotLabelFormat: {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    },
-    slotLabelContent: function(arg) {
-      return "Ora: " + arg.text;
-    },
+    slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+    slotLabelContent: (arg) => "Ora: " + arg.text,
     selectable: true,
     editable: true,
     events: "/appointments/events/",
-    eventContent: function(info) {
+    eventContent: (info) => {
       let title = info.event.title || "";
       let doctor = info.event.extendedProps.doctor ? " (" + info.event.extendedProps.doctor + ")" : "";
       return { html: `<b>${title}</b>${doctor}` };
     },
-    eventClassNames: function(info) {
-      return info.event.extendedProps.status;
-    },
+    eventClassNames: (info) => info.event.extendedProps.status,
     eventClick: (info) => openModal({
       id: info.event.id,
       patient: info.event.extendedProps.patient,
@@ -212,61 +199,47 @@ document.addEventListener("DOMContentLoaded", function () {
     select: (info) => openModal({
       start: info.startStr.slice(0,16),
       end: info.endStr ? info.endStr.slice(0,16) : ""
-    }),
-    eventDrop: (info) => updateEvent(info.event),
-    eventResize: (info) => updateEvent(info.event)
+    })
   });
   calendar.render();
 
-  // Autocomplete për pacientin ekzistues
+  // 🔍 Autocomplete për pacientët
   const patientInput = document.getElementById("apptPatientInput");
   const patientHidden = document.getElementById("apptPatient");
   const suggestions = document.getElementById("patientSuggestions");
 
   patientInput.addEventListener("input", async function() {
-    const query = this.value.trim();
-    if (!query) {
-      suggestions.classList.add("hidden");
-      return;
-    }
-
-    try {
-      const res = await fetch(`/patients/search/?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-
-      suggestions.innerHTML = "";
-      data.forEach(p => {
-        const li = document.createElement("li");
-        li.innerHTML = `<strong>${p.emri_mbiemri}</strong> <span class="text-gray-500 text-xs">(${p.telefoni || "pa numër"})</span>`;
-        li.className = "px-3 py-2 hover:bg-emerald-50 cursor-pointer";
-        li.onclick = () => {
-          patientInput.value = p.emri_mbiemri;
-          patientHidden.value = p.id;
-          suggestions.classList.add("hidden");
-        };
-        suggestions.appendChild(li);
-      });
-
-      if (data.length > 0) suggestions.classList.remove("hidden");
-      else suggestions.classList.add("hidden");
-    } catch (err) {
-      console.error("Gabim gjatë kërkimit:", err);
-    }
+    const q = this.value.trim();
+    if (!q) { suggestions.classList.add("hidden"); return; }
+    const res = await fetch(`/patients/search/?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    suggestions.innerHTML = "";
+    data.forEach(p => {
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${p.emri_mbiemri}</strong> <span class="text-gray-500 text-xs">(${p.telefoni || "pa numër"})</span>`;
+      li.className = "px-3 py-2 hover:bg-emerald-50 cursor-pointer";
+      li.onclick = () => {
+        patientInput.value = p.emri_mbiemri;
+        patientHidden.value = p.id;
+        suggestions.classList.add("hidden");
+      };
+      suggestions.appendChild(li);
+    });
+    suggestions.classList.toggle("hidden", data.length === 0);
   });
 
   document.addEventListener("click", (e) => {
-    if (!patientInput.contains(e.target) && !suggestions.contains(e.target)) {
-      suggestions.classList.add("hidden");
-    }
+    if (!patientInput.contains(e.target) && !suggestions.contains(e.target)) suggestions.classList.add("hidden");
   });
 
   btnNew.addEventListener("click", () => openModal());
 
+  // 💾 Ruaj ose Përditëso
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const id = document.getElementById("apptId").value;
     const payload = {
-      patient: document.getElementById("apptPatient").value,
+      patient: patientHidden.value,
       doctor: document.getElementById("apptDoctor").value,
       title: document.getElementById("apptTitle").value,
       start: document.getElementById("apptStart").value,
@@ -274,21 +247,23 @@ document.addEventListener("DOMContentLoaded", function () {
       status: document.getElementById("apptStatus").value,
       notes: document.getElementById("apptNotes").value
     };
-
     fetch(id ? `/appointments/update/${id}/` : "/appointments/create/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
-    }).then(() => {
-      closeModal();
-      calendar.refetchEvents();
-    });
+    }).then(() => { closeModal(); calendar.refetchEvents(); });
   });
 
+  // 🗑️ Fshirja e terminëve
   btnDelete.addEventListener("click", () => {
     const id = document.getElementById("apptId").value;
-    fetch(`/appointments/delete/${id}/`, { method: "POST" })
-      .then(() => { closeModal(); calendar.refetchEvents(); });
+    if (!id) return;
+    if (confirm("A je i sigurt që dëshiron ta fshish këtë termin?")) {
+      fetch(`/appointments/delete/${id}/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
+      }).then(() => { closeModal(); calendar.refetchEvents(); });
+    }
   });
 
   btnCancel.addEventListener("click", closeModal);
