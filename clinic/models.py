@@ -186,7 +186,7 @@ class Appointment(models.Model):
     patient = models.ForeignKey(
         "Patient",
         on_delete=models.CASCADE,
-        db_column="patient_id",  # 🔑 lidhja e saktë me kolonën ekzistuese
+        db_column="patient_id",  
         related_name="appointments",
     )
     doctor = models.CharField(
@@ -201,7 +201,6 @@ class Appointment(models.Model):
     notes = models.TextField(null=True, blank=True)
 
     class Meta:
-        managed = False
         db_table = "appointments"
         ordering = ["-start"]
 
@@ -305,12 +304,6 @@ class Agreement(models.Model):
 
 
 class CareHistory(models.Model):
-    """
-    Historia e RE (paralele me 'historias'). Mund të lidhet opsionalisht me një marrëveshje.
-    Nëse është e lidhur me marrëveshje dhe 'included_in_agreement' është True,
-    atëherë s’ka nevojë të ketë çmim (ose mund të jetë 0).
-    """
-
     id = models.AutoField(primary_key=True)
     patient = models.ForeignKey(
         "Patient",
@@ -329,7 +322,6 @@ class CareHistory(models.Model):
 
     doctor = models.CharField(max_length=191, null=True, blank=True)
 
-    # Lidhje opsionale me marrëveshje
     agreement = models.ForeignKey(
         Agreement,
         null=True,
@@ -339,7 +331,6 @@ class CareHistory(models.Model):
     )
     included_in_agreement = models.BooleanField(default=False)
 
-    # referencë opsionale te rekordi i vjetër (për audit/trace)
     legacy_historia_id = models.IntegerField(null=True, blank=True)
 
     created_at = models.DateTimeField(default=now)
@@ -395,7 +386,6 @@ class Payment(models.Model):
     date = models.DateTimeField(default=now)
     notes = models.CharField(max_length=255, null=True, blank=True)
 
-    # Një pagesë mund të jetë për një histori TË RE specifike...
     history = models.ForeignKey(
         CareHistory,
         null=True,
@@ -403,7 +393,6 @@ class Payment(models.Model):
         on_delete=models.SET_NULL,
         related_name="payments",
     )
-    # ... ose për një marrëveshje (akontim ose këst)
     agreement = models.ForeignKey(
         Agreement,
         null=True,

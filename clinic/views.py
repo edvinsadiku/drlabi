@@ -738,25 +738,34 @@ def appointments_calendar(request):
 
 
 def appointments_events(request):
-    doctor = request.GET.get("doctor")
     qs = Appointment.objects.select_related("patient")
+    doctor = request.GET.get("doctor")
     if doctor:
         qs = qs.filter(doctor=doctor)
 
-    events = []
-    for appt in qs:
-        events.append(
-            {
-                "id": appt.id,
-                "title": f"{appt.patient.emri_mbiemri} – {appt.title} ({appt.doctor})",
-                "start": appt.start.isoformat(),
-                "end": appt.end.isoformat() if appt.end else None,
-                "patient_id": appt.patient.id,
+    color_map = {
+        "scheduled": "#10B981",  # green
+        "completed": "#3B82F6",  # blue
+        "cancelled": "#EF4444",  # red
+    }
+
+    events = [
+        {
+            "id": appt.id,
+            "title": f"{appt.patient.emri_mbiemri} – {appt.title}",
+            "start": appt.start.isoformat(),
+            "end": appt.end.isoformat() if appt.end else None,
+            "backgroundColor": color_map.get(appt.status, "#9CA3AF"),
+            "borderColor": color_map.get(appt.status, "#9CA3AF"),
+            "extendedProps": {
                 "doctor": appt.doctor,
                 "status": appt.status,
                 "notes": appt.notes,
-            }
-        )
+                "patient": appt.patient.id,
+            },
+        }
+        for appt in qs
+    ]
     return JsonResponse(events, safe=False)
 
 

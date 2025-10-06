@@ -1,225 +1,251 @@
 {% extends "clinic/base.html" %}
 {% block title %}Kalendar i Takimeve{% endblock %}
 {% block content %}
-    <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-xl font-semibold flex items-center gap-2">
-            <span>📅</span> Kalendar i Takimeve
-        </h2>
-        <!-- Filtrim sipas doktorit -->
-        <div class="flex items-center gap-2">
-            <label for="doctorFilter" class="text-sm text-gray-600">Filtro sipas doktorit:</label>
-            <select id="doctorFilter" class="border rounded p-2 text-sm">
-                <option value="">Të gjithë</option>
-                <option value="Dr. Labi">Dr. Labi</option>
-                <option value="Dr. Linda">Dr. Linda</option>
-            </select>
-        </div>
+{% load static %}
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+<style>
+  /* --- Stil Klinik Minimal --- */
+  body { font-family: 'Inter', sans-serif; }
+  .fc {
+    --fc-border-color: #e5e7eb;
+    --fc-today-bg-color: #f8fafc;
+    --fc-button-bg-color: #10b981;
+    --fc-button-hover-bg-color: #059669;
+    --fc-button-active-bg-color: #047857;
+    --fc-button-text-color: #fff;
+  }
+  .fc-toolbar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  .fc-event {
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 0.85rem;
+    padding: 2px 6px;
+  }
+  /* ngjyrat për pamjet e ditës (timeGrid) */
+  .fc-view-timeGridDay .fc-event.scheduled { background-color: #10b981 !important; color: #fff !important; }
+  .fc-view-timeGridDay .fc-event.completed { background-color: #2563eb !important; color: #fff !important; }
+  .fc-view-timeGridDay .fc-event.cancelled { background-color: #ef4444 !important; color: #fff !important; }
+
+  /* pamja e listës (listWeek) - pa ngjyra */
+  .fc-view-listWeek .fc-event {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    color: #111827 !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease-in-out;
+  }
+  .fc-view-listWeek .fc-event:hover {
+    background-color: #f9fafb !important;
+    transform: scale(1.01);
+  }
+
+  .fc-list-event:hover {
+    background-color: #f1f5f9 !important;
+  }
+</style>
+
+<div class="flex flex-col gap-4">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+        <span class="text-emerald-600"></span> Kalendar i Termineve
+      </h2>
+      <p class="text-sm text-gray-500">Orari i punës: <span class="font-medium text-gray-700">09:00 – 20:00</span></p>
     </div>
-    <!-- Kalendar -->
-    <div id="calendar" class="bg-white border rounded-lg shadow p-3"></div>
-    <!-- FullCalendar CSS & JS -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css"
-          rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-    <!-- MODAL për krijimin/editimin e takimit -->
-    <div id="appointmentModal"
-         class="fixed inset-0 hidden items-center justify-center bg-black/50 z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative">
-            <h3 class="text-lg font-semibold mb-4">➕ Takim i Ri</h3>
-            <form id="appointmentForm" class="space-y-4">
-                {% csrf_token %}
-                <input type="hidden" id="apptId">
-                <div>
-                    <label class="text-sm">Pacienti</label>
-                    <select id="apptPatient" class="border rounded w-full p-2" required>
-                        <option value="">-- Zgjidh pacientin --</option>
-                        {% for p in patients %}<option value="{{ p.id }}">{{ p.emri_mbiemri }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label class="text-sm">Doktori</label>
-                    <select id="apptDoctor" class="border rounded w-full p-2" required>
-                        <option value="Dr. Labi">Dr. Labi</option>
-                        <option value="Dr. Linda">Dr. Linda</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-sm">Shërbimi / Arsyeja</label>
-                    <input id="apptService"
-                           class="border rounded w-full p-2"
-                           placeholder="p.sh. Kontroll, Ekstraksion..."
-                           required>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-sm">Data & Ora e fillimit</label>
-                        <input type="datetime-local"
-                               id="apptStart"
-                               class="border rounded w-full p-2"
-                               required>
-                    </div>
-                    <div>
-                        <label class="text-sm">Ora e mbarimit (opsionale)</label>
-                        <input type="datetime-local" id="apptEnd" class="border rounded w-full p-2">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-sm">Statusi</label>
-                    <select id="apptStatus" class="border rounded w-full p-2">
-                        <option value="scheduled">Planifikuar</option>
-                        <option value="completed">Përfunduar</option>
-                        <option value="cancelled">Anuluar</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-sm">Shënime</label>
-                    <textarea id="apptNotes" rows="2" class="border rounded w-full p-2"></textarea>
-                </div>
-                <div class="flex justify-end gap-2 pt-3">
-                    <button type="button"
-                            id="btnCloseModal"
-                            class="px-4 py-2 border rounded bg-gray-100">Mbyll</button>
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded">Ruaj</button>
-                </div>
-            </form>
+    <button id="addNew"
+      class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm shadow hover:bg-emerald-700 transition flex items-center gap-2">
+      <i class="ph ph-plus"></i>Shto Termin
+    </button>
+  </div>
+
+  <!-- Calendar -->
+  <div id="calendar" class="bg-white rounded-xl border border-gray-200 shadow-sm p-3"></div>
+</div>
+
+<!-- MODAL -->
+<div id="appointmentModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative animate-fade-in">
+    <h3 id="modalTitle" class="text-lg font-semibold text-gray-800 mb-4">Termin i ri</h3>
+    <form id="appointmentForm" class="space-y-4">
+      <input type="hidden" id="apptId">
+
+      <div>
+        <label class="text-sm text-gray-600">Pacienti</label>
+        <select id="apptPatient" class="border rounded-lg w-full p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500" required>
+          <option value="">-- Zgjidh pacientin --</option>
+          {% for p in patients %}
+          <option value="{{ p.id }}">{{ p.emri_mbiemri }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="text-sm text-gray-600">Doktori</label>
+        <select id="apptDoctor" class="border rounded-lg w-full p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500" required>
+          <option value="Dr. Labi">Dr. Labi</option>
+          <option value="Dr. Linda">Dr. Linda</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-sm text-gray-600">Shërbimi / Arsyeja</label>
+        <input id="apptTitle" type="text" class="border rounded-lg w-full p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+               placeholder="p.sh. Kontroll, Ekstraksion..." required>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm text-gray-600">Fillimi</label>
+          <input id="apptStart" type="datetime-local" class="border rounded-lg w-full p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500" required>
         </div>
-    </div>
-    <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const calendarEl = document.getElementById("calendar");
-    const modal = document.getElementById("appointmentModal");
-    const form = document.getElementById("appointmentForm");
+        <div>
+          <label class="text-sm text-gray-600">Mbarimi</label>
+          <input id="apptEnd" type="datetime-local" class="border rounded-lg w-full p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+      </div>
 
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: "dayGridMonth",
-      headerToolbar: {
-        left: "prev,next today",
-        center: "title",
-        right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek"
-      },
-      locale: "sq",
-      selectable: true,
-      editable: true,
-      height: "auto",
-      events: "/appointments/events/",
+      <div>
+        <label class="text-sm text-gray-600">Statusi</label>
+        <select id="apptStatus" class="border rounded-lg w-full p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500">
+          <option value="scheduled">Planifikuar</option>
+          <option value="completed">Përfunduar</option>
+          <option value="cancelled">Anuluar</option>
+        </select>
+      </div>
 
-      // kur zgjedh një ditë/slot
-      select: function(info) {
-        let startDate = new Date(info.start);
+      <div>
+        <label class="text-sm text-gray-600">Shënime</label>
+        <textarea id="apptNotes" rows="2" class="border rounded-lg w-full p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"></textarea>
+      </div>
 
-        // nëse është zgjedhur vetëm dita (allDay = true), vendos orën 09:00
-        if (info.allDay) {
-          startDate.setHours(9, 0, 0, 0);
-        }
+      <div class="flex justify-between pt-3">
+        <button type="button" id="btnDelete" class="text-red-600 text-sm hidden hover:underline">Fshij</button>
+        <div class="flex gap-2">
+          <button type="button" id="btnCancel" class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">Anulo</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition">Ruaj</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
-        // përgatit ISO string për datetime-local
-        let localStart = startDate.toISOString().slice(0,16);
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("appointmentModal");
+  const form = document.getElementById("appointmentForm");
+  const btnCancel = document.getElementById("btnCancel");
+  const btnDelete = document.getElementById("btnDelete");
+  const modalTitle = document.getElementById("modalTitle");
+  const btnNew = document.getElementById("addNew");
 
-        // auto +30 min për ora mbarimi
-        let endDate = new Date(startDate);
-        endDate.setMinutes(endDate.getMinutes() + 30);
-        let localEnd = endDate.toISOString().slice(0,16);
+  function openModal(data = {}) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    modalTitle.textContent = data.id ? "✏️ Ndrysho Termin" : "➕ Takim i Ri";
+    btnDelete.classList.toggle("hidden", !data.id);
 
-        openModal({
-          start: localStart,
-          end: localEnd
-        });
-      },
+    document.getElementById("apptId").value = data.id || "";
+    document.getElementById("apptPatient").value = data.patient || "";
+    document.getElementById("apptDoctor").value = data.doctor || "Dr. Labi";
+    document.getElementById("apptTitle").value = data.title || "";
+    document.getElementById("apptStart").value = data.start || "";
+    document.getElementById("apptEnd").value = data.end || "";
+    document.getElementById("apptStatus").value = data.status || "scheduled";
+    document.getElementById("apptNotes").value = data.notes || "";
+  }
 
-      eventClick: function(info) {
-        openModal({
-          id: info.event.id,
-          patient: info.event.extendedProps.patient_id,
-          doctor: info.event.extendedProps.doctor,
-          title: info.event.extendedProps.service,
-          start: info.event.start ? info.event.start.toISOString().slice(0,16) : "",
-          end: info.event.end ? info.event.end.toISOString().slice(0,16) : "",
-          status: info.event.extendedProps.status,
-          notes: info.event.extendedProps.notes
-        });
-      },
+  function closeModal() { modal.classList.add("hidden"); }
 
-      eventDrop: function(info) { updateEvent(info.event); },
-      eventResize: function(info) { updateEvent(info.event); }
-    });
+  const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
+    initialView: "timeGridDay",
+    locale: "sq",
+    slotMinTime: "09:00:00",
+    slotMaxTime: "20:00:00",
+    allDaySlot: false,
+    height: "auto",
+    headerToolbar: {
+      left: "prev,next today",
+      center: "title",
+      right: "timeGridDay,listWeek"
+    },
+    slotLabelFormat: {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    },
+    slotLabelContent: function(arg) {
+      return "Ora: " + arg.text;
+    },
+    selectable: true,
+    editable: true,
+    events: "/appointments/events/",
+    eventContent: function(info) {
+      let title = info.event.title || "";
+      let doctor = info.event.extendedProps.doctor ? " (" + info.event.extendedProps.doctor + ")" : "";
+      return { html: `<b>${title}</b>${doctor}` };
+    },
+    eventClassNames: function(info) {
+      return info.event.extendedProps.status;
+    },
+    eventClick: (info) => openModal({
+      id: info.event.id,
+      patient: info.event.extendedProps.patient,
+      doctor: info.event.extendedProps.doctor,
+      title: info.event.title,
+      start: info.event.startStr.slice(0,16),
+      end: info.event.endStr ? info.event.endStr.slice(0,16) : "",
+      status: info.event.extendedProps.status,
+      notes: info.event.extendedProps.notes
+    }),
+    select: (info) => openModal({
+      start: info.startStr.slice(0,16),
+      end: info.endStr ? info.endStr.slice(0,16) : ""
+    }),
+    eventDrop: (info) => updateEvent(info.event),
+    eventResize: (info) => updateEvent(info.event)
+  });
+  calendar.render();
 
-    calendar.render();
+  btnNew.addEventListener("click", () => openModal());
 
-    // modal open
-    function openModal(data={}) {
-      document.getElementById("apptId").value = data.id || "";
-      document.getElementById("apptPatient").value = data.patient || "";
-      document.getElementById("apptDoctor").value = data.doctor || "Dr. Labi";
-      document.getElementById("apptService").value = data.title || "";
-      document.getElementById("apptStart").value = data.start || "";
-      document.getElementById("apptEnd").value = data.end || "";
-      document.getElementById("apptStatus").value = data.status || "scheduled";
-      document.getElementById("apptNotes").value = data.notes || "";
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const id = document.getElementById("apptId").value;
+    const payload = {
+      patient: document.getElementById("apptPatient").value,
+      doctor: document.getElementById("apptDoctor").value,
+      title: document.getElementById("apptTitle").value,
+      start: document.getElementById("apptStart").value,
+      end: document.getElementById("apptEnd").value,
+      status: document.getElementById("apptStatus").value,
+      notes: document.getElementById("apptNotes").value
+    };
 
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-    }
-
-    // mbyll modal
-    document.getElementById("btnCloseModal").addEventListener("click", () => {
-      modal.classList.add("hidden");
-    });
-
-    // submit
-    form.addEventListener("submit", function(e) {
-      e.preventDefault();
-
-      const id = document.getElementById("apptId").value;
-      const payload = {
-        patient: document.getElementById("apptPatient").value,
-        doctor: document.getElementById("apptDoctor").value,
-        title: document.getElementById("apptService").value,
-        start: document.getElementById("apptStart").value,
-        end: document.getElementById("apptEnd").value,
-        status: document.getElementById("apptStatus").value,
-        notes: document.getElementById("apptNotes").value
-      };
-
-      fetch(id ? `/appointments/update/${id}/` : "/appointments/create/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: JSON.stringify(payload)
-      }).then(() => {
-        modal.classList.add("hidden");
-        calendar.refetchEvents();
-      });
-    });
-
-    // update
-    function updateEvent(event) {
-      fetch(`/appointments/update/${event.id}/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
-        body: JSON.stringify({
-          start: event.start.toISOString(),
-          end: event.end ? event.end.toISOString() : null
-        })
-      }).then(() => calendar.refetchEvents());
-    }
-
-    // filtrimi sipas doktorit
-    document.getElementById("doctorFilter").addEventListener("change", function() {
-      const doctor = this.value;
-      calendar.removeAllEvents();
-      calendar.addEventSource((fetchInfo, successCallback, failureCallback) => {
-        fetch("/appointments/events/")
-          .then(res => res.json())
-          .then(events => {
-            if (doctor) {
-              events = events.filter(e => e.extendedProps && e.extendedProps.doctor === doctor);
-            }
-            successCallback(events);
-          });
-      });
+    fetch(id ? `/appointments/update/${id}/` : "/appointments/create/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).then(() => {
+      closeModal();
+      calendar.refetchEvents();
     });
   });
-    </script>
+
+  btnDelete.addEventListener("click", () => {
+    const id = document.getElementById("apptId").value;
+    fetch(`/appointments/delete/${id}/`, { method: "POST" })
+      .then(() => { closeModal(); calendar.refetchEvents(); });
+  });
+
+  btnCancel.addEventListener("click", closeModal);
+});
+</script>
 {% endblock %}
