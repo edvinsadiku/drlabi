@@ -174,16 +174,63 @@
         </div>
     {% endif %}
     <!-- Auto-search script -->
-    <script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
   const input = document.getElementById("searchInput");
-  const form = document.getElementById("searchForm");
+  const tableContainer = document.querySelector("table").parentElement; 
   let timeout = null;
 
   input.addEventListener("input", function() {
     clearTimeout(timeout);
     timeout = setTimeout(() => {
-      form.submit();
-    }, 400); // 0.4 sekonda vonesë
+      const q = input.value.trim();
+      fetch(`?q=${encodeURIComponent(q)}`, {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      })
+        .then(response => response.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const newTable = doc.querySelector("table");
+          const oldTable = document.querySelector("table");
+          const newCount = doc.querySelector("span.px-3"); 
+          const oldCount = document.querySelector("span.px-3");
+
+          if (newTable && oldTable) {
+            oldTable.innerHTML = newTable.innerHTML;
+          }
+          if (newCount && oldCount) {
+            oldCount.innerHTML = newCount.innerHTML;
+          }
+        })
+        .catch(err => console.error("Gabim në kërkim:", err));
+    }, 400);
   });
-    </script>
+
+  document.addEventListener("click", function(e) {
+    if (e.target.tagName === "A" && e.target.closest(".pagination-link")) {
+      e.preventDefault();
+      const url = e.target.href;
+      fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(response => response.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const newTable = doc.querySelector("table");
+          const oldTable = document.querySelector("table");
+          const newCount = doc.querySelector("span.px-3");
+          const oldCount = document.querySelector("span.px-3");
+
+          if (newTable && oldTable) {
+            oldTable.innerHTML = newTable.innerHTML;
+          }
+          if (newCount && oldCount) {
+            oldCount.innerHTML = newCount.innerHTML;
+          }
+        })
+        .catch(err => console.error("Gabim në pagination:", err));
+    }
+  });
+});
+</script>
 {% endblock %}
