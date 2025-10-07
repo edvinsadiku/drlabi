@@ -66,15 +66,17 @@
                                class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
                                placeholder="Shkruaj emrin dhe mbiemrin">
                     </div>
-                    <div>
-                        <label for="data_e_lindjes"
-                               class="block text-sm font-medium text-gray-700 mb-1">Data e lindjes</label>
-                        <input id="data_e_lindjes"
-                               name="data_e_lindjes"
-                               type="date"
-                               value="{% if patient and patient.data_e_lindjes %}{{ patient.data_e_lindjes|slice:'6:' }}-{{ patient.data_e_lindjes|slice:'3:5' }}-{{ patient.data_e_lindjes|slice:':2' }}{% endif %}"
-                               class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm">
-                    </div>
+<div>
+  <label for="data_e_lindjes"
+         class="block text-sm font-medium text-gray-700 mb-1">
+         Data e lindjes
+  </label>
+  <input id="data_e_lindjes"
+         name="data_e_lindjes"
+         type="date"
+         value="{{ patient.data_e_lindjes|default_if_none:'' }}"
+         class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm">
+</div>
                     <div>
                         <label for="leternjoftimi"
                                class="block text-sm font-medium text-gray-700 mb-1">Letërnjoftimi</label>

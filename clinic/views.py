@@ -642,19 +642,52 @@ def reports(request):
 from django.contrib import messages
 
 
+from django.utils.timezone import now
+
 @login_required
 def add_or_edit_patient(request, pk=None):
     patient = None
     if pk:
         patient = get_object_or_404(Patient, pk=pk)
 
+        # formatin e datës për editim (nga "14.03.1998" në "1998-03-14")
+        if patient.data_e_lindjes:
+            try:
+                if isinstance(patient.data_e_lindjes, str):
+                    if "." in patient.data_e_lindjes:
+                        patient.data_e_lindjes = datetime.strptime(
+                            patient.data_e_lindjes, "%d.%m.%Y"
+                        ).strftime("%Y-%m-%d")
+                    elif "/" in patient.data_e_lindjes:
+                        patient.data_e_lindjes = datetime.strptime(
+                            patient.data_e_lindjes, "%d/%m/%Y"
+                        ).strftime("%Y-%m-%d")
+                    elif "-" in patient.data_e_lindjes and len(patient.data_e_lindjes) == 10:
+                        # format të saktë (YYYY-MM-DD)
+                        pass
+                else:
+                    # nëse është objekt date
+                    patient.data_e_lindjes = patient.data_e_lindjes.strftime("%Y-%m-%d")
+            except Exception:
+                pass
+
     if request.method == "POST":
         emri_mbiemri = request.POST.get("emri_mbiemri")
-        data_e_lindjes = request.POST.get("data_e_lindjes") or None
+        data_raw = request.POST.get("data_e_lindjes") or None
         telefoni = request.POST.get("telefoni")
         emaili = request.POST.get("emaili")
         leternjoftimi = request.POST.get("leternjoftimi")
-        adresa = request.POST.get("adresa")  
+        adresa = request.POST.get("adresa")
+
+        #Konverto datën në format "DD.MM.YYYY"
+        data_e_lindjes = None
+        if data_raw:
+            try:
+                data_e_lindjes = datetime.strptime(
+                    data_raw, "%Y-%m-%d"
+                ).strftime("%d.%m.%Y")
+            except ValueError:
+                data_e_lindjes = data_raw
 
         if not emri_mbiemri:
             messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
@@ -665,28 +698,33 @@ def add_or_edit_patient(request, pk=None):
                 patient.telefoni = telefoni
                 patient.emaili = emaili
                 patient.leternjoftimi = leternjoftimi
-                patient.adresa = adresa  
+                patient.adresa = adresa
+                patient.updated_at = now()
                 patient.save()
                 messages.success(
-                    request, f"Pacienti {patient.emri_mbiemri} u përditësua me sukses."
+                    request,
+                    f"Pacienti {patient.emri_mbiemri} u përditësua me sukses."
                 )
-            else:  # CREATE
+            else:  
                 patient = Patient.objects.create(
                     emri_mbiemri=emri_mbiemri,
                     data_e_lindjes=data_e_lindjes,
                     telefoni=telefoni,
                     emaili=emaili,
                     leternjoftimi=leternjoftimi,
-                    adresa=adresa,  
+                    adresa=adresa,
+                    created_at=now(),
+                    updated_at=now(),
                 )
                 messages.success(
                     request,
-                    f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses.",
+                    f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses."
                 )
 
             return redirect("patient_list")
 
     return render(request, "clinic/add_patient.html", {"patient": patient})
+
 
 @login_required
 def shpenzime_list(request):
