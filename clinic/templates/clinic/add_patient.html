@@ -85,6 +85,16 @@
                                class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
                                placeholder="numri i letërnjoftimit">
                     </div>
+                    <div>
+    <label for="adresa" class="block text-sm font-medium text-gray-700 mb-1">Adresa</label>
+    <input id="adresa"
+           name="adresa"
+           type="text"
+           value="{{ patient.adresa|default_if_none:'' }}"
+           class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 py-2.5 px-3 text-sm"
+           placeholder="Rruga, qyteti, shteti">
+</div>
+
                 </div>
             </section>
             <!-- Kontakti -->

@@ -654,6 +654,7 @@ def add_or_edit_patient(request, pk=None):
         telefoni = request.POST.get("telefoni")
         emaili = request.POST.get("emaili")
         leternjoftimi = request.POST.get("leternjoftimi")
+        adresa = request.POST.get("adresa")  
 
         if not emri_mbiemri:
             messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
@@ -664,6 +665,7 @@ def add_or_edit_patient(request, pk=None):
                 patient.telefoni = telefoni
                 patient.emaili = emaili
                 patient.leternjoftimi = leternjoftimi
+                patient.adresa = adresa  
                 patient.save()
                 messages.success(
                     request, f"Pacienti {patient.emri_mbiemri} u përditësua me sukses."
@@ -675,6 +677,7 @@ def add_or_edit_patient(request, pk=None):
                     telefoni=telefoni,
                     emaili=emaili,
                     leternjoftimi=leternjoftimi,
+                    adresa=adresa,  
                 )
                 messages.success(
                     request,
@@ -684,7 +687,6 @@ def add_or_edit_patient(request, pk=None):
             return redirect("patient_list")
 
     return render(request, "clinic/add_patient.html", {"patient": patient})
-
 
 @login_required
 def shpenzime_list(request):
