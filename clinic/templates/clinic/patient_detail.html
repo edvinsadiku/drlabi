@@ -258,154 +258,186 @@
     </div>
 </section>
 
-    <!-- ============================= -->
-    <!-- MARRËVESHJET + HISTORITË E TYRE -->
-    <!-- ============================= -->
-    <section class="bg-white border rounded-2xl overflow-hidden mb-10">
-        <!-- Header -->
-        <header class="px-6 py-5 border-b bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
-            <div class="flex items-center gap-2 text-gray-800">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     class="size-5 text-gray-500"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4m6 6V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2z" />
-                </svg>
-                <h3 class="font-semibold text-lg">Marrëveshjet</h3>
-            </div>
-            <a href="{% url 'agreement_create' patient.id %}"
-               class="text-green-700 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-xs sm:text-sm px-3 py-1.5 sm:px-5 sm:py-2.5 text-center me-2 mb-2 dark:border-green-500 dark:text-green-500 dark:hover:text-white dark:hover:bg-green-600 dark:focus:ring-green-800">
-                + Krijo marrëveshje
-            </a>
-        </header>
-        <div class="p-6 space-y-6">
-            {% if agreements_new %}
-                {% for a in agreements_new %}
-                    <!-- Alpine wrapper për një marrëveshje -->
-                    <article x-data="{ open: false }"
-                             class="rounded-xl border border-gray-200 overflow-hidden">
-                        <!-- Card Header -->
-                        <div class="p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-gray-50 border-b">
-                            <div class="space-y-2">
-                                <h4 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                         class="size-5 text-emerald-600"
-                                         fill="none"
-                                         viewBox="0 0 24 24"
-                                         stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a5 5 0 00-10 0v2m10 0a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7a2 2 0 012-2m10 0H7" />
-                                    </svg>
-                                    {{ a.title }}
-                                </h4>
-                                <div class="flex flex-wrap gap-2 text-sm">
-                                    <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700 border">Totali: <strong>{{ a.total_amount }}€</strong></span>
-                                    <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">Paguar: <strong>{{ a.paid_sum }}€</strong></span>
-                                    <span class="px-2 py-1 rounded-full {% if a.bal_sum > 0 %}bg-red-100 text-red-700 border border-red-200{% else %}bg-gray-100 text-gray-500{% endif %}">
-                                        Borxh: <strong>{{ a.bal_sum }}€</strong>
-                                    </span>
-                                    <span class="px-2 py-1 rounded-full text-xs uppercase font-semibold tracking-wide {% if a.status == 'active' %}bg-emerald-600 text-white{% elif a.status == 'closed' %}bg-gray-500 text-white{% else %}bg-amber-500 text-white{% endif %}">
-                                        {{ a.get_status_display|default:a.status }}
-                                    </span>
-                                </div>
-                                <p class="text-xs text-gray-500">
-                                    {% if a.created_by %}
-                                        Krijuar nga: <span class="font-medium">{{ a.created_by.get_full_name|default:a.created_by.username }}</span>
-                                    {% else %}
-                                        Krijuar nga: -
-                                    {% endif %}
-                                    {% if a.created_at %}• {{ a.created_at|date:"Y-m-d H:i" }}{% endif %}
-                                    {% if a.updated_by %}• Përditësuar nga: {{ a.updated_by.get_full_name|default:a.updated_by.username }}{% endif %}
-                                </p>
-                            </div>
-                            <!-- Veprimet -->
-                            <div class="flex items-center gap-2">
-                                {% if a.status == 'active' %}
-                                    {% if a.bal_sum <= 0 %}
-                                        <a href="{% url 'agreement_close' a.id %}"
-                                           class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
-                                            Mbyll
-                                        </a>
-                                    {% else %}
-                                        <span class="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-sm border border-amber-200">
-                                            Mbetur: {{ a.bal_sum }}€
-                                        </span>
-                                        <button disabled
-                                                class="px-4 py-2 rounded-lg bg-gray-100 text-gray-400 text-sm cursor-not-allowed">
-                                            Mbyll
-                                        </button>
-                                    {% endif %}
-                                {% endif %}
-                                <!-- Accordion toggle -->
-                                <button @click="open = !open"
-                                        type="button"
-                                        class="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-100 transition flex items-center gap-1">
-                                    Historitë
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                         class="size-4 text-gray-500 transition-transform"
-                                         :class="{'rotate-90': open}"
-                                         fill="none"
-                                         viewBox="0 0 24 24"
-                                         stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                        <!-- Historitë Accordion -->
-                        <div x-show="open" x-collapse class="agreement-histories border-t">
-                            <table class="min-w-full text-sm">
-                                <thead class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide">
-                                    <tr>
-                                        <th class="px-4 py-3 text-left">Data</th>
-                                        <th class="px-4 py-3 text-left">Dhëmbi</th>
-                                        <th class="px-4 py-3 text-left">Diagnoza</th>
-                                        <th class="px-4 py-3 text-left">Trajtimi</th>
-                                        <th class="px-4 py-3 text-left">Çmimi</th>
-                                        <th class="px-4 py-3 text-left">Doktori</th>
-                                        <th class="px-4 py-3 text-left">Nga</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100 bg-white">
-                                    {% for h in care_histories_all %}
-                                        {% if h.agreement and h.agreement.id == a.id %}
-                                            <tr class="hover:bg-gray-50 transition">
-                                                <td class="px-4 py-3 whitespace-nowrap">{{ h.date }}</td>
-                                                <td class="px-4 py-3 whitespace-nowrap">{{ h.tooth }}</td>
-                                                <td class="px-4 py-3">{{ h.diagnosis }}</td>
-                                                <td class="px-4 py-3">{{ h.treatment }}</td>
-                                                <td class="px-4 py-3 whitespace-nowrap">
-                                                    {% if h.included_in_agreement %}
-                                                        <span class="text-gray-400 italic">e përfshirë</span>
-                                                    {% else %}
-                                                        {{ h.amount|default:"0.00" }}€
-                                                    {% endif %}
-                                                </td>
-                                                <td class="px-4 py-3 whitespace-nowrap">{{ h.doctor }}</td>
-                                                <td class="px-4 py-3 whitespace-nowrap text-gray-600">
-                                                    {% if h.created_by %}
-                                                        {{ h.created_by.get_full_name|default:h.created_by.username }}
-                                                    {% else %}
-                                                        -
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endif %}
-                                    {% empty %}
-                                        <tr>
-                                            <td colspan="7" class="px-4 py-6 text-center text-gray-400">—</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </article>
-                {% endfor %}
-            {% else %}
-                <div class="text-gray-500 px-2">S’ka marrëveshje.</div>
-            {% endif %}
+<!-- ============================= -->
+<!-- MARRËVESHJET + HISTORITË E TYRE -->
+<!-- ============================= -->
+<section class="bg-white border rounded-2xl overflow-hidden mb-10">
+    <!-- Header -->
+    <header class="px-6 py-5 border-b bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
+        <div class="flex items-center gap-2 text-gray-800">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="size-5 text-gray-500"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 6v6h4m6 6V6a2 2 0 00-2-2H4a2 2 0 01-2 2v12a2 2 0 002 2h16a2 2 0 002-2z" />
+            </svg>
+            <h3 class="font-semibold text-lg">Marrëveshjet</h3>
         </div>
-    </section>
+        <a href="{% url 'agreement_create' patient.id %}"
+           class="text-green-700 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-xs sm:text-sm px-3 py-1.5 sm:px-5 sm:py-2.5 text-center me-2 mb-2">
+            + Krijo marrëveshje
+        </a>
+    </header>
+
+    <div class="p-6 space-y-6">
+        {% if agreements_new %}
+            {% for a in agreements_new %}
+                <article x-data="{ open: false }" class="rounded-xl border border-gray-200 overflow-hidden">
+                    <!-- Card Header -->
+                    <div class="p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-gray-50 border-b">
+                        <div class="space-y-2">
+                            <h4 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="size-5 text-emerald-600"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M17 9V7a5 5 0 00-10 0v2m10 0a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7a2 2 0 012-2m10 0H7" />
+                                </svg>
+                                {{ a.title }}
+                            </h4>
+
+                            <!-- ✅ Shfaq Vërejtjet e Marrëveshjes (notes) -->
+                            {% if a.notes %}
+                                <p class="text-sm text-gray-600 leading-snug">
+                                    <span class="font-medium text-gray-700">Vërejtje:</span> {{ a.notes }}
+                                </p>
+                            {% endif %}
+
+                            <div class="flex flex-wrap gap-2 text-sm">
+                                <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700 border">
+                                    Totali: <strong>{{ a.total_amount }}€</strong>
+                                </span>
+                                <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    Paguar: <strong>{{ a.paid_sum }}€</strong>
+                                </span>
+                                <span class="px-2 py-1 rounded-full {% if a.bal_sum > 0 %}bg-red-100 text-red-700 border border-red-200{% else %}bg-gray-100 text-gray-500{% endif %}">
+                                    Borxh: <strong>{{ a.bal_sum }}€</strong>
+                                </span>
+                                <span class="px-2 py-1 rounded-full text-xs uppercase font-semibold tracking-wide {% if a.status == 'active' %}bg-emerald-600 text-white{% elif a.status == 'closed' %}bg-gray-500 text-white{% else %}bg-amber-500 text-white{% endif %}">
+                                    {{ a.get_status_display|default:a.status }}
+                                </span>
+                            </div>
+
+                            <p class="text-xs text-gray-500">
+                                {% if a.created_by %}
+                                    Krijuar nga: <span class="font-medium">{{ a.created_by.get_full_name|default:a.created_by.username }}</span>
+                                {% else %}
+                                    Krijuar nga: -
+                                {% endif %}
+                                {% if a.created_at %}• {{ a.created_at|date:"Y-m-d H:i" }}{% endif %}
+                                {% if a.updated_by %}• Përditësuar nga: {{ a.updated_by.get_full_name|default:a.updated_by.username }}{% endif %}
+                            </p>
+                        </div>
+
+                        <!-- Veprimet -->
+                        <div class="flex items-center gap-2">
+                            {% if a.status == 'active' %}
+                                {% if a.bal_sum <= 0 %}
+                                    <a href="{% url 'agreement_close' a.id %}"
+                                       class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
+                                        Mbyll
+                                    </a>
+                                {% else %}
+                                    <span class="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-sm border border-amber-200">
+                                        Mbetur: {{ a.bal_sum }}€
+                                    </span>
+                                    <button disabled
+                                            class="px-4 py-2 rounded-lg bg-gray-100 text-gray-400 text-sm cursor-not-allowed">
+                                        Mbyll
+                                    </button>
+                                {% endif %}
+                            {% endif %}
+
+                            <!-- Accordion toggle -->
+                            <button @click="open = !open"
+                                    type="button"
+                                    class="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-100 transition flex items-center gap-1">
+                                Historitë
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="size-4 text-gray-500 transition-transform"
+                                     :class="{'rotate-90': open}"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Historitë Accordion -->
+                    <div x-show="open" x-collapse class="agreement-histories border-t">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">Data</th>
+                                    <th class="px-4 py-3 text-left">Dhëmbi</th>
+                                    <th class="px-4 py-3 text-left">Diagnoza</th>
+                                    <th class="px-4 py-3 text-left">Trajtimi</th>
+                                    <th class="px-4 py-3 text-left">Çmimi</th>
+                                    <th class="px-4 py-3 text-left">Doktori</th>
+                                    <th class="px-4 py-3 text-left">Nga</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white">
+                                {% for h in care_histories_all %}
+                                    {% if h.agreement and h.agreement.id == a.id %}
+                                        <tr class="hover:bg-gray-50 transition">
+                                            <td class="px-4 py-3 whitespace-nowrap">{{ h.date }}</td>
+                                            <td class="px-4 py-3 whitespace-nowrap">{{ h.tooth }}</td>
+
+                                            <!-- Diagnoza -->
+                                            <td class="px-4 py-3">
+                                                {% if h.diagnosis %}
+                                                    {{ h.diagnosis }}
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Trajtimi -->
+                                            <td class="px-4 py-3">
+                                                {% if h.treatment %}
+                                                    {{ h.treatment }}
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Çmimi -->
+                                            <td class="px-4 py-3 whitespace-nowrap">
+                                                {% if h.included_in_agreement %}
+                                                    <span class="text-gray-400 italic">e përfshirë</span>
+                                                {% else %}
+                                                    {{ h.amount|default:"0.00" }}€
+                                                {% endif %}
+                                            </td>
+
+                                            <td class="px-4 py-3 whitespace-nowrap">{{ h.doctor }}</td>
+                                            <td class="px-4 py-3 whitespace-nowrap text-gray-600">
+                                                {% if h.created_by %}
+                                                    {{ h.created_by.get_full_name|default:h.created_by.username }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="px-4 py-6 text-center text-gray-400">—</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray-500 px-2">S’ka marrëveshje.</div>
+        {% endif %}
+    </div>
+</section>
     <!-- ============================= -->
     <!-- SHTO PAGESË -->
     <!-- ============================= -->
