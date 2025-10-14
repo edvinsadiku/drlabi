@@ -321,6 +321,8 @@ class CareHistory(models.Model):
     notes = models.CharField(max_length=255, null=True, blank=True)
 
     doctor = models.CharField(max_length=191, null=True, blank=True)
+    punim_protetikor = models.TextField(null=True, blank=True)
+    tekniku = models.CharField(max_length=191, null=True, blank=True)
 
     agreement = models.ForeignKey(
         Agreement,
@@ -353,7 +355,7 @@ class CareHistory(models.Model):
     class Meta:
         db_table = "lp_care_histories"
         ordering = ["-date", "-id"]
-        managed = False
+        managed = True
         verbose_name = "Historia"
         verbose_name_plural = "Historia"
 

@@ -285,7 +285,6 @@ def add_history(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
 
     if request.method == "POST":
-        # Data fikse = sot
         date_obj = now().date()
 
         # --- FUSHA TË TJERA ---
@@ -294,11 +293,9 @@ def add_history(request, pk):
         trajtimi = request.POST.get("trajtimi") or None
         vlera = _to_decimal(request.POST.get("vlera"))
         paguar = _to_decimal(request.POST.get("paguar"))
-        _to_decimal(request.POST.get("borgji"))
         doctor = request.POST.get("doctor") or None
-        request.POST.get("pasqyra_e_dhembit") or None
-        request.POST.get("punim_protetikor") or None
-        request.POST.get("tekniku") or None
+        punim_protetikor = request.POST.get("punim_protetikor") or None
+        tekniku = request.POST.get("tekniku") or None
         verejtje = request.POST.get("verejtje") or None
 
         # --- MARRËVESHJE ---
@@ -308,33 +305,36 @@ def add_history(request, pk):
 
         if agreement_id and str(agreement_id).isdigit():
             agreement = Agreement.objects.filter(
-                id=int(agreement_id), patient=patient, status="active"
+                id=int(agreement_id),
+                patient=patient,
+                status="active"
             ).first()
             if agreement:
                 included = True
 
         if not agreement and (not vlera or vlera <= 0):
-            messages.error(
-                request,
-                "Ju lutem shënoni vlerën e shërbimit ose zgjidhni një marrëveshje.",
-            )
+            messages.error(request, "Ju lutem shënoni vlerën ose zgjidhni marrëveshje.")
             return redirect("add_history", pk=patient.pk)
 
+        # ✅ KRIJO CAREHISTORY ME FUSHAT E REJA
         ch = CareHistory.objects.create(
             patient=patient,
-            date=date_obj,  # gjithmonë sot
+            date=date_obj,
             tooth=dhembi,
             diagnosis=diagnoza,
             treatment=trajtimi,
             amount=(None if included else vlera),
             notes=verejtje,
             doctor=doctor,
+            punim_protetikor=punim_protetikor,
+            tekniku=tekniku,
             agreement=(agreement if included else None),
             included_in_agreement=included,
             created_by=request.user,
             updated_by=request.user,
         )
 
+        # Pagesa nëse ka
         if (paguar or Decimal("0")) > 0 and not included:
             Payment.objects.create(
                 patient=patient,
@@ -353,10 +353,8 @@ def add_history(request, pk):
         "clinic/history_form_simple.html",
         {
             "patient": patient,
-            "today": now().date(),  # për t’ia treguar përdoruesit
-            "agreements": patient.agreements.filter(status="active").order_by(
-                "-created_at"
-            ),
+            "today": now().date(),
+            "agreements": patient.agreements.filter(status="active").order_by("-created_at"),
         },
     )
 
