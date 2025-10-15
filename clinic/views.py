@@ -24,6 +24,8 @@ from datetime import datetime
 from django.db.models.functions import Coalesce, Greatest
 
 
+
+
 @login_required
 def home(request):
     return patient_list(request)
@@ -34,7 +36,6 @@ def patient_list(request):
 
     qs = Patient.objects.all()
 
-    # Search
     if q:
         qs = qs.filter(
             Q(emri_mbiemri__icontains=q)
@@ -42,13 +43,12 @@ def patient_list(request):
             | Q(emaili__icontains=q)
         )
 
-    # ---- Lightweight annotations ----
     qs = qs.annotate(
         historias_count=Count("historias"),
         last_historia=Max("historias__created_at"),
         last_care=Max("care_histories__date"),
     ).annotate(
-        last_history=Case(  # më e sigurt se Greatest për tipe miks
+        last_history=Case(  
             When(last_historia__gt=F("last_care"), then=F("last_historia")),
             default=F("last_care"),
             output_field=DateTimeField(),
@@ -213,7 +213,7 @@ def patient_detail(request, pk):
             "agreements_active": agreements_active,
             "care_histories_all": care_histories_all,
             "unpaid_histories": unpaid_histories,
-            "documents": documents,  # e dërgojmë tek template
+            "documents": documents,
         },
     )
 
@@ -222,7 +222,7 @@ def patient_detail(request, pk):
 def history_detail(request, pk):
     history = get_object_or_404(
         Historia, pk=pk
-    )  # ose Historia nëse modeli quhet ndryshe
+    )  
     return render(
         request,
         "clinic/history_detail.html",
@@ -316,7 +316,6 @@ def add_history(request, pk):
             messages.error(request, "Ju lutem shënoni vlerën ose zgjidhni marrëveshje.")
             return redirect("add_history", pk=patient.pk)
 
-        # ✅ KRIJO CAREHISTORY ME FUSHAT E REJA
         ch = CareHistory.objects.create(
             patient=patient,
             date=date_obj,
@@ -334,7 +333,6 @@ def add_history(request, pk):
             updated_by=request.user,
         )
 
-        # Pagesa nëse ka
         if (paguar or Decimal("0")) > 0 and not included:
             Payment.objects.create(
                 patient=patient,
@@ -350,7 +348,7 @@ def add_history(request, pk):
 
     return render(
         request,
-        "clinic/history_form_simple.html",
+        "clinic/add_history.html",
         {
             "patient": patient,
             "today": now().date(),
@@ -392,7 +390,6 @@ def add_orto_history(request, pk):
             doctor=doctor,
             verejtje=verejtje,
         )
-        # LIDHJA ME PACIENTIN ORTO – NDRYSHO EMRIN E FUSHËS NËSE ËSHTË NDRYSHE
         obj.patien_ortodentics = patient_orto
         obj.save()
 
@@ -426,11 +423,11 @@ def edit_history(request, pk):
 
     return render(
         request,
-        "clinic/history_form_simple.html",
+        "clinic/add_history.html",
         {
             "patient": patient,
             "historia": historia,
-            "today": now().date(),  # përdoret vetëm kur s’ka data
+            "today": now().date(), 
         },
     )
 
@@ -493,12 +490,10 @@ def reports(request):
 
     today = now().date()
 
-    # Lexo target-in sipas modit, me default-e të mençura
     if mode == "day":
         day_str = request.GET.get("day")
         target_day = datetime.strptime(day_str, "%Y-%m-%d").date() if day_str else today
 
-        # Prefiltro në DB vetëm për vitin target (shpejtësi)
         qs = Historia.objects.filter(
             data__endswith=f".{target_day.year}"
         ).select_related("patient")
@@ -519,21 +514,17 @@ def reports(request):
                 )
 
     elif mode == "week":
-        # Preferojmë input type="week"
-        week_str = request.GET.get("week")  # p.sh. "2025-W35"
+        week_str = request.GET.get("week")  
         if week_str:
             y, w = week_str.split("-W")
             y, w = int(y), int(w)
-            # ISO week → e hëna:
             week_start = date.fromisocalendar(y, w, 1)
         else:
-            # default: java e sotme
             y, w, _ = today.isocalendar()
             week_start = date.fromisocalendar(y, w, 1)
 
         week_end = week_start + timedelta(days=6)
 
-        # Prefiltro për vitet e mundshme (java mund të bjerë në dy vite)
         years = {week_start.year, week_end.year}
         q = Q()
         for yr in years:
@@ -563,7 +554,6 @@ def reports(request):
         else:
             y, m = today.year, today.month
 
-        # Prefiltro: ".MM.YYYY" brenda stringut p.sh. ".08.2025"
         mm = f"{m:02d}"
         qs = Historia.objects.filter(data__contains=f".{mm}.{y}").select_related(
             "patient"
@@ -584,7 +574,7 @@ def reports(request):
                     }
                 )
 
-    else:  # year
+    else:  
         year_str = request.GET.get("year")
         y = int(year_str) if (year_str and year_str.isdigit()) else today.year
 
@@ -605,17 +595,13 @@ def reports(request):
                     }
                 )
 
-    # Renditja sipas datës
     reverse = order == "desc"
     items.sort(key=lambda r: (r["d"] or date.min, r["obj"].id or 0), reverse=reverse)
 
-    # Totale
     total_vlera = sum((r["vlera"] for r in items), Decimal("0"))
     total_paguar = sum((r["paguar"] for r in items), Decimal("0"))
     total_borgji = sum((r["borgji"] for r in items), Decimal("0"))
 
-    # Lista viteve për dropdown (opsionale)
-    # mund të nxjerrim nga DB, por për thjeshtësi përdorim disa vite afër sotit
     years = list(range(today.year, today.year - 10, -1))
 
     ctx = {
@@ -627,7 +613,6 @@ def reports(request):
         "total_borgji": total_borgji,
         "today": today,
         "years": years,
-        # vlera të rikthyera në UI
         "picked_day": request.GET.get("day") or today.strftime("%Y-%m-%d"),
         "picked_week": request.GET.get("week")
         or f"{today.isocalendar().year}-W{today.isocalendar().week:02d}",
@@ -637,10 +622,6 @@ def reports(request):
     return render(request, "clinic/reports.html", ctx)
 
 
-from django.contrib import messages
-
-
-from django.utils.timezone import now
 
 @login_required
 def add_or_edit_patient(request, pk=None):
@@ -1320,6 +1301,11 @@ def delete_patient_document(request, pk):
 
 @login_required
 def checkout(request):
+    from decimal import Decimal
+    from django.db.models import Sum, F
+    from django.db.models.functions import Coalesce
+    from django.db.models import DecimalField
+
     patient = None
     histories = []
     agreements = []
@@ -1340,7 +1326,7 @@ def checkout(request):
             s=Coalesce(Sum("amount", output_field=DECIMAL), ZERO)
         )["s"] or Decimal("0.00")
 
-        # Histori të pacientit
+        # Histori të pacientit (vetëm me borxh)
         histories = (
             CareHistory.objects.filter(
                 patient=patient, agreement__isnull=True, included_in_agreement=False
@@ -1350,10 +1336,11 @@ def checkout(request):
                 debt_sum=F("amount")
                 - Coalesce(Sum("payments__amount", output_field=DECIMAL), ZERO),
             )
+            .filter(debt_sum__gt=0)
             .order_by("date")
         )
 
-        # Marrëveshje aktive
+        # Marrëveshje aktive (vetëm me borxh)
         agreements = (
             Agreement.objects.filter(patient=patient, status="active")
             .annotate(
@@ -1361,6 +1348,7 @@ def checkout(request):
                 debt_sum=F("total_amount")
                 - Coalesce(Sum("payments__amount", output_field=DECIMAL), ZERO),
             )
+            .filter(debt_sum__gt=0) 
             .order_by("-created_at")
         )
 
