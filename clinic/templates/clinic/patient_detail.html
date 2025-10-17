@@ -329,8 +329,11 @@
                                     Krijuar nga: -
                                 {% endif %}
                                 {% if a.created_at %}• {{ a.created_at|date:"Y-m-d H:i" }}{% endif %}
-                                {% if a.updated_by %}• Përditësuar nga: {{ a.updated_by.get_full_name|default:a.updated_by.username }}{% endif %}
+                                {% if a.doctor %}
+                                    • Doktor: <span class="font-bold text-gray-700">{{ a.doctor }}</span>
+                                {% endif %}
                             </p>
+
                         </div>
 
                         <!-- Veprimet -->
