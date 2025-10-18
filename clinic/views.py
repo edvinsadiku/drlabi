@@ -1530,3 +1530,89 @@ def user_logout(request):
     if request.method in ["POST", "GET"]:
         logout(request)
     return redirect("login")
+
+
+from django.http import JsonResponse
+
+@login_required
+def history_detail_api(request, pk):
+    history = get_object_or_404(Historia, pk=pk)
+    data = {
+        "id": history.id,
+        "date": history.data,
+        "tooth": history.dhembi,
+        "diagnosis": history.diagnoza,
+        "treatment": history.trajtimi,
+        "value": str(history.vlera or 0),
+        "paid": str(history.paguar or 0),
+        "debt": str(history.borgji or 0),
+        "doctor": history.doctor,
+        "technician": history.tekniku,
+        "notes": history.verejtje,
+    }
+    return JsonResponse(data)
+
+
+from django.db.models import DecimalField, Sum, Value
+from django.db.models.functions import Coalesce
+from decimal import Decimal
+from django.http import JsonResponse, Http404
+from django.contrib.auth.decorators import login_required
+from .models import CareHistory, Payment
+
+
+@login_required
+def care_history_detail_api(request, pk):
+    """Kthen detajet e një CareHistory si JSON për modalin."""
+    DECIMAL = DecimalField(max_digits=18, decimal_places=2)
+    ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
+
+    ch = get_object_or_404(
+        CareHistory.objects.select_related("patient", "agreement"), pk=pk
+    )
+
+    # ✅ Sa është paguar për këtë histori (me DecimalField)
+    paid_sum = (
+        Payment.objects.filter(history=ch)
+        .aggregate(s=Coalesce(Sum("amount", output_field=DECIMAL), ZERO))["s"]
+        or Decimal("0.00")
+    )
+
+    # ✅ Llogarit borxhin dhe shumën e shfaqur
+    amount = Decimal(ch.amount or 0)
+    if ch.included_in_agreement:
+        display_amount = Decimal("0.00")
+        debt = Decimal("0.00")
+    else:
+        display_amount = amount
+        debt = max(display_amount - paid_sum, Decimal("0.00"))
+
+    data = {
+        "id": ch.id,
+        "patient_id": ch.patient_id,
+        "date": ch.date.strftime("%d/%m/%Y") if ch.date else "",
+        "tooth": ch.tooth or "",
+        "diagnosis": ch.diagnosis or "",
+        "treatment": ch.treatment or "",
+        "amount": f"{display_amount:.2f}",
+        "paid": f"{paid_sum:.2f}",
+        "debt": f"{debt:.2f}",
+        "included_in_agreement": bool(ch.included_in_agreement),
+        "agreement": {
+            "id": ch.agreement_id,
+            "title": ch.agreement.title if ch.agreement_id else None,
+        } if ch.agreement_id else None,
+        "doctor": ch.doctor or "",
+        "punim_protetikor": ch.punim_protetikor or "",
+        "technician": ch.tekniku or "",
+        "notes": ch.notes or "",
+        "created_by": (ch.created_by.get_full_name() or ch.created_by.username)
+        if ch.created_by_id
+        else "",
+        "created_at": ch.created_at.isoformat()
+        if getattr(ch, "created_at", None)
+        else "",
+        "can_edit": request.user.is_superuser
+        or getattr(request.user, "is_admin", lambda: False)(),
+    }
+    return JsonResponse(data)

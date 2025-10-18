@@ -175,11 +175,12 @@
       <!-- ============================ -->
       <!-- HISTORI KRYESORE -->
       <!-- ============================ -->
-      <tr class="hover:bg-gray-50 transition border-l-4 border-transparent {% if h.child_histories.all %}border-emerald-500 bg-emerald-50/30{% endif %}">
+      <tr onclick="openCareHistoryModal({{ h.id }})"
+          class="hover:bg-gray-50 transition border-l-4 border-transparent {% if h.child_histories.all %}border-emerald-500 bg-emerald-50/30{% endif %}">
         <td class="px-4 py-3 whitespace-nowrap text-gray-700">{{ h.date }}</td>
         <td class="px-4 py-3 whitespace-nowrap">{{ h.tooth }}</td>
-        <td class="px-4 py-3">{{ h.diagnosis|default:"" }}</td>
-        <td class="px-4 py-3 align-top">{{ h.treatment|default:"" }}</td>
+        <td class="px-4 py-3">{{ h.diagnosis|default:""|truncatechars:20  }}</td>
+        <td class="px-4 py-3 align-top">{{ h.treatment|default:""|truncatechars:20  }}</td>
         <td class="px-4 py-3 whitespace-nowrap">
           {% if h.included_in_agreement %}
             <span class="text-gray-400 italic">e përfshirë</span>
@@ -200,7 +201,7 @@
           {% endif %}
         </td>
         <td class="px-4 py-3 whitespace-nowrap">{{ h.doctor }}</td>
-        <td class="px-4 py-3">{{ h.notes|default:"" }}</td>
+        <td class="px-4 py-3">{{ h.notes|default:""|truncatechars:20  }}</td>
         <td class="px-4 py-3 whitespace-nowrap text-gray-600">
           <div class="flex items-center justify-between gap-3">
             <span>
@@ -225,7 +226,8 @@
       {% with children=h.child_histories.all %}
         {% if children %}
 {% for sub in children %}
-  <tr class="group bg-gray-100 hover:bg-gray-200 transition relative">
+  <tr onclick="openCareHistoryModal({{ sub.id }})"
+      class="group bg-gray-100 hover:bg-gray-200 transition relative">
     <!-- Kolona e datës me ikonë ↳ dhe vijë të hollë -->
     <td class="pl-12 pr-4 py-2 text-[13px] text-gray-700 relative">
       <span class="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 text-sm font-semibold">↳</span>
@@ -1013,4 +1015,137 @@
   updateInfo();
 })();
     </script>
+
+    <!-- ============================= -->
+    <!-- MODAL: DETAJET E CAREHISTORY -->
+    <!-- ============================= -->
+<!-- ============================= -->
+<!-- MODAL: DETAJET E CAREHISTORY (verzion klinik me qoshe të buta) -->
+<!-- ============================= -->
+<div id="careHistoryModal"
+     class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/20 backdrop-blur-[2px]">
+  <div id="careHistoryCard"
+       class="bg-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] max-w-xl w-full mx-4 transform transition-all duration-150 ease-out scale-95 opacity-0 border border-gray-200">
+    
+    <!-- Header -->
+    <div class="flex justify-between items-center px-6 py-4 border-b bg-gray-50 rounded-t-3xl">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3M5 11h14M5 19h14M5 15h14"/>
+        </svg>
+        <h3 class="text-lg font-semibold text-gray-800">Detajet e trajtimit</h3>
+      </div>
+      <button type="button" onclick="closeCareHistoryModal()"
+              class="rounded-full p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
+        ✕
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="px-6 py-5 space-y-5 text-sm text-gray-800 bg-white rounded-b-3xl">
+      <div class="grid grid-cols-2 gap-4">
+        <div><p class="text-xs text-gray-500">Data</p><p id="chDate" class="font-medium">—</p></div>
+        <div><p class="text-xs text-gray-500">Dhëmbi</p><p id="chTooth" class="font-medium">—</p></div>
+        <div class="col-span-2"><p class="text-xs text-gray-500">Diagnoza</p><p id="chDiagnosis" class="font-medium">—</p></div>
+        <div class="col-span-2"><p class="text-xs text-gray-500">Trajtimi</p><p id="chTreatment" class="font-medium">—</p></div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 pt-2">
+        <div class="text-center rounded-2xl border border-gray-200 bg-gray-50 p-3">
+          <p class="text-[11px] text-gray-500">Çmimi</p><p id="chAmount" class="text-lg font-semibold text-gray-800">0.00€</p>
+        </div>
+        <div class="text-center rounded-2xl border border-gray-200 bg-gray-50 p-3">
+          <p class="text-[11px] text-gray-500">Paguar</p><p id="chPaid" class="text-lg font-semibold text-emerald-600">0.00€</p>
+        </div>
+        <div class="text-center rounded-2xl border border-gray-200 bg-gray-50 p-3">
+          <p class="text-[11px] text-gray-500">Borxh</p><p id="chDebt" class="text-lg font-semibold text-red-600">0.00€</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 pt-2">
+        <div><p class="text-xs text-gray-500">Doktori</p><p id="chDoctor" class="font-medium">—</p></div>
+        <div><p class="text-xs text-gray-500">Tekniku</p><p id="chTechnician" class="font-medium">—</p></div>
+        <div class="col-span-2"><p class="text-xs text-gray-500">Punim protetikor</p><p id="chPunim" class="font-medium">—</p></div>
+        <div class="col-span-2"><p class="text-xs text-gray-500">Vërejtje</p><p id="chNotes" class="italic text-gray-700">—</p></div>
+      </div>
+
+      <div id="chAgreementWrap" class="hidden pt-2">
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+          <p class="text-xs text-emerald-700">Marrëveshje</p>
+          <p id="chAgreement" class="text-sm font-medium text-emerald-800">—</p>
+          <p class="text-[11px] text-emerald-600 mt-1">E përfshirë në marrëveshje.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-between rounded-b-3xl">
+      <div id="chCreated" class="text-xs text-gray-500">—</div>
+      <button type="button" onclick="closeCareHistoryModal()"
+              class="px-4 py-1.5 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 transition">
+        Mbyll
+      </button>
+    </div>
+  </div>
+</div>
+
+    <script>
+    let __chCurrentId=null;
+    function openCareHistoryModal(id){
+      __chCurrentId=id;
+      const modal=document.getElementById("careHistoryModal");
+      const card=document.getElementById("careHistoryCard");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      setTimeout(()=>{card.classList.remove("scale-95","opacity-0");card.classList.add("scale-100","opacity-100");},10);
+
+      fetch(`/care-history/${id}/json/`,{headers:{"X-Requested-With":"XMLHttpRequest"}})
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(d=>{
+        document.getElementById("chDate").textContent=d.date||"—";
+        document.getElementById("chTooth").textContent=d.tooth||"—";
+        document.getElementById("chDiagnosis").textContent=d.diagnosis||"—";
+        document.getElementById("chTreatment").textContent=d.treatment||"—";
+        document.getElementById("chAmount").textContent=(d.amount!=null?d.amount:"0.00")+ "€";
+        document.getElementById("chPaid").textContent=(d.paid!=null?d.paid:"0.00") + "€";
+        document.getElementById("chDebt").textContent=(d.debt!=null?d.debt:"0.00") + "€";
+        document.getElementById("chDoctor").textContent=d.doctor||"—";
+        document.getElementById("chTechnician").textContent=d.technician||d.tekniku||"—";
+        document.getElementById("chPunim").textContent=d.punim_protetikor||"—";
+        document.getElementById("chNotes").textContent=d.notes||"—";
+        const agrWrap=document.getElementById("chAgreementWrap");
+        const agr=document.getElementById("chAgreement");
+        if(d.included_in_agreement && d.agreement && (d.agreement.title||d.agreement.id)){
+          agr.textContent=`#${d.agreement.id||""} ${d.agreement.title||""}`.trim();
+          agrWrap.classList.remove("hidden");
+        } else {
+          agrWrap.classList.add("hidden");
+        }
+        const createdEl=document.getElementById("chCreated");
+        const parts=[];
+        if(d.created_by) parts.push(`Nga: ${d.created_by}`);
+        if(d.created_at){
+          try{ parts.push(new Date(d.created_at).toLocaleString()); }catch(_){}
+        }
+        createdEl.textContent=parts.join(" • ")||"";
+      })
+      .catch(()=>{
+        document.getElementById("chDiagnosis").textContent="Gabim gjatë ngarkimit.";
+      });
+    }
+    function closeCareHistoryModal(){
+      const modal=document.getElementById("careHistoryModal");
+      const card=document.getElementById("careHistoryCard");
+      card.classList.add("scale-95","opacity-0");
+      setTimeout(()=>{modal.classList.add("hidden"); modal.classList.remove("flex");},150);
+    }
+    document.getElementById("careHistoryModal").addEventListener("click",e=>{
+      if(e.target.id==="careHistoryModal") closeCareHistoryModal();
+    });
+    document.addEventListener("keydown",e=>{
+      if(e.key==="Escape") closeCareHistoryModal();
+    });
+    </script>
+
 {% endblock %}
