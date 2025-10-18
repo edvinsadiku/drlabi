@@ -339,7 +339,7 @@
                 <div class="p-6 space-y-6">
                     {% if agreements_new %}
                         {% for a in agreements_new %}
-                            <article x-data="{ open: false }" class="rounded-xl border border-gray-200 overflow-hidden">
+                                <article x-data="{ open: {% if forloop.first %}true{% else %}false{% endif %} }" class="rounded-xl border border-gray-200 overflow-hidden">
                                 <div class="p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-gray-50 border-b">
                                     <div class="space-y-2">
                                         <h4 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
