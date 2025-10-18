@@ -87,7 +87,6 @@ def patient_detail(request, pk):
 
     # ---------- LEGACY ----------
     historias = patient.historias.order_by("-id")
-
     ortho_histories = HistoryOrtodentics.objects.filter(
         emri_i_pacientit=patient.emri_mbiemri
     ).order_by("-id")
@@ -110,15 +109,37 @@ def patient_detail(request, pk):
         s=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL)
     )["s"]
 
-    # Histori të reja
-    care_qs_base = CareHistory.objects.filter(patient=patient).select_related(
-        "agreement", "created_by"
+    # ✅ Subquery për pagesat e çdo historie
+    payments_subq = (
+        Payment.objects.filter(history=OuterRef("pk"))
+        .values("history")
+        .annotate(total=Sum("amount"))
+        .values("total")[:1]
     )
 
-    care_histories_all = (
-        care_qs_base.annotate(
-            paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
+    # ✅ përfshin pagesat edhe për child_histories
+    care_qs_base = (
+        CareHistory.objects.filter(patient=patient)
+        .select_related("agreement", "created_by")
+        .prefetch_related(
+            models.Prefetch(
+                "child_histories",
+                queryset=CareHistory.objects.annotate(
+                    paid_sum=Coalesce(Subquery(payments_subq), Value(Decimal("0.00"))),
+                    debt_sum=ExpressionWrapper(
+                        Coalesce(F("amount"), Value(Decimal("0.00"))) - 
+                        Coalesce(Subquery(payments_subq), Value(Decimal("0.00"))),
+                        output_field=DECIMAL,
+                    ),
+                ).order_by("date", "id"),
+            )
         )
+    )
+
+    # ✅ Vetëm historitë prind
+    care_histories_all = (
+        care_qs_base.filter(parent_history__isnull=True)
+        .annotate(paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL))
         .annotate(
             debt_raw=ExpressionWrapper(
                 Coalesce(F("amount"), ZERO, output_field=DECIMAL) - F("paid_sum"),
@@ -135,12 +156,14 @@ def patient_detail(request, pk):
         .order_by("-date", "-id")
     )
 
+    # Totali jashtë marrëveshjeve
     care_total_non_agreement = (
         care_qs_base.filter(
             agreement__isnull=True, included_in_agreement=False
         ).aggregate(s=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
     )["s"]
 
+    # Histori të papaguara
     unpaid_histories = (
         care_qs_base.annotate(
             paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
@@ -155,11 +178,10 @@ def patient_detail(request, pk):
         .order_by("date", "id")
     )
 
+    # Marrëveshjet
     agreements_qs = (
         Agreement.objects.filter(patient=patient)
-        .annotate(
-            paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
-        )
+        .annotate(paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL))
         .annotate(
             bal_sum=ExpressionWrapper(
                 F("total_amount") - F("paid_sum"), output_field=DECIMAL
@@ -167,6 +189,7 @@ def patient_detail(request, pk):
         )
         .order_by("-id")
     )
+
     agreements_active = agreements_qs.filter(status="active")
 
     agreements_total_amount = agreements_qs.aggregate(
@@ -194,6 +217,7 @@ def patient_detail(request, pk):
         .order_by("-uploaded_at")
     )
 
+    # ---------- RENDER ----------
     return render(
         request,
         "clinic/patient_detail.html",
@@ -216,7 +240,6 @@ def patient_detail(request, pk):
             "documents": documents,
         },
     )
-
 
 @login_required
 def history_detail(request, pk):
@@ -284,6 +307,14 @@ from django.utils.timezone import now
 def add_history(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
 
+    parent_id = request.GET.get("parent")
+    parent_obj = None
+    if parent_id:
+        try:
+            parent_obj = CareHistory.objects.get(id=int(parent_id))
+        except (ValueError, CareHistory.DoesNotExist):
+            parent_obj = None
+
     if request.method == "POST":
         date_obj = now().date()
 
@@ -291,8 +322,11 @@ def add_history(request, pk):
         dhembi = request.POST.get("dhembi") or None
         diagnoza = request.POST.get("diagnoza") or None
         trajtimi = request.POST.get("trajtimi") or None
-        vlera = _to_decimal(request.POST.get("vlera"))
-        paguar = _to_decimal(request.POST.get("paguar"))
+
+        # ✅ Siguro që janë gjithmonë Decimal, jo None
+        vlera = _to_decimal(request.POST.get("vlera") or 0)
+        paguar = _to_decimal(request.POST.get("paguar") or 0)
+
         doctor = request.POST.get("doctor") or None
         punim_protetikor = request.POST.get("punim_protetikor") or None
         tekniku = request.POST.get("tekniku") or None
@@ -312,10 +346,15 @@ def add_history(request, pk):
             if agreement:
                 included = True
 
-        if not agreement and (not vlera or vlera <= 0):
-            messages.error(request, "Ju lutem shënoni vlerën ose zgjidhni marrëveshje.")
-            return redirect("add_history", pk=patient.pk)
+        # ✅ Logjika e përforcuar
+        if not agreement:
+            if vlera == 0 and paguar > 0:
+                messages.error(request, "Nuk mund të regjistrohet pagesë kur vlera është 0.")
+                return redirect("add_history", pk=patient.pk)
+            if vlera <= 0 and paguar <= 0:
+                pass  # lejohet
 
+        # ✅ Krijo historinë
         ch = CareHistory.objects.create(
             patient=patient,
             date=date_obj,
@@ -329,11 +368,13 @@ def add_history(request, pk):
             tekniku=tekniku,
             agreement=(agreement if included else None),
             included_in_agreement=included,
+            parent_history=parent_obj,
             created_by=request.user,
             updated_by=request.user,
         )
 
-        if (paguar or Decimal("0")) > 0 and not included:
+        # --- Pagesa ---
+        if paguar > 0 and not included:
             Payment.objects.create(
                 patient=patient,
                 amount=paguar,
@@ -353,6 +394,40 @@ def add_history(request, pk):
             "patient": patient,
             "today": now().date(),
             "agreements": patient.agreements.filter(status="active").order_by("-created_at"),
+            "parent": parent_obj,
+        },
+    )
+
+
+@login_required
+def edit_care_history(request, pk):
+    historia = get_object_or_404(CareHistory, pk=pk)
+    patient = historia.patient
+
+    if request.method == "POST":
+        # Lejohen vetëm këto fusha të ndryshohen
+        historia.doctor = request.POST.get("doctor") or historia.doctor
+        historia.diagnosis = request.POST.get("diagnoza") or historia.diagnosis
+        historia.treatment = request.POST.get("trajtimi") or historia.treatment
+        historia.tooth = request.POST.get("dhembi") or historia.tooth
+        historia.punim_protetikor = request.POST.get("punim_protetikor") or historia.punim_protetikor
+        historia.tekniku = request.POST.get("tekniku") or historia.tekniku
+        historia.notes = request.POST.get("verejtje") or historia.notes
+
+        # Asnjë ndryshim për amount (vlera) dhe pagesat
+        historia.updated_by = request.user
+        historia.save()
+
+        messages.success(request, "Historia u përditësua me sukses.")
+        return redirect("patient_detail", pk=patient.pk)
+
+    return render(
+        request,
+        "clinic/add_history.html",
+        {
+            "historia": historia,
+            "patient": patient,
+            "today": historia.date or now().date(),
         },
     )
 

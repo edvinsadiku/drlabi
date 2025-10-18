@@ -136,126 +136,167 @@
             </div>
         </aside>
     </section>
-    <!-- ============================= -->
-    <!-- HISTORIA (JASHTË MARRËVESHJEJE) -->
-    <!-- ============================= -->
+<!-- ============================= -->
+<!-- HISTORIA (JASHTË MARRËVESHJEJE) -->
+<!-- ============================= -->
 <section class="bg-white border rounded-xl overflow-hidden mb-10">
-    <!-- Header -->
-    <header class="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
-        <div class="flex items-center gap-2 text-gray-700">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="size-5 text-gray-500"
-                 fill="none"
-                 viewBox="0 0 24 24"
-                 stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M9 12h6m-6 4h6M5 8h14M5 16h14M4 6h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" />
-            </svg>
-            <h3 class="font-semibold text-lg">Historia</h3>
-        </div>
-    </header>
-
-    <!-- Table -->
-    <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-            <thead class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide border-b">
-                <tr>
-                    <th class="px-4 py-3 text-left">Data</th>
-                    <th class="px-4 py-3 text-left">Dhëmbi</th>
-                    <th class="px-4 py-3 text-left">Diagnoza</th>
-                    <th class="px-4 py-3 text-left">Trajtimi</th>
-                    <th class="px-4 py-3 text-left">Çmimi</th>
-                    <th class="px-4 py-3 text-left">Paguar</th>
-                    <th class="px-4 py-3 text-left">Borxh</th>
-                    <th class="px-4 py-3 text-left">Doktori</th>
-                    <th class="px-4 py-3 text-left">Vërejtje</th>
-                    <th class="px-4 py-3 text-left">Nga</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 bg-white">
-                {% with non_agreement=care_histories_all %}
-                    {% for h in non_agreement %}
-                        {% if not h.agreement %}
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">{{ h.date }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">{{ h.tooth }}</td>
-
-                                <!-- Diagnoza -->
-                                <td class="px-4 py-3">
-                                    {% if h.diagnosis %}
-                                        {{ h.diagnosis }}
-                                    {% endif %}
-                                </td>
-
-                                <!-- Trajtimi + Punim Protetikor + Tekniku -->
-                                <td class="px-4 py-3 align-top">
-                                    {% if h.treatment %}
-                                        {{ h.treatment }}
-                                    {% endif %}
-                                    {% if h.punim_protetikor or h.tekniku %}
-                                        <div class="mt-1 text-xs text-gray-600 leading-snug">
-                                            {% if h.punim_protetikor %}
-                                                <div><span class="font-medium text-gray-700">Punim protetik:</span> {{ h.punim_protetikor }}</div>
-                                            {% endif %}
-                                            {% if h.tekniku %}
-                                                <div><span class="font-medium text-gray-700">Tekniku:</span> {{ h.tekniku }}</div>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                </td>
-
-                                <!-- Çmimi -->
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    {% if h.included_in_agreement %}
-                                        <span class="text-gray-400 italic">e përfshirë</span>
-                                    {% else %}
-                                        <span class="font-medium">{{ h.amount|default:"0.00" }}€</span>
-                                    {% endif %}
-                                </td>
-
-                                <!-- Paguar -->
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    <span class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium">
-                                        {{ h.paid_sum|default:"0.00" }}€
-                                    </span>
-                                </td>
-
-                                <!-- Borxh -->
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    {% if h.debt_sum and h.debt_sum|floatformat != "0" %}
-                                        <span class="px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-200 text-xs font-medium">
-                                            {{ h.debt_sum }}€
-                                        </span>
-                                    {% else %}
-                                        <span class="text-gray-400 text-xs">0.00€</span>
-                                    {% endif %}
-                                </td>
-
-                                <td class="px-4 py-3 whitespace-nowrap">{{ h.doctor }}</td>
-                                <td class="px-4 py-3">
-                                    {% if h.notes %}
-                                        {{ h.notes }}
-                                    {% endif %}
-                                </td>
-
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-600">
-                                    {% if h.created_by %}
-                                        {{ h.created_by.get_full_name|default:h.created_by.username }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endif %}
-                    {% empty %}
-                        <tr>
-                            <td colspan="10" class="px-4 py-6 text-center text-gray-400">S’ka histori.</td>
-                        </tr>
-                    {% endfor %}
-                {% endwith %}
-            </tbody>
-        </table>
+  <!-- Header -->
+  <header class="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
+    <div class="flex items-center gap-2 text-gray-700">
+      <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12h6m-6 4h6M5 8h14M5 16h14M4 6h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" />
+      </svg>
+      <h3 class="font-semibold text-lg">Trajtimet</h3>
     </div>
+  </header>
+
+  <!-- Table -->
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide border-b">
+        <tr>
+          <th class="px-4 py-3 text-left">Data</th>
+          <th class="px-4 py-3 text-left">Dhëmbi</th>
+          <th class="px-4 py-3 text-left">Diagnoza</th>
+          <th class="px-4 py-3 text-left">Trajtimi</th>
+          <th class="px-4 py-3 text-left">Çmimi</th>
+          <th class="px-4 py-3 text-left">Paguar</th>
+          <th class="px-4 py-3 text-left">Borxh</th>
+          <th class="px-4 py-3 text-left">Doktori</th>
+          <th class="px-4 py-3 text-left">Vërejtje</th>
+          <th class="px-4 py-3 text-left">Nga</th>
+        </tr>
+      </thead>
+<tbody class="divide-y divide-gray-200 bg-white">
+{% with non_agreement=care_histories_all %}
+  {% for h in non_agreement %}
+    {% if not h.agreement and not h.parent_id %}
+      <!-- ============================ -->
+      <!-- HISTORI KRYESORE -->
+      <!-- ============================ -->
+      <tr class="hover:bg-gray-50 transition border-l-4 border-transparent {% if h.child_histories.all %}border-emerald-500 bg-emerald-50/30{% endif %}">
+        <td class="px-4 py-3 whitespace-nowrap text-gray-700">{{ h.date }}</td>
+        <td class="px-4 py-3 whitespace-nowrap">{{ h.tooth }}</td>
+        <td class="px-4 py-3">{{ h.diagnosis|default:"" }}</td>
+        <td class="px-4 py-3 align-top">{{ h.treatment|default:"" }}</td>
+        <td class="px-4 py-3 whitespace-nowrap">
+          {% if h.included_in_agreement %}
+            <span class="text-gray-400 italic">e përfshirë</span>
+          {% else %}
+            <span class="font-medium">{{ h.amount|default:"0.00" }}€</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap">
+          <span class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium">
+            {{ h.paid_sum|default:"0.00" }}€
+          </span>
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap">
+          {% if h.debt_sum and h.debt_sum|floatformat != "0" %}
+            <span class="px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-200 text-xs font-medium">{{ h.debt_sum }}€</span>
+          {% else %}
+            <span class="text-gray-400 text-xs">0.00€</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap">{{ h.doctor }}</td>
+        <td class="px-4 py-3">{{ h.notes|default:"" }}</td>
+        <td class="px-4 py-3 whitespace-nowrap text-gray-600">
+          <div class="flex items-center justify-between gap-3">
+            <span>
+              {% if h.created_by %}
+                {{ h.created_by.get_full_name|default:h.created_by.username }}
+              {% else %}-{% endif %}
+            </span>
+            <a href="{% url 'add_history' patient.id %}?parent={{ h.id }}"
+               class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Vazhdo trajt.
+            </a>
+          </div>
+        </td>
+      </tr>
+
+      <!-- ============================ -->
+      <!-- NËN-HISTORITË (me dizajn gri elegant) -->
+      <!-- ============================ -->
+      {% with children=h.child_histories.all %}
+        {% if children %}
+{% for sub in children %}
+  <tr class="group bg-gray-100 hover:bg-gray-200 transition relative">
+    <!-- Kolona e datës me ikonë ↳ dhe vijë të hollë -->
+    <td class="pl-12 pr-4 py-2 text-[13px] text-gray-700 relative">
+      <span class="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 text-sm font-semibold">↳</span>
+      {{ sub.date }}
+    </td>
+
+    <!-- Dhëmbi -->
+    <td class="px-4 py-2 text-[13px] text-gray-700">{{ sub.tooth }}</td>
+
+    <!-- Diagnoza -->
+    <td class="px-4 py-2 text-[13px] text-gray-700 italic">{{ sub.diagnosis|default:"" }}</td>
+
+    <!-- Trajtimi -->
+    <td class="px-4 py-2 text-[13px] font-medium text-gray-800">
+      {{ sub.treatment|default:"" }}
+    </td>
+
+    <!-- Çmimi -->
+    <td class="px-4 py-2 text-[13px] text-gray-800">
+      <span class="font-semibold">{{ sub.amount|default:"0.00" }}€</span>
+    </td>
+
+    <!-- Paguar -->
+    <td class="px-4 py-2 whitespace-nowrap">
+      {% if sub.paid_sum and sub.paid_sum|floatformat != "0" %}
+        <span class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium">
+          {{ sub.paid_sum }}€
+        </span>
+      {% else %}
+        <span class="text-gray-400 text-xs">0.00€</span>
+      {% endif %}
+    </td>
+
+    <!-- Borxh -->
+    <td class="px-4 py-2 text-[13px] whitespace-nowrap">
+      {% if sub.debt_sum and sub.debt_sum|floatformat != "0" %}
+        <span class="px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-200 text-xs font-medium">
+          {{ sub.debt_sum }}€
+        </span>
+      {% else %}
+        <span class="text-gray-400 text-xs">0.00€</span>
+      {% endif %}
+    </td>
+
+    <!-- Doktori -->
+    <td class="px-4 py-2 text-[13px] text-gray-800">{{ sub.doctor|default:"" }}</td>
+
+    <!-- Vërejtje -->
+    <td class="px-4 py-2 text-[13px] text-gray-600 italic">{{ sub.notes|default:"" }}</td>
+
+    <!-- Nga -->
+    <td class="px-4 py-2 text-[13px] text-gray-600">
+      {% if sub.created_by %}
+        {{ sub.created_by.get_full_name|default:sub.created_by.username }}
+      {% else %}
+        -
+      {% endif %}
+    </td>
+  </tr>
+{% endfor %}
+        {% endif %}
+      {% endwith %}
+    {% endif %}
+  {% empty %}
+    <tr><td colspan="10" class="px-4 py-6 text-center text-gray-400">S’ka histori.</td></tr>
+  {% endfor %}
+{% endwith %}
+</tbody>
+
+    </table>
+  </div>
 </section>
 
 <!-- ============================= -->

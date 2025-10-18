@@ -352,6 +352,17 @@ class CareHistory(models.Model):
         related_name="updated_care_histories",
     )
 
+    parent_history = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="child_histories",
+        db_constraint=False,
+        db_column="parent_history_id",
+        help_text="Nëse kjo histori është vazhdim i një tjetre, zgjidhe prindin."
+    )
+
     class Meta:
         db_table = "lp_care_histories"
         ordering = ["-date", "-id"]
@@ -359,12 +370,8 @@ class CareHistory(models.Model):
         verbose_name = "Historia"
         verbose_name_plural = "Historia"
 
-    
-
     def __str__(self):
-        return (
-            f"{self.patient.emri_mbiemri or 'Pacient'} – {self.diagnosis or 'Histori'}"
-        )
+        return f"{self.patient.emri_mbiemri or 'Pacient'} – {self.diagnosis or 'Histori'}"
 
 
 class Payment(models.Model):

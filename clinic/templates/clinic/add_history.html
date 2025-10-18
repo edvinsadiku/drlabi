@@ -20,6 +20,13 @@
      class="px-3 py-2 border rounded bg-white hover:bg-gray-50 text-sm">Kthehu</a>
 </div>
 
+{% if parent %}
+  <div class="mt-2 mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
+    <strong>Vazhdo trajtimin:</strong> {{ parent.diagnosis|default:"(pa diagnozë)" }}
+    — {{ parent.treatment|default:"(pa trajtim)" }}
+  </div>
+{% endif %}
+
 <form method="post" id="historyForm"
       class="bg-white border rounded-xl p-5 md:p-6 space-y-6">
   {% csrf_token %}
@@ -215,6 +222,7 @@
   </section>
 </form>
 
+
 <!-- JS -->
 <script>
   const svgBase = "{% static 'assets/img/' %}";
@@ -245,9 +253,28 @@
     priceRow.classList.toggle("opacity-55",included);priceRow.classList.toggle("pointer-events-none",included);}
   fldAgreement.addEventListener("change",()=>{fldIncluded.checked=!!fldAgreement.value;togglePriceFields();});
   fldIncluded.addEventListener("change",togglePriceFields);togglePriceFields();
-  document.getElementById("historyForm").addEventListener("submit",e=>{if(!fldAgreement.value&&(!vlera.value||parseFloat(vlera.value)<=0)){e.preventDefault();alert("Ju lutem shënoni vlerën e shërbimit ose zgjidhni një marrëveshje.");}});
 
-  // === PUNIM PROTETIKOR DYNAMIC ===
+  document.getElementById("historyForm").addEventListener("submit", e=>{
+    const vleraVal=parseFloat(vlera.value)||0;
+    const paguarVal=parseFloat(document.getElementById("fldPaguar").value)||0;
+
+    if(vleraVal===0 && paguarVal>0){
+      e.preventDefault();
+      alert("❌ Nuk mund të regjistrohet pagesë nëse vlera është 0.");
+      return;
+    }
+
+    
+    if(vleraVal===0 && paguarVal===0) return;
+    if(fldIncluded.checked || fldAgreement.value) return;
+
+    // ❌ Në raste tjera kërko vlerë ose marrëveshje
+    if(!fldAgreement.value && vleraVal<=0 && paguarVal<=0){
+      e.preventDefault();
+      alert("Ju lutem shënoni vlerën e shërbimit ose zgjidhni një marrëveshje.");
+    }
+  });
+
   const radioPo=document.getElementById("radioPo"),radioJo=document.getElementById("radioJo"),punimFields=document.getElementById("punimFields");
   function togglePunimFields(){if(radioPo.checked){punimFields.classList.remove("hidden");}else{punimFields.querySelectorAll("input,textarea").forEach(el=>el.value="");punimFields.classList.add("hidden");}}
   radioPo.addEventListener("change",togglePunimFields);radioJo.addEventListener("change",togglePunimFields);
