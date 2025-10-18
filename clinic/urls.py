@@ -43,6 +43,7 @@ urlpatterns = [
     path("patients/search/", views.search_patients, name="search_patients"),
     path("patients/<int:pk>/edit_care_history/", views.edit_care_history, name="edit_care_history"),
     path("care-history/<int:pk>/json/", views.care_history_detail_api, name="care_history_detail_api"),
+    path("api/patient/save/", views.add_or_edit_patient, name="add_or_edit_patient"),
 
 
 

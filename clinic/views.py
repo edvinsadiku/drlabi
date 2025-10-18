@@ -36,6 +36,7 @@ def patient_list(request):
 
     qs = Patient.objects.all()
 
+    # 🔍 Kërkimi
     if q:
         qs = qs.filter(
             Q(emri_mbiemri__icontains=q)
@@ -43,24 +44,27 @@ def patient_list(request):
             | Q(emaili__icontains=q)
         )
 
+    # 🧩 Llogaritjet dhe renditja sipas historisë së fundit (CareHistory + Historia)
     qs = qs.annotate(
         historias_count=Count("historias"),
         last_historia=Max("historias__created_at"),
         last_care=Max("care_histories__date"),
     ).annotate(
-        last_history=Case(  
+        last_history=Case(
+            # nëse historia klasike është më e re se carehistory
             When(last_historia__gt=F("last_care"), then=F("last_historia")),
+            # përndryshe merret data e fundit nga carehistory
             default=F("last_care"),
             output_field=DateTimeField(),
         ),
         register_date=F("created_at"),
-        city=Coalesce(F("adresa"), Value("", output_field=None)),
+        city=Coalesce(F("adresa"), Value("")),
     )
 
-    # Sorting default: nga historia e fundit
-    qs = qs.order_by("-last_history", "-id")
+    # ✅ Rendit nga pacienti me historinë më të fundit (CareHistory ose Historia)
+    qs = qs.order_by(F("last_history").desc(nulls_last=True), F("id").desc())
 
-    # Pagination
+    # 📄 Pagination
     paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get("page") or 1)
 
@@ -698,86 +702,86 @@ def reports(request):
 
 
 
-@login_required
-def add_or_edit_patient(request, pk=None):
-    patient = None
-    if pk:
-        patient = get_object_or_404(Patient, pk=pk)
+# @login_required
+# def add_or_edit_patient(request, pk=None):
+#     patient = None
+#     if pk:
+#         patient = get_object_or_404(Patient, pk=pk)
 
-        # formatin e datës për editim (nga "14.03.1998" në "1998-03-14")
-        if patient.data_e_lindjes:
-            try:
-                if isinstance(patient.data_e_lindjes, str):
-                    if "." in patient.data_e_lindjes:
-                        patient.data_e_lindjes = datetime.strptime(
-                            patient.data_e_lindjes, "%d.%m.%Y"
-                        ).strftime("%Y-%m-%d")
-                    elif "/" in patient.data_e_lindjes:
-                        patient.data_e_lindjes = datetime.strptime(
-                            patient.data_e_lindjes, "%d/%m/%Y"
-                        ).strftime("%Y-%m-%d")
-                    elif "-" in patient.data_e_lindjes and len(patient.data_e_lindjes) == 10:
-                        # format të saktë (YYYY-MM-DD)
-                        pass
-                else:
-                    # nëse është objekt date
-                    patient.data_e_lindjes = patient.data_e_lindjes.strftime("%Y-%m-%d")
-            except Exception:
-                pass
+#         # formatin e datës për editim (nga "14.03.1998" në "1998-03-14")
+#         if patient.data_e_lindjes:
+#             try:
+#                 if isinstance(patient.data_e_lindjes, str):
+#                     if "." in patient.data_e_lindjes:
+#                         patient.data_e_lindjes = datetime.strptime(
+#                             patient.data_e_lindjes, "%d.%m.%Y"
+#                         ).strftime("%Y-%m-%d")
+#                     elif "/" in patient.data_e_lindjes:
+#                         patient.data_e_lindjes = datetime.strptime(
+#                             patient.data_e_lindjes, "%d/%m/%Y"
+#                         ).strftime("%Y-%m-%d")
+#                     elif "-" in patient.data_e_lindjes and len(patient.data_e_lindjes) == 10:
+#                         # format të saktë (YYYY-MM-DD)
+#                         pass
+#                 else:
+#                     # nëse është objekt date
+#                     patient.data_e_lindjes = patient.data_e_lindjes.strftime("%Y-%m-%d")
+#             except Exception:
+#                 pass
 
-    if request.method == "POST":
-        emri_mbiemri = request.POST.get("emri_mbiemri")
-        data_raw = request.POST.get("data_e_lindjes") or None
-        telefoni = request.POST.get("telefoni")
-        emaili = request.POST.get("emaili")
-        leternjoftimi = request.POST.get("leternjoftimi")
-        adresa = request.POST.get("adresa")
+#     if request.method == "POST":
+#         emri_mbiemri = request.POST.get("emri_mbiemri")
+#         data_raw = request.POST.get("data_e_lindjes") or None
+#         telefoni = request.POST.get("telefoni")
+#         emaili = request.POST.get("emaili")
+#         leternjoftimi = request.POST.get("leternjoftimi")
+#         adresa = request.POST.get("adresa")
 
-        #Konverto datën në format "DD.MM.YYYY"
-        data_e_lindjes = None
-        if data_raw:
-            try:
-                data_e_lindjes = datetime.strptime(
-                    data_raw, "%Y-%m-%d"
-                ).strftime("%d.%m.%Y")
-            except ValueError:
-                data_e_lindjes = data_raw
+#         #Konverto datën në format "DD.MM.YYYY"
+#         data_e_lindjes = None
+#         if data_raw:
+#             try:
+#                 data_e_lindjes = datetime.strptime(
+#                     data_raw, "%Y-%m-%d"
+#                 ).strftime("%d.%m.%Y")
+#             except ValueError:
+#                 data_e_lindjes = data_raw
 
-        if not emri_mbiemri:
-            messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
-        else:
-            if patient:  # EDIT
-                patient.emri_mbiemri = emri_mbiemri
-                patient.data_e_lindjes = data_e_lindjes
-                patient.telefoni = telefoni
-                patient.emaili = emaili
-                patient.leternjoftimi = leternjoftimi
-                patient.adresa = adresa
-                patient.updated_at = now()
-                patient.save()
-                messages.success(
-                    request,
-                    f"Pacienti {patient.emri_mbiemri} u përditësua me sukses."
-                )
-            else:  
-                patient = Patient.objects.create(
-                    emri_mbiemri=emri_mbiemri,
-                    data_e_lindjes=data_e_lindjes,
-                    telefoni=telefoni,
-                    emaili=emaili,
-                    leternjoftimi=leternjoftimi,
-                    adresa=adresa,
-                    created_at=now(),
-                    updated_at=now(),
-                )
-                messages.success(
-                    request,
-                    f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses."
-                )
+#         if not emri_mbiemri:
+#             messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
+#         else:
+#             if patient:  # EDIT
+#                 patient.emri_mbiemri = emri_mbiemri
+#                 patient.data_e_lindjes = data_e_lindjes
+#                 patient.telefoni = telefoni
+#                 patient.emaili = emaili
+#                 patient.leternjoftimi = leternjoftimi
+#                 patient.adresa = adresa
+#                 patient.updated_at = now()
+#                 patient.save()
+#                 messages.success(
+#                     request,
+#                     f"Pacienti {patient.emri_mbiemri} u përditësua me sukses."
+#                 )
+#             else:  
+#                 patient = Patient.objects.create(
+#                     emri_mbiemri=emri_mbiemri,
+#                     data_e_lindjes=data_e_lindjes,
+#                     telefoni=telefoni,
+#                     emaili=emaili,
+#                     leternjoftimi=leternjoftimi,
+#                     adresa=adresa,
+#                     created_at=now(),
+#                     updated_at=now(),
+#                 )
+#                 messages.success(
+#                     request,
+#                     f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses."
+#                 )
 
-            return redirect("patient_list")
+#             return redirect("patient_list")
 
-    return render(request, "clinic/add_patient.html", {"patient": patient})
+#     return render(request, "clinic/add_patient.html", {"patient": patient})
 
 
 @login_required
@@ -1616,3 +1620,131 @@ def care_history_detail_api(request, pk):
         or getattr(request.user, "is_admin", lambda: False)(),
     }
     return JsonResponse(data)
+
+
+from datetime import datetime
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+from .models import Patient
+
+
+@login_required
+def add_or_edit_patient(request, pk=None):
+    """
+    Shton ose editon pacientin (përmes modalit AJAX).
+    Nëse kërkesa është GET → kthen JSON për modalin.
+    Nëse është POST → ruan ndryshimet dhe, në rast shtimi, kthen redirect_url.
+    """
+
+    patient = None
+    if pk:
+        patient = get_object_or_404(Patient, pk=pk)
+
+        # ✅ Formatimi i datës për input date (YYYY-MM-DD)
+        if patient.data_e_lindjes:
+            try:
+                if isinstance(patient.data_e_lindjes, str):
+                    if "." in patient.data_e_lindjes:
+                        patient.data_e_lindjes = datetime.strptime(
+                            patient.data_e_lindjes, "%d.%m.%Y"
+                        ).strftime("%Y-%m-%d")
+                    elif "/" in patient.data_e_lindjes:
+                        patient.data_e_lindjes = datetime.strptime(
+                            patient.data_e_lindjes, "%d/%m/%Y"
+                        ).strftime("%Y-%m-%d")
+                    elif "-" in patient.data_e_lindjes:
+                        patient.data_e_lindjes = patient.data_e_lindjes
+                else:
+                    patient.data_e_lindjes = patient.data_e_lindjes.strftime("%Y-%m-%d")
+            except Exception:
+                patient.data_e_lindjes = ""
+
+    # ✅ GET → përdoret për të mbushur modalin në editim
+    if request.method == "GET" and pk:
+        return JsonResponse({
+            "success": True,
+            "patient": {
+                "id": patient.id,
+                "emri_mbiemri": patient.emri_mbiemri or "",
+                "data_e_lindjes": patient.data_e_lindjes or "",
+                "telefoni": patient.telefoni or "",
+                "emaili": patient.emaili or "",
+                "leternjoftimi": patient.leternjoftimi or "",
+                "adresa": patient.adresa or "",
+            }
+        })
+
+    # ✅ POST → shton ose përditëson pacientin
+    if request.method == "POST":
+        emri_mbiemri = request.POST.get("emri_mbiemri", "").strip()
+        data_raw = (request.POST.get("data_e_lindjes") or "").strip()
+        telefoni = request.POST.get("telefoni", "").strip()
+        emaili = request.POST.get("emaili", "").strip()
+        leternjoftimi = request.POST.get("leternjoftimi", "").strip()
+        adresa = request.POST.get("adresa", "").strip()
+
+        # ✅ Normalizo datën në formatin e duhur për ruajtje (“DD.MM.YYYY”)
+        data_e_lindjes = None
+        if data_raw:
+            try:
+                if "/" in data_raw:  # p.sh. 12/02/1992
+                    data_e_lindjes = datetime.strptime(
+                        data_raw, "%m/%d/%Y"
+                    ).strftime("%d.%m.%Y")
+                elif "-" in data_raw:  # p.sh. 1992-12-02
+                    data_e_lindjes = datetime.strptime(
+                        data_raw, "%Y-%m-%d"
+                    ).strftime("%d.%m.%Y")
+                else:
+                    data_e_lindjes = data_raw
+            except Exception:
+                data_e_lindjes = data_raw
+
+        # ✅ Validim bazik
+        if not emri_mbiemri:
+            return JsonResponse({
+                "success": False,
+                "message": "Ju lutem plotësoni emrin e pacientit."
+            })
+
+        # ✅ Nëse ekziston pacienti → përditëso (pa redirect)
+        if patient:
+            patient.emri_mbiemri = emri_mbiemri
+            patient.data_e_lindjes = data_e_lindjes
+            patient.telefoni = telefoni
+            patient.emaili = emaili
+            patient.leternjoftimi = leternjoftimi
+            patient.adresa = adresa
+            patient.updated_at = now()
+            patient.save()
+            return JsonResponse({
+                "success": True,
+                "message": f"Pacienti {patient.emri_mbiemri} u përditësua me sukses!"
+            })
+
+        # ✅ Nëse është pacient i ri → krijo dhe bëj redirect
+        patient = Patient.objects.create(
+            emri_mbiemri=emri_mbiemri,
+            data_e_lindjes=data_e_lindjes,
+            telefoni=telefoni,
+            emaili=emaili,
+            leternjoftimi=leternjoftimi,
+            adresa=adresa,
+            created_at=now(),
+            updated_at=now(),
+        )
+
+        return JsonResponse({
+            "success": True,
+            "message": f"Pacienti {patient.emri_mbiemri} u shtua me sukses!",
+            "redirect_url": reverse("patient_detail", args=[patient.id]),
+        })
+
+    # ✅ Nëse kërkesa nuk është GET apo POST
+    return JsonResponse({
+        "success": False,
+        "message": "Metodë e pavlefshme."
+    })

@@ -69,33 +69,37 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for p in page_obj %}
                                 <tr>
-                                    <!-- Pacienti -->
-                                    <td class="px-4 py-4 text-sm font-medium whitespace-nowrap">
-                                        <div class="flex items-center gap-3">
-                                            {% if p.photo %}
-                                                <img class="w-10 h-10 rounded-full object-cover border"
-                                                     src="{{ p.photo.url }}"
-                                                     alt="{{ p.emri_mbiemri }}">
-                                            {% else %}
-                                                <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-semibold border">
-                                                    {{ p.emri_mbiemri|default:"?"|slice:":1"|upper }}
-                                                </div>
-                                            {% endif %}
-                                            <div>
-                                                <a href="{% url 'patient_detail' p.id %}"
-                                                   class="font-medium text-gray-800 hover:text-emerald-600">
-                                                    {{ p.emri_mbiemri }}
-                                                </a>
-                                                <p class="text-xs text-gray-500">
-                                                    {% if p.emaili %}
-                                                        <a href="mailto:{{ p.emaili }}">{{ p.emaili }}</a>
-                                                    {% else %}
-                                                        —
-                                                    {% endif %}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </td>
+                                <!-- Pacienti -->
+                                <td class="px-4 py-4 text-sm font-medium whitespace-nowrap">
+                                <div class="flex items-center gap-3">
+                                    {% if p.photo %}
+                                    <img class="w-10 h-10 rounded-full object-cover border"
+                                        src="{{ p.photo.url }}"
+                                        alt="{{ p.emri_mbiemri }}">
+                                    {% else %}
+                                    <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-semibold border">
+                                        {{ p.emri_mbiemri|default:"?"|slice:":1"|upper }}
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                    <a href="{% url 'patient_detail' p.id %}"
+                                        class="font-medium text-gray-800 hover:text-emerald-600">
+                                        {{ p.emri_mbiemri }}
+                                    </a>
+                                    <p class="text-xs text-gray-500">
+                                        {% if p.data_e_lindjes %}
+                                        {% if "." in p.data_e_lindjes %}
+                                            {{ p.data_e_lindjes }}
+                                        {% else %}
+                                            {{ p.data_e_lindjes|date:"d/m/Y" }}
+                                        {% endif %}
+                                        {% else %}
+                                        —
+                                        {% endif %}
+                                    </p>
+                                    </div>
+                                </div>
+                                </td>
                                     <!-- Telefoni -->
                                     <td class="px-4 py-4 text-sm whitespace-nowrap">
                                         {% if p.telefoni %}
@@ -233,4 +237,192 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 </script>
+
+<!-- ========================= -->
+<!-- MODAL: ADD/EDIT PATIENT -->
+<!-- ========================= -->
+<div id="patientModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div id="patientCard"
+       class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 transform transition-all duration-150 ease-out scale-95 opacity-0 border border-gray-200">
+    <div class="flex justify-between items-center px-6 py-4 border-b">
+      <h3 id="patientModalTitle" class="text-lg font-semibold text-gray-800">Shto pacient</h3>
+      <button type="button" onclick="closePatientModal()" class="rounded-full p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition">✕</button>
+    </div>
+
+    <form id="patientForm" class="px-6 py-5 space-y-5" method="post">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1 font-medium">Emri dhe mbiemri *</label>
+          <input type="text" name="emri_mbiemri" id="f_emri" required
+                 class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1 font-medium">Data e lindjes</label>
+          <input type="date" name="data_e_lindjes" id="f_datel"
+                 class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1 font-medium">Telefoni</label>
+          <input type="text" name="telefoni" id="f_tel"
+                 class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1 font-medium">Email</label>
+          <input type="email" name="emaili" id="f_email"
+                 class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1 font-medium">Letërnjoftimi</label>
+          <input type="text" name="leternjoftimi" id="f_lj"
+                 class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm text-gray-600 mb-1 font-medium">Adresa</label>
+          <input type="text" name="adresa" id="f_adresa"
+                 class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+      </div>
+    </form>
+
+    <div class="px-6 py-4 border-t flex items-center justify-between">
+      <div id="patientModalHint" class="text-xs text-gray-500">Fushat me * janë të detyrueshme.</div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="closePatientModal()" class="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50 transition">Anulo</button>
+        <button type="button" id="btnSubmitPatient" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700">
+          Ruaj
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================= -->
+<!-- TOASTS -->
+<!-- ========================= -->
+<div id="toastStack" class="fixed bottom-4 right-4 z-[110] space-y-2 pointer-events-none"></div>
+
+<!-- ========================= -->
+<!-- JAVASCRIPT -->
+<!-- ========================= -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("patientModal");
+  const card = document.getElementById("patientCard");
+  const form = document.getElementById("patientForm");
+  const btnSave = document.getElementById("btnSubmitPatient");
+  const title = document.getElementById("patientModalTitle");
+
+  // 🔹 Open ADD modal
+  const btnAdd = document.querySelector('a[href="{% url "add_patient" %}"]');
+  if (btnAdd) {
+    btnAdd.addEventListener("click", e => {
+      e.preventDefault();
+      form.reset();
+      form.dataset.url = "/patients/add/";
+      title.textContent = "Shto pacient";
+      openPatientModal();
+    });
+  }
+
+  // 🔹 Open EDIT modal
+  document.querySelectorAll('a[href*="/edit/"]').forEach(btn => {
+    btn.addEventListener("click", async e => {
+      e.preventDefault();
+      const editUrl = btn.getAttribute("href");
+      form.dataset.url = editUrl;
+      title.textContent = "Ndrysho pacient";
+      try {
+        const res = await fetch(editUrl);
+        const data = await res.json();
+        if (data.success && data.patient) {
+          const p = data.patient;
+          form.querySelector("[name='emri_mbiemri']").value = p.emri_mbiemri || "";
+          form.querySelector("[name='data_e_lindjes']").value = formatDate(p.data_e_lindjes);
+          form.querySelector("[name='telefoni']").value = p.telefoni || "";
+          form.querySelector("[name='emaili']").value = p.emaili || "";
+          form.querySelector("[name='leternjoftimi']").value = p.leternjoftimi || "";
+          form.querySelector("[name='adresa']").value = p.adresa || "";
+        }
+        openPatientModal();
+      } catch (err) {
+        console.error("Gabim gjatë marrjes së të dhënave:", err);
+      }
+    });
+  });
+
+  // 🔹 Save (add/edit)
+  btnSave.addEventListener("click", async () => {
+    const formData = new FormData(form);
+    const url = form.dataset.url;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showToast(data.message, "success");
+        closePatientModal();
+
+        // ✅ Redirect te detajet e pacientit nëse ekziston redirect_url
+        if (data.redirect_url) {
+          setTimeout(() => window.location.href = data.redirect_url, 800);
+        } else {
+          setTimeout(() => location.reload(), 800);
+        }
+      } else {
+        showToast(data.message || "Gabim gjatë ruajtjes", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Gabim në lidhje me serverin", "error");
+    }
+  });
+
+  // ========================
+  // Helper functions
+  // ========================
+  function openPatientModal() {
+    modal.classList.remove("hidden"); modal.classList.add("flex");
+    setTimeout(() => {
+      card.classList.remove("opacity-0", "scale-95");
+      card.classList.add("opacity-100", "scale-100");
+    }, 20);
+  }
+
+  function closePatientModal() {
+    card.classList.add("opacity-0", "scale-95");
+    card.classList.remove("opacity-100", "scale-100");
+    setTimeout(() => {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }, 150);
+  }
+  window.closePatientModal = closePatientModal;
+
+  function showToast(msg, type = "success") {
+    const toast = document.createElement("div");
+    toast.className = `px-4 py-3 rounded-xl text-white shadow-lg text-sm transition-all ${
+      type === "success" ? "bg-emerald-600" : "bg-red-600"
+    }`;
+    toast.textContent = msg;
+    document.getElementById("toastStack").appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  function formatDate(value) {
+    if (!value) return "";
+    if (value.includes(".")) {
+      const [d, m, y] = value.split(".");
+      return `${y}-${m}-${d}`;
+    }
+    return value;
+  }
+});
+</script>
+
+
 {% endblock %}
