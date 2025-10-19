@@ -26,7 +26,8 @@
           {% with non_agreement=care_histories_all %}
             {% for h in non_agreement %}
               {% if not h.agreement and not h.parent_history_id %}
-              <tr onclick="openCareHistoryModal({{ h.id }})"
+              <!-- Guard: mos hap modal nëse klikohet a/button -->
+              <tr onclick="if(!event.target.closest('a,button,.click-stop')) openCareHistoryModal({{ h.id }})"
                   class="hover:bg-gray-50 transition border-l-4 border-transparent {% if h.child_histories.all %}border-emerald-500 bg-emerald-50/30{% endif %}">
                 <td class="px-4 py-3 whitespace-nowrap text-gray-700">{{ h.date }}</td>
                 <td class="px-4 py-3 whitespace-nowrap">{{ h.tooth|default:"—" }}</td>
@@ -75,7 +76,9 @@
                         {{ h.created_by.get_full_name|default:h.created_by.username }}
                       {% else %}-{% endif %}
                     </span>
+                    <!-- Stop bubbling këtu -->
                     <a href="{% url 'add_history' patient.id %}?parent={{ h.id }}"
+                       onclick="event.stopPropagation()"
                        class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition">
                       <svg xmlns="http://www.w3.org/2000/svg" class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                       Vazhdo trajt.
@@ -87,7 +90,8 @@
               {% with children=h.child_histories.all %}
                 {% if children %}
                   {% for sub in children %}
-                  <tr onclick="openCareHistoryModal({{ sub.id }})" class="group bg-gray-100 hover:bg-gray-200 transition relative">
+                  <tr onclick="if(!event.target.closest('a,button,.click-stop')) openCareHistoryModal({{ sub.id }})"
+                      class="group bg-gray-100 hover:bg-gray-200 transition relative">
                     <td class="pl-12 pr-4 py-2 text-[13px] text-gray-700 relative">
                       <span class="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 text-sm font-semibold">↳</span>
                       {{ sub.date }}
