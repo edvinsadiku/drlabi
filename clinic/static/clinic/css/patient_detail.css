@@ -1,0 +1,70 @@
+/* patient_detail.css */
+
+/* Heq shiritin horizontal të skrollit */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Alpine x-cloak */
+[x-cloak] {
+  display: none !important;
+}
+
+/* Animacione modali */
+#careHistoryModal {
+  transition: background-color 0.2s ease, backdrop-filter 0.3s ease;
+}
+
+#careHistoryCard {
+  transform-origin: center center;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Tabela */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+th {
+  font-weight: 600;
+}
+td,
+th {
+  white-space: nowrap;
+}
+tr:hover td {
+  background-color: #f9fafb;
+}
+
+/* Etiketa pagesash */
+.bg-emerald-50 {
+  background-color: #ecfdf5;
+}
+.text-emerald-600 {
+  color: #059669;
+}
+
+/* Buttonet e vogla */
+button,
+a.button {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Për përputhje vizuale në mobile */
+@media (max-width: 640px) {
+  table {
+    font-size: 13px;
+  }
+  th,
+  td {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .text-lg {
+    font-size: 1rem;
+  }
+}

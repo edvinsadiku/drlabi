@@ -1,0 +1,48 @@
+<div x-show="active==='pagesat'" x-cloak class="mt-4">
+  <section class="bg-white border rounded-xl overflow-hidden">
+    <header class="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
+      <div class="flex items-center gap-2 text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h6"/></svg>
+        <h3 class="font-semibold text-lg">Historia e Pagesave</h3>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-sm">
+        <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">Totali i paguar: <strong>{{ total_paid_new }}€</strong></span>
+        <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">Borxhi aktiv: <strong>{{ total_agreements_balance }}€</strong></span>
+      </div>
+    </header>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide border-b">
+          <tr>
+            <th class="px-4 py-3 text-left">#</th>
+            <th class="px-4 py-3 text-left">Data</th>
+            <th class="px-4 py-3 text-left">Shuma</th>
+            <th class="px-4 py-3 text-left">Metoda</th>
+            <th class="px-4 py-3 text-left">Për</th>
+            <th class="px-4 py-3 text-left">Nga</th>
+            <th class="px-4 py-3 text-left">Shënime</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 bg-white">
+          {% for p in payments_new %}
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-4 py-3 whitespace-nowrap text-gray-700">#{{ p.id }}</td>
+            <td class="px-4 py-3 whitespace-nowrap">{% if p.created_at %}{{ p.created_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</td>
+            <td class="px-4 py-3 whitespace-nowrap font-semibold text-emerald-600">{{ p.amount }}€</td>
+            <td class="px-4 py-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-gray-100 border text-gray-700 text-xs">{{ p.get_method_display|default:p.method }}</span></td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              {% if p.history %}<span class="text-gray-700">Histori:</span> {{ p.history.diagnosis|default:"—" }}
+              {% elif p.agreement %}<span class="text-gray-700">Marrëveshje:</span> {{ p.agreement.title }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-gray-600">{% if p.created_by %}{{ p.created_by.get_full_name|default:p.created_by.username }}{% else %}-{% endif %}</td>
+            <td class="px-4 py-3 text-gray-700">{{ p.notes|default:"" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">S’ka pagesa.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

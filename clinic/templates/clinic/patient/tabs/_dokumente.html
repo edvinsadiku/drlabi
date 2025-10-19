@@ -1,0 +1,57 @@
+{% load custom_filters %}
+<div x-show="active==='dokumente'" x-cloak class="mt-4">
+  <section x-data="{ open: true }" class="bg-white border rounded-xl overflow-hidden">
+    <header @click="open = !open" class="px-6 py-4 border-b bg-gray-50 flex items-center justify-between cursor-pointer select-none">
+      <div class="flex items-center gap-2 text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <h3 class="font-semibold text-lg">Dokumente</h3>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500 transition-transform duration-300" :class="{ 'rotate-90': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </header>
+    <div x-show="open" x-collapse class="p-6 space-y-6">
+      <form method="post" enctype="multipart/form-data" action="{% url 'upload_document' patient.id %}" id="uploadForm" class="flex justify-end">
+        {% csrf_token %}
+        <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg shadow hover:bg-emerald-700 transition text-sm font-medium">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12"/></svg>
+          Ngarko dokument
+          <input type="file" name="document" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" class="hidden" onchange="this.form.submit()">
+        </label>
+      </form>
+
+      <div class="overflow-x-auto border rounded-lg">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide border-b">
+            <tr>
+              <th class="px-4 py-3 text-left">#</th>
+              <th class="px-4 py-3 text-left">Emri</th>
+              <th class="px-4 py-3 text-left">Tipi</th>
+              <th class="px-4 py-3 text-left">Ngarkuar më</th>
+              <th class="px-4 py-3 text-left">Nga</th>
+              <th class="px-4 py-3 text-right">Veprime</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 bg-white">
+            {% for doc in documents %}
+            <tr class="hover:bg-gray-50 transition">
+              <td class="px-4 py-3 whitespace-nowrap">#{{ forloop.counter }}</td>
+              <td class="px-4 py-3">{{ doc.file.name|basename }}</td>
+              <td class="px-4 py-3">{{ doc.file|extension }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">{{ doc.uploaded_at|date:"Y-m-d H:i" }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">{% if doc.uploaded_by %}{{ doc.uploaded_by.get_full_name|default:doc.uploaded_by.username }}{% else %}-{% endif %}</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap flex items-center gap-2 justify-end">
+                <a href="{{ doc.file.url }}" download class="px-3 py-1.5 rounded-lg border hover:bg-gray-50 text-sm text-gray-700">Shkarko</a>
+                <form method="post" action="{% url 'delete_patient_document' doc.id %}" onsubmit="return confirm('A je i sigurt që dëshiron ta fshish këtë dokument?');">
+                  {% csrf_token %}
+                  <button type="submit" class="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-sm">Fshij</button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">S’ka dokumente.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,43 @@
+<div x-show="active==='arkiva-ortho'" x-cloak class="mt-4">
+  <section x-data="{ open: true }" class="bg-white border rounded-xl overflow-hidden">
+    <header class="px-6 py-4 border-b flex items-center justify-between cursor-pointer bg-gray-50 hover:bg-gray-100 transition" @click="open = !open">
+      <div class="flex items-center gap-2 text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" :class="{'rotate-90': open}" class="size-4 transition-transform text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <h3 class="font-semibold text-lg">Ortodonci (Arkiva)</h3>
+      </div>
+      <span class="text-xs text-gray-500">{{ ortho_histories|length }} regjistrime</span>
+    </header>
+    <div x-show="open" x-collapse>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide border-b">
+            <tr>
+              <th class="px-4 py-3 text-left">Data</th>
+              <th class="px-4 py-3 text-left">Diagnoza</th>
+              <th class="px-4 py-3 text-left">Trajtimi</th>
+              <th class="px-4 py-3 text-left">Vlera</th>
+              <th class="px-4 py-3 text-left">Paguar</th>
+              <th class="px-4 py-3 text-left">Borxh</th>
+              <th class="px-4 py-3 text-left">Doktori</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 bg-white">
+            {% for h in ortho_histories %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 whitespace-nowrap">{{ h.data }}</td>
+              <td class="px-4 py-3">{{ h.diagnoza }}</td>
+              <td class="px-4 py-3">{{ h.trajtimi }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">{{ h.vlera }}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-emerald-700 font-medium">{{ h.paguar }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">{% if h.borgji and h.borgji|floatformat != "0" %}<span class="inline-flex items-center gap-1 text-red-600 font-medium"><span class="size-2 rounded-full bg-red-500"></span>{{ h.borgji }}</span>{% else %}<span class="text-gray-400">0</span>{% endif %}</td>
+              <td class="px-4 py-3 whitespace-nowrap">{{ h.doctor }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">Nuk ka të dhëna.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>

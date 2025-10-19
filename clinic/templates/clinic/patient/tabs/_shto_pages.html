@@ -1,0 +1,91 @@
+<div x-show="active==='shto-pages'" x-cloak class="mt-4">
+  <section class="bg-white border rounded-xl overflow-hidden shadow-sm">
+    <header class="px-6 py-4 border-b bg-gray-50 flex items-center gap-2 text-gray-700">
+      <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 1.79-4 4v4h8v-4c0-2.21-1.79-4-4-4zM6 12H4m16 0h-2"/></svg>
+      <h3 class="font-semibold text-lg">Shto pagesë</h3>
+    </header>
+
+    <form method="post" action="{% url 'add_payment' patient.id %}" class="p-6 space-y-6 text-sm">
+      {% csrf_token %}
+
+      <!-- HISTORI ME BORXH -->
+      <div class="rounded-lg border p-4 bg-gray-50">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-gray-700 font-semibold text-sm flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16"/></svg>
+            Histori me borxh
+          </h4>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btnSelectAll" class="px-3 py-1 text-xs rounded border hover:bg-gray-100 transition">Zgjidh të gjitha</button>
+            <button type="button" id="btnClearAll"  class="px-3 py-1 text-xs rounded border hover:bg-gray-100 transition">Hiq të gjitha</button>
+          </div>
+        </div>
+
+        <div class="max-h-56 overflow-auto bg-white border rounded divide-y divide-gray-200">
+          {% for h in unpaid_histories %}
+          <label class="flex items-start gap-3 p-3 hover:bg-gray-50 transition">
+            <input type="checkbox" name="history_ids" value="{{ h.id }}" data-debt="{{ h.debt_sum }}" class="mt-1 size-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+            <div class="flex-1">
+              <div class="font-medium text-sm text-gray-800">{{ h.date }} — {{ h.diagnosis|default:"(pa përshkrim)" }}</div>
+              <div class="text-xs text-gray-500">
+                Çmimi: {{ h.amount|default:"0.00" }}€ • Paguar: {{ h.paid_sum|default:"0.00" }}€ •
+                Borxh: <span class="font-semibold text-red-600">{{ h.debt_sum }}</span>€
+              </div>
+            </div>
+          </label>
+          {% empty %}
+          <div class="text-sm text-gray-500 p-3">S’ka histori me borxh.</div>
+          {% endfor %}
+        </div>
+
+        <p class="text-xs text-gray-500 mt-2">Zgjidh një ose disa histori. Shuma ndahet automatikisht sipas borxhit, nga më e vjetra te më e reja.</p>
+        <div id="selectionInfo" class="text-xs text-gray-600 mt-2"></div>
+      </div>
+
+      <!-- MARRËVESHJE AKTIVE -->
+      <div>
+        <h2 class="text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h10m2-8V7a2 2 0 00-2-2H7a2 2 0 00-2 2v1"/></svg>
+          Marrëveshje Aktive
+        </h2>
+        {% if agreements_active %}
+          <div class="space-y-2">
+            {% for a in agreements_active %}
+            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 text-sm">
+              <input type="radio" name="agreement_id" value="{{ a.id }}" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500">
+              <span>{{ a.title }} – Borxh: {{ a.bal_sum }} €</span>
+            </label>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-gray-400 text-sm">Nuk ka marrëveshje aktive.</p>
+        {% endif %}
+      </div>
+
+      <!-- SHUMA / METODA / SHËNIME -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Shuma (€)</label>
+          <input type="number" step="0.01" name="amount" required placeholder="Shkruaj shumën..." class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-gray-800">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Metoda e pagesës</label>
+          <select name="method" class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-gray-800">
+            <option value="cash">Cash</option><option value="card">Kartë</option><option value="bank">Bankë</option><option value="other">Tjetër</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Shënime</label>
+          <input type="text" name="notes" placeholder="Opsionale..." class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-gray-800">
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition font-medium shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Ruaj pagesën
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

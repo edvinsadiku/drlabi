@@ -1,0 +1,17 @@
+<div x-show="active==='arkiva-financa'" x-cloak class="mt-4">
+  <section x-data="{ open: true }" class="bg-white border rounded-xl overflow-hidden">
+    <header class="px-6 py-4 border-b flex items-center justify-between cursor-pointer bg-gray-50 hover:bg-gray-100 transition" @click="open = !open">
+      <div class="flex items-center gap-2 text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" :class="{'rotate-90': open}" class="size-4 transition-transform text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <h2 class="font-semibold text-lg">Përmbledhje financiare (Arkiva)</h2>
+      </div>
+    </header>
+    <div x-show="open" x-collapse class="p-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <div class="rounded-xl border p-4 bg-gray-50"><div class="text-gray-500">Totali</div><div class="text-xl font-bold">{{ total_vlera }}</div></div>
+        <div class="rounded-xl border p-4 bg-gray-50"><div class="text-gray-500">Paguar</div><div class="text-xl font-bold text-emerald-600">{{ total_paguar }}</div></div>
+        <div class="rounded-xl border p-4 bg-gray-50"><div class="text-gray-500">Borxh</div><div class="text-xl font-bold text-red-600">{{ total_borgji }}</div></div>
+      </div>
+    </div>
+  </section>
+</div>

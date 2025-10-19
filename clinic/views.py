@@ -284,16 +284,18 @@ def orto_patient_detail(request, pk):
 
 # -------------------- ADD HISTORY (pa forms) --------------------
 def _to_decimal(val):
-    if val in (None, "", "None"):
-        return None
+    """Kthen Decimal ose 0.00 për bosh/invalid."""
     try:
-        return Decimal(str(val).replace(",", "."))
-    except InvalidOperation:
-        return None
+        s = "" if val is None else str(val).strip()
+        if s == "" or s.lower() == "none":
+            return Decimal("0.00")
+        return Decimal(s.replace(",", "."))
+    except (InvalidOperation, ValueError, TypeError):
+        return Decimal("0.00")
 
 
 def _parse_date_any(value):
-    """Kthen datetime.date nga string 'YYYY-MM-DD' ose 'dd.mm.yyyy'. Default: sot."""
+    """Kthen date nga 'YYYY-MM-DD' ose 'dd.mm.yyyy'. Default: sot."""
     if not value:
         return now().date()
     for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
@@ -302,9 +304,6 @@ def _parse_date_any(value):
         except Exception:
             pass
     return now().date()
-
-
-from django.utils.timezone import now
 
 
 @login_required
@@ -323,40 +322,38 @@ def add_history(request, pk):
         date_obj = now().date()
 
         # --- FUSHA TË TJERA ---
-        dhembi = request.POST.get("dhembi") or None
+        dhembi   = request.POST.get("dhembi") or None
         diagnoza = request.POST.get("diagnoza") or None
         trajtimi = request.POST.get("trajtimi") or None
-
-        # ✅ Siguro që janë gjithmonë Decimal, jo None
-        vlera = _to_decimal(request.POST.get("vlera") or 0)
-        paguar = _to_decimal(request.POST.get("paguar") or 0)
-
-        doctor = request.POST.get("doctor") or None
+        doctor   = request.POST.get("doctor") or None
         punim_protetikor = request.POST.get("punim_protetikor") or None
-        tekniku = request.POST.get("tekniku") or None
+        tekniku  = request.POST.get("tekniku") or None
         verejtje = request.POST.get("verejtje") or None
 
-        # --- MARRËVESHJE ---
-        agreement_id = request.POST.get("agreement_id") or None
-        included = False
-        agreement = None
+        # Shumat si Decimal (kurrë None)
+        vlera  = _to_decimal(request.POST.get("vlera"))
+        paguar = _to_decimal(request.POST.get("paguar"))
 
+        # --- MARRËVESHJE ---
+        agreement = None
+        agreement_id = request.POST.get("agreement_id") or None
         if agreement_id and str(agreement_id).isdigit():
             agreement = Agreement.objects.filter(
                 id=int(agreement_id),
                 patient=patient,
-                status="active"
+                status="active",
             ).first()
-            if agreement:
-                included = True
 
-        # ✅ Logjika e përforcuar
-        if not agreement:
-            if vlera == 0 and paguar > 0:
-                messages.error(request, "Nuk mund të regjistrohet pagesë kur vlera është 0.")
-                return redirect("add_history", pk=patient.pk)
-            if vlera <= 0 and paguar <= 0:
-                pass  # lejohet
+        included = bool(agreement)
+
+        # Rregullat:
+        # - me marrëveshje: amount = 0.00, pagesat (nëse ka) → agreement
+        # - pa marrëveshje: s’lejohet pagesë nëse vlera == 0
+        amount_for_history = Decimal("0.00") if included else vlera
+
+        if not included and amount_for_history == Decimal("0.00") and paguar > Decimal("0.00"):
+            messages.error(request, "Nuk mund të regjistrohet pagesë kur vlera është 0.")
+            return redirect("add_history", pk=patient.pk)
 
         # ✅ Krijo historinë
         ch = CareHistory.objects.create(
@@ -365,7 +362,7 @@ def add_history(request, pk):
             tooth=dhembi,
             diagnosis=diagnoza,
             treatment=trajtimi,
-            amount=(None if included else vlera),
+            amount=amount_for_history,                 # gjithmonë Decimal, kurrë None
             notes=verejtje,
             doctor=doctor,
             punim_protetikor=punim_protetikor,
@@ -378,16 +375,29 @@ def add_history(request, pk):
         )
 
         # --- Pagesa ---
-        if paguar > 0 and not included:
-            Payment.objects.create(
-                patient=patient,
-                amount=paguar,
-                method="cash",
-                history=ch,
-                notes="Pagesë nga forma e re",
-                created_by=request.user,
-                updated_by=request.user,
-            )
+        if paguar > Decimal("0.00"):
+            if included and agreement:
+                # pagesa lidhet me marrëveshjen
+                Payment.objects.create(
+                    patient=patient,
+                    amount=paguar,
+                    method=request.POST.get("method") or "cash",
+                    agreement=agreement,
+                    notes="Pagesë për marrëveshje (nga forma e historisë)",
+                    created_by=request.user,
+                    updated_by=request.user,
+                )
+            else:
+                # pagesa lidhet me historinë
+                Payment.objects.create(
+                    patient=patient,
+                    amount=paguar,
+                    method=request.POST.get("method") or "cash",
+                    history=ch,
+                    notes="Pagesë nga forma e historisë",
+                    created_by=request.user,
+                    updated_by=request.user,
+                )
 
         return redirect("patient_detail", pk=patient.pk)
 
