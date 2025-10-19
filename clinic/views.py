@@ -24,6 +24,10 @@ from datetime import datetime
 from django.db.models.functions import Coalesce, Greatest
 
 
+from django.urls import reverse
+
+def redirect_tab(patient_id, tab):
+    return redirect(f"{reverse('patient_detail', args=[patient_id])}?tab={tab}")
 
 
 @login_required
@@ -399,7 +403,7 @@ def add_history(request, pk):
                     updated_by=request.user,
                 )
 
-        return redirect("patient_detail", pk=patient.pk)
+        return redirect_tab(patient.pk, "trajtimet")
 
     return render(
         request,
@@ -976,12 +980,14 @@ def add_payment(request, pk):
         messages.success(
             request, f"Pagesa {amount}€ u shtua për marrëveshjen “{agreement.title}”."
         )
-        return redirect("patient_detail", pk=patient.pk)
+        return redirect_tab(patient.pk, "shto-pages")
+
 
     # --- Rast 2: Pagesë për NJË ose DISA HISTORI ---
     if not history_ids:
         messages.error(request, "Zgjidh të paktën një histori ose një marrëveshje.")
-        return redirect("patient_detail", pk=patient.pk)
+        return redirect_tab(patient.pk, "shto-pages")
+
 
     # Merr historitë e zgjedhura (vetëm jashtë marrëveshjeve)
     histories = CareHistory.objects.filter(
@@ -996,7 +1002,8 @@ def add_payment(request, pk):
         messages.error(
             request, "Asnjë nga historitë e zgjedhura nuk është e vlefshme për pagesë."
         )
-        return redirect("patient_detail", pk=patient.pk)
+        return redirect_tab(patient.pk, "shto-pages")
+
 
     # Llogarit borxhin e secilës histori: amount - sum(payments)
     def history_outstanding(h: CareHistory) -> Decimal:
@@ -1049,7 +1056,8 @@ def add_payment(request, pk):
             msg += " Detaje: " + "; ".join(breakdown)
         messages.success(request, msg)
 
-    return redirect("patient_detail", pk=patient.pk)
+    return redirect_tab(patient.pk, "shto-pages")
+
 
 
 
@@ -1093,7 +1101,8 @@ def agreement_close(request, agreement_id):
     agreement.save(update_fields=["status", "updated_by", "updated_at"])
 
     messages.success(request, "Marrëveshja u mbyll me sukses.")
-    return redirect("patient_detail", pk=agreement.patient_id)
+    return redirect_tab(agreement.patient_id, "marreveshjet")
+
 
 
 # ---------------- HELPER ----------------
@@ -1356,7 +1365,8 @@ def agreement_create(request, pk):
         messages.success(
             request, f"Marrëveshja për {patient.emri_mbiemri} u krijua me sukses."
         )
-        return redirect("patient_detail", pk=patient.pk)
+        return redirect_tab(patient.pk, "marreveshjet")
+
 
     return render(
         request,
@@ -1375,7 +1385,8 @@ def upload_document(request, pk):
         PatientDocument.objects.create(
             patient=patient, file=request.FILES["document"], uploaded_by=request.user
         )
-    return redirect("patient_detail", pk=pk)
+    return redirect_tab(pk, "dokumente")
+
 
 
 @login_required
@@ -1385,7 +1396,7 @@ def delete_patient_document(request, pk):
     if request.method == "POST":
         doc.file.delete(save=False)  # fshin file nga media/
         doc.delete()
-    return redirect("patient_detail", pk=patient_id)
+    return redirect_tab(patient_id, "dokumente")
 
 
 @login_required
