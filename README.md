@@ -1,4 +1,4 @@
-# Django aplikacioni për bazën `h205760_admin_labi`
+# Django aplikacioni`
 
 Ky projekt lidhet drejtpërdrejt me bazën ekzistuese MySQL (dump nga phpMyAdmin)
 dhe ekspozon të gjitha tabelat kryesore për lexim/shkrim pa ndryshuar skemën.
