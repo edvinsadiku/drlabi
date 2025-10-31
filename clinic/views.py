@@ -1231,6 +1231,18 @@ def _obj_date(obj):
 
 
 
+from decimal import Decimal
+from datetime import datetime, time
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Value, F, DecimalField
+from django.db.models.functions import Coalesce
+from django.http import HttpResponse
+from django.utils import timezone
+
+# importo modelet/ndihmësit e tu
+# from .models import CareHistory, Agreement, Payment, Patient
+# nga kodi yt ekzistojnë _period_range dhe _obj_date
+
 @login_required
 def reports_new(request):
     start_date, end_date = _period_range(request)
@@ -1248,155 +1260,123 @@ def reports_new(request):
     DECIMAL = DecimalField(max_digits=18, decimal_places=2)
     ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
 
-    start_datetime = datetime.combine(start_date, time.min)
-    end_datetime = datetime.combine(end_date, time.max)
+    start_dt = datetime.combine(start_date, time.min)
+    end_dt   = datetime.combine(end_date, time.max)
 
-    # ----------------------------------
-    # Payments per history (subquery)
-    # ----------------------------------
-    payments_subq = (
-        Payment.objects.filter(history=OuterRef("pk"))
-        .values("history")
-        .annotate(total=Sum("amount"))
-        .values("total")[:1]
-    )
-
-    # ----------------------------------
-    # Vetëm historitë që kanë pagesa sot
-    # ----------------------------------
-    care_qs_all = (
-        CareHistory.objects.select_related("patient")
-        .filter(
-            payments__created_at__gte=start_datetime,
-            payments__created_at__lte=end_datetime
-        )
-        .distinct()
-        .annotate(
-            paid_sum=Coalesce(Subquery(payments_subq, output_field=DECIMAL), ZERO)
-        )
-    )
-
-    # ----------------------------------
-    # Marrëveshjet që kanë pagesa sot
-    # ----------------------------------
-    agreements_qs = (
-        Agreement.objects.filter(
-            payments__created_at__gte=start_datetime,
-            payments__created_at__lte=end_datetime
-        )
-        .distinct()
-        .annotate(
-            paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
-        )
-    )
-
-    # ----------------------------------
-    # Pagesat sipas doktorit (vetëm për sot)
-    # ----------------------------------
-    payments_by_doctor = (
+    # -------- Payments në periudhë --------
+    payments_for_histories = (
         Payment.objects.filter(
-            created_at__gte=start_datetime,
-            created_at__lte=end_datetime,
+            created_at__gte=start_dt,
+            created_at__lte=end_dt,
             history__isnull=False,
         )
-        .values(doctor_name=F("history__doctor"))
+        .select_related("history", "patient", "history__patient")
+    )
+    payments_for_agreements = (
+        Payment.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lte=end_dt,
+            agreement__isnull=False,
+        )
+        .select_related("agreement", "patient", "agreement__patient")
+    )
+
+    # -------- Pagesa sipas doktorit (vetëm periudha) --------
+    payments_by_doctor_hist = (
+        payments_for_histories.values(doctor_name=F("history__doctor"))
         .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
         .order_by("-total")
     )
-
-    payments_agreements = (
-        Payment.objects.filter(
-            created_at__gte=start_datetime,
-            created_at__lte=end_datetime,
-            agreement__isnull=False,
-        )
-        .values(doctor_name=F("agreement__doctor"))
+    payments_by_doctor_aggr = (
+        payments_for_agreements.values(doctor_name=F("agreement__doctor"))
         .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
     )
 
     payments_by_doctor_total = {}
-    for p in payments_by_doctor:
+    for p in payments_by_doctor_hist:
         payments_by_doctor_total[p["doctor_name"]] = {
             "from_histories": p["total"] or Decimal("0.00"),
             "from_agreements": Decimal("0.00"),
         }
-
-    for p in payments_agreements:
+    for p in payments_by_doctor_aggr:
         if p["doctor_name"] not in payments_by_doctor_total:
             payments_by_doctor_total[p["doctor_name"]] = {
                 "from_histories": Decimal("0.00"),
                 "from_agreements": Decimal("0.00"),
             }
         payments_by_doctor_total[p["doctor_name"]]["from_agreements"] = p["total"] or Decimal("0.00")
-
     for doc, vals in payments_by_doctor_total.items():
         vals["total"] = (vals["from_histories"] or Decimal("0.00")) + (vals["from_agreements"] or Decimal("0.00"))
 
-    # ----------------------------------
-    # Totals (vetëm për pagesat e sotme)
-    # ----------------------------------
-    total_paid_histories = Payment.objects.filter(
-        created_at__gte=start_datetime,
-        created_at__lte=end_datetime,
-        history__isnull=False,
-    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
+    # -------- KPI Totals (CASH-IN) --------
+    total_paid_histories = payments_for_histories.aggregate(
+        t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL)
+    )["t"] or Decimal("0.00")
+    total_paid_agreements = payments_for_agreements.aggregate(
+        t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL)
+    )["t"] or Decimal("0.00")
+    total_paid = total_paid_histories + total_paid_agreements
 
-    total_paid_agreements = Payment.objects.filter(
-        created_at__gte=start_datetime,
-        created_at__lte=end_datetime,
-        agreement__isnull=False,
-    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
+    # Faturuar (Totali) = Paguar (Cash-in) (SI MË PARË)
+    total_billed = total_paid
 
-    total_paid = (total_paid_histories or Decimal("0")) + (total_paid_agreements or Decimal("0"))
-    total_billed = total_paid  # për raport ditor, faturuar = paguar
-    outstanding = Decimal("0.00")
-
-    # ----------------------------------
-    # Kombino vetëm pagesat e sotme
-    # ----------------------------------
+    # -------- Tabela --------
     histories_and_agreements = []
 
-    # Pagesat e historive
-    payments_for_histories = Payment.objects.filter(
-        created_at__gte=start_datetime,
-        created_at__lte=end_datetime,
-        history__isnull=False,
-    ).select_related("history", "patient")
+    # Map i paguar-deri-tani (all-time) për historitë që kanë pagesa në periudhë
+    history_ids = list(payments_for_histories.values_list("history_id", flat=True).distinct())
+    paid_alltime_map = {}
+    if history_ids:
+        paid_alltime = (
+            Payment.objects.filter(history_id__in=history_ids)
+            .values("history_id")
+            .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
+        )
+        paid_alltime_map = {row["history_id"]: (row["total"] or Decimal("0.00")) for row in paid_alltime}
 
+    # Rreshta për pagesat e historive
+    # - Vlera = amount i historisë
+    # - Paguar = VETËM kjo pagesë (që të përputhet me KPI)
+    # - Borxh = aktual (amount - paguar deritanishëm all-time)
     for p in payments_for_histories:
+        h = p.history
+        history_amount = h.amount or Decimal("0.00")
+        paid_to_date = paid_alltime_map.get(h.id, Decimal("0.00"))
+        debt_now = history_amount - paid_to_date
+        if debt_now < 0:
+            debt_now = Decimal("0.00")
+
         p.obj_type = "payment_history"
-        p.amount_display = p.amount or Decimal("0.00")
-        p.debt_sum = Decimal("0.00")
+        p.amount_display = history_amount
+        p.paid_sum = p.amount or Decimal("0.00")
+        p.debt_sum = debt_now
+
         p.date = p.created_at
-        p.patient = p.patient
-        p.doctor = getattr(p.history, "doctor", None)
-        p.history_diagnosis = getattr(p.history, "diagnosis", "-")
+        p.doctor = getattr(h, "doctor", None)
+        p.history_diagnosis = getattr(h, "diagnosis", "-")
         histories_and_agreements.append(p)
 
-    # Pagesat e marrëveshjeve
-    payments_for_agreements = Payment.objects.filter(
-        created_at__gte=start_datetime,
-        created_at__lte=end_datetime,
-        agreement__isnull=False,
-    ).select_related("agreement", "patient")
-
+    # Rreshta për pagesat e marrëveshjeve (pa borxh)
     for p in payments_for_agreements:
         p.obj_type = "payment_agreement"
         p.amount_display = p.amount or Decimal("0.00")
+        p.paid_sum = p.amount or Decimal("0.00")
         p.debt_sum = Decimal("0.00")
         histories_and_agreements.append(p)
 
-    # ----------------------------------
-    # Renditja (nga më i riu ose më i vjetri)
-    # ----------------------------------
+    # KPI "Borxh": një herë për çdo histori (mos dyfisho kur ka disa pagesa)
+    debt_by_history = {}
+    for row in histories_and_agreements:
+        if getattr(row, "obj_type", "") == "payment_history":
+            debt_by_history[row.history_id] = row.debt_sum
+    outstanding = sum(debt_by_history.values(), start=Decimal("0.00"))
+
+    # Renditja
     histories_and_agreements.sort(
         key=lambda x: (_obj_date(x), getattr(x, "id", 0)),
         reverse=(order == "desc"),
     )
 
-    # ----------------------------------
-    # Render
-    # ----------------------------------
     return render(
         request,
         "clinic/reports_new.html",
@@ -1405,7 +1385,7 @@ def reports_new(request):
             "total_paid": total_paid,
             "outstanding": outstanding,
             "histories_and_agreements": histories_and_agreements,
-            "payments_by_doctor": payments_by_doctor,
+            "payments_by_doctor": payments_by_doctor_hist,
             "payments_by_doctor_total": payments_by_doctor_total,
             "start_date": start_date,
             "end_date": end_date,
@@ -1418,6 +1398,217 @@ def reports_new(request):
             "order": order,
         },
     )
+
+
+@login_required
+def reports_new_export_excel(request):
+    # Filtrat si në UI
+    start_date, end_date = _period_range(request)
+    order = (request.GET.get("order") or "desc").lower()
+
+    DECIMAL = DecimalField(max_digits=18, decimal_places=2)
+    ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
+
+    start_dt = datetime.combine(start_date, time.min)
+    end_dt   = datetime.combine(end_date, time.max)
+
+    payments_for_histories = (
+        Payment.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lte=end_dt,
+            history__isnull=False,
+        ).select_related("history", "patient", "history__patient")
+    )
+    payments_for_agreements = (
+        Payment.objects.filter(
+            created_at__gte=start_dt,
+            created_at__lte=end_dt,
+            agreement__isnull=False,
+        ).select_related("agreement", "patient", "agreement__patient")
+    )
+
+    # KPI: Paguar (cash-in)
+    total_paid_histories = payments_for_histories.aggregate(
+        t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL)
+    )["t"] or Decimal("0.00")
+    total_paid_agreements = payments_for_agreements.aggregate(
+        t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL)
+    )["t"] or Decimal("0.00")
+    total_paid = total_paid_histories + total_paid_agreements
+
+    # Faturuar (Totali) = Paguar (Cash-in) (SI MË PARË)
+    total_billed = total_paid
+
+    # Map all-time i pagesave për historitë në periudhë
+    history_ids = list(payments_for_histories.values_list("history_id", flat=True).distinct())
+    paid_alltime_map = {}
+    if history_ids:
+        paid_alltime = (
+            Payment.objects.filter(history_id__in=history_ids)
+            .values("history_id")
+            .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
+        )
+        paid_alltime_map = {row["history_id"]: (row["total"] or Decimal("0.00")) for row in paid_alltime}
+
+    def _naive_local(dt):
+        if dt is None:
+            return None
+        return timezone.localtime(dt).replace(tzinfo=None) if timezone.is_aware(dt) else dt
+
+    # Ndërto rreshtat (si në UI)
+    rows = []
+    for p in payments_for_histories:
+        h = p.history
+        history_amount = h.amount or Decimal("0.00")
+        paid_to_date = paid_alltime_map.get(h.id, Decimal("0.00"))
+        debt_now = history_amount - paid_to_date
+        if debt_now < 0:
+            debt_now = Decimal("0.00")
+        rows.append([
+            _naive_local(p.created_at),
+            getattr(p.patient, "emri_mbiemri", "-"),
+            f"Histori: {getattr(h, 'diagnosis', '-') or '-'}",
+            getattr(h, "doctor", None) or "-",
+            float(history_amount),
+            float(p.amount or Decimal("0.00")),
+            float(debt_now),
+        ])
+
+    for p in payments_for_agreements:
+        rows.append([
+            _naive_local(p.created_at),
+            getattr(p.patient, "emri_mbiemri", "-"),
+            f"Marrëveshje: {getattr(p.agreement, 'title', '-') or '-'}",
+            getattr(p.agreement, "doctor", None) or "-",
+            float(p.amount or Decimal("0.00")),
+            float(p.amount or Decimal("0.00")),
+            float(0),
+        ])
+
+    rows.sort(key=lambda r: r[0], reverse=(order == "desc"))
+
+    # ==== Excel profesional (borders, table, filters, totals) ====
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.worksheet.table import Table, TableStyleInfo
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Raporti"
+
+    headers = ["Data", "Pacienti", "Lloji", "Doktori", "Vlera (€)", "Paguar (€)", "Borxh (€)"]
+    ws.append(headers)
+    for r in rows:
+        ws.append(r)
+
+    header_fill = PatternFill("solid", fgColor="F3F4F6")
+    header_font = Font(bold=True, color="000000")
+    thin = Side(border_style="thin", color="D1D5DB")
+    border_all = Border(top=thin, left=thin, right=thin, bottom=thin)
+
+    max_row = ws.max_row
+    max_col = ws.max_column
+
+    for col in range(1, max_col + 1):
+        cell = ws.cell(row=1, column=col)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(vertical="center", horizontal="center")
+        cell.border = border_all
+
+    currency_fmt = '#,##0.00"€"'
+    date_fmt = "yyyy-mm-dd hh:mm"
+
+    for row_idx in range(2, max_row + 1):
+        for col_idx in range(1, max_col + 1):
+            c = ws.cell(row=row_idx, column=col_idx)
+            c.border = border_all
+            if col_idx in (5, 6, 7):
+                c.alignment = Alignment(horizontal="right", vertical="center")
+                c.number_format = currency_fmt
+            elif col_idx == 1:
+                c.number_format = date_fmt
+                c.alignment = Alignment(horizontal="center", vertical="center")
+            else:
+                c.alignment = Alignment(vertical="center")
+
+    widths = {1: 19, 2: 26, 3: 36, 4: 18, 5: 14, 6: 14, 7: 14}
+    for col_idx, w in widths.items():
+        ws.column_dimensions[chr(64 + col_idx)].width = w
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{chr(64 + max_col)}{max_row}"
+
+    table_ref = f"A1:{chr(64 + max_col)}{max_row}"
+    table = Table(displayName="RaportiData", ref=table_ref)
+    style = TableStyleInfo(
+        name="TableStyleMedium9",
+        showFirstColumn=False, showLastColumn=False,
+        showRowStripes=True, showColumnStripes=False,
+    )
+    table.tableStyleInfo = style
+    ws.add_table(table)
+
+    # ---- Totali në fund ----
+    data_first_row = 2
+    data_last_row = ws.max_row
+    totals_row_idx = data_last_row + 1
+
+    ws.cell(row=totals_row_idx, column=1, value="Totali")
+    ws.merge_cells(start_row=totals_row_idx, start_column=1, end_row=totals_row_idx, end_column=4)
+    ws.cell(row=totals_row_idx, column=5, value=f"=SUM(E{data_first_row}:E{data_last_row})")
+    ws.cell(row=totals_row_idx, column=6, value=f"=SUM(F{data_first_row}:F{data_last_row})")
+    ws.cell(row=totals_row_idx, column=7, value=f"=SUM(G{data_first_row}:G{data_last_row})")
+
+    bold_font = Font(bold=True)
+    total_fill = PatternFill("solid", fgColor="EEF2FF")
+    for col_idx in range(1, 8):
+        c = ws.cell(row=totals_row_idx, column=col_idx)
+        c.font = bold_font
+        c.fill = total_fill
+        c.border = border_all
+        c.alignment = Alignment(horizontal="right" if col_idx >= 5 else "left", vertical="center")
+        if col_idx in (5, 6, 7):
+            c.number_format = currency_fmt
+
+    # ==== Fleta KPI ====
+    ws2 = wb.create_sheet(title="KPI")
+    ws2.append(["Periudha", f"{start_date} → {end_date}"])
+    ws2.append(["Faturuar (Totali)", float(total_billed)])
+    ws2.append(["Paguar (Cash-in)", float(total_paid)])
+
+    # Borxhi total (një herë për histori)
+    debt_by_history = {}
+    for p in payments_for_histories:
+        h = p.history
+        history_amount = h.amount or Decimal("0.00")
+        paid_to_date = paid_alltime_map.get(h.id, Decimal("0.00"))
+        debt_now = history_amount - paid_to_date
+        if debt_now < 0:
+            debt_now = Decimal("0.00")
+        debt_by_history[h.id] = debt_now
+    total_debt = sum(debt_by_history.values(), start=Decimal("0.00"))
+    ws2.append(["Borxh", float(total_debt)])
+
+    ws2["A1"].font = Font(bold=True)
+    ws2["A2"].font = Font(bold=True)
+    ws2["A3"].font = Font(bold=True)
+    ws2["A4"].font = Font(bold=True)
+    ws2["B2"].number_format = currency_fmt
+    ws2["B3"].number_format = currency_fmt
+    ws2["B4"].number_format = currency_fmt
+    ws2.column_dimensions["A"].width = 22
+    ws2.column_dimensions["B"].width = 24
+
+    # Response
+    resp = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    filename = f"Raport_{start_date.isoformat()}_{end_date.isoformat()}.xlsx"
+    resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+    wb.save(resp)
+    return resp
+
 
 from django.utils.timezone import now
 
