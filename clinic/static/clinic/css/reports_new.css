@@ -1,0 +1,13 @@
+  @media print {
+    body { background: white !important; color: black !important; font-family: "Arial", sans-serif !important; font-size: 11pt; }
+    .print\:hidden, button, form, .no-print, .kpi-boxes { display: none !important; }
+    h1 { font-size: 16pt !important; font-weight: bold !important; margin-bottom: 10px !important; text-align: center; }
+    h3 { font-size: 13pt !important; margin-top: 15px !important; margin-bottom: 6px !important; border-bottom: 1px solid #000; padding-bottom: 3px; }
+    table { width: 100% !important; border-collapse: collapse !important; margin-top: 8px; margin-bottom: 15px; }
+    thead { background: #f2f2f2 !important; }
+    th, td { border: 1px solid #000 !important; padding: 4px 6px !important; text-align: left; }
+    th { font-weight: bold !important; }
+    .print-only { display: block !important; margin-top: 20px; padding-top: 10px; border-top: 1px solid #000; font-size: 12pt; text-align: right; }
+    .print-only p { margin: 2px 0; }
+  }
+  @media screen { .print-only { display: none; } }

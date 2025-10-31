@@ -9,8 +9,7 @@
 {% endblock %}
 {% block content %}
     <div class="max-w-5xl mx-auto bg-white shadow-lg rounded-2xl p-8 fade-in">
-        <!-- HEADER -->
-        <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
                 <h1 class="text-2xl font-bold text-emerald-700 flex items-center gap-2">
                     <svg class="w-7 h-7 text-emerald-600"
@@ -39,11 +38,9 @@
                 ← Kthehu te lista
             </a>
         </div>
-        <!-- FORMA -->
-        <form method="post" class="space-y-10" novalidate>
+                <form method="post" class="space-y-10" novalidate>
             {% csrf_token %}
-            <!-- Informata personale -->
-            <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
+                        <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
                 <h2 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
                     <svg class="w-5 h-5 text-emerald-600"
                          fill="none"
@@ -99,8 +96,7 @@
 
                 </div>
             </section>
-            <!-- Kontakti -->
-            <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
+                        <section class="border border-gray-200 rounded-xl p-6 bg-gray-50/50">
                 <h2 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
                     <svg class="w-5 h-5 text-emerald-600"
                          fill="none"
@@ -132,8 +128,7 @@
                     </div>
                 </div>
             </section>
-            <!-- Butonat -->
-            <div class="flex flex-col sm:flex-row justify-end gap-4 pt-4">
+                        <div class="flex flex-col sm:flex-row justify-end gap-4 pt-4">
                 <a href="{% url 'patient_list' %}"
                    class="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium text-center">
                     Anulo

@@ -2,8 +2,7 @@
 {% block title %}{{ patient.emri_mbiemri }} – Orto{% endblock %}
 {% block content %}
 
-  <!-- Header -->
-  <div class="mb-6 flex items-center justify-between">
+    <div class="mb-6 flex items-center justify-between">
     <div class="flex items-center gap-3">
       <h1 class="text-lg font-semibold">Pacient (Orto): {{ patient.emri_mbiemri }}</h1>
     </div>
@@ -13,8 +12,7 @@
     </a>
   </div>
 
-  <!-- Info bazë -->
-  <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
     <div class="bg-white border rounded-lg p-4 md:col-span-2">
       <h2 class="font-semibold text-base mb-3">Të dhënat e pacientit (Orto)</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -29,16 +27,14 @@
     <div class="bg-white border rounded-lg p-4">
       <h2 class="font-semibold text-base mb-3">Përmbledhje</h2>
       <div class="text-sm space-y-1">
-        <!-- Nëse keni related_name ndryshe, ndryshoni rreshtin poshtë -->
-        <div>Nr. ORTO historive:
+                <div>Nr. ORTO historive:
           <b>{{ patient.historyortodentics_set.all|length }}</b>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Historitë ORTO -->
-  <div class="bg-white border rounded-lg p-4 overflow-x-auto">
+    <div class="bg-white border rounded-lg p-4 overflow-x-auto">
     <div class="flex items-center justify-between mb-3">
       <h2 class="font-semibold text-base">Historitë ORTO</h2>
       <a class="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded"

@@ -1,8 +1,16 @@
 {% extends "clinic/base.html" %}
 {% block title %}Pacientët Orto{% endblock %}
 {% block content %}
-    <!-- HEADER -->
-    <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+<style>
+  html, body {
+    overflow-x: hidden !important;
+  }
+  .overflow-x-auto {
+    scrollbar-width: thin;
+  }
+</style>
+
+        <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
             <div class="flex items-center gap-x-3">
                 <h2 class="text-lg font-medium text-gray-800">Pacientët Orto</h2>
@@ -27,8 +35,7 @@
             </a>
         </div>
     </div>
-    <!-- SEARCH -->
-    <div class="mt-6 md:flex md:items-center md:justify-between">
+        <div class="mt-6 md:flex md:items-center md:justify-between">
         <div class="relative flex items-center w-full md:w-80">
             <span class="absolute">
                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -49,8 +56,7 @@
             </form>
         </div>
     </div>
-    <!-- TABLE -->
-    <div class="flex flex-col mt-6">
+        <div class="flex flex-col mt-6">
         <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
             <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
                 <div class="overflow-hidden border border-gray-200 md:rounded-lg">
@@ -68,8 +74,7 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for p in patients %}
                                 <tr>
-                                    <!-- Pacienti -->
-                                    <td class="px-4 py-4 text-sm font-medium whitespace-nowrap">
+                                                                        <td class="px-4 py-4 text-sm font-medium whitespace-nowrap">
                                         <div class="flex items-center gap-3">
                                             {% if p.photo %}
                                                 <img class="w-10 h-10 rounded-full object-cover border"
@@ -95,8 +100,7 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <!-- Telefoni -->
-                                    <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                                                        <td class="px-4 py-4 text-sm whitespace-nowrap">
                                         {% if p.telefoni %}
                                             <a href="tel:{{ p.telefoni }}"
                                                class="text-gray-700 hover:text-emerald-600">{{ p.telefoni }}</a>
@@ -104,8 +108,7 @@
                                             —
                                         {% endif %}
                                     </td>
-                                    <!-- Qyteti -->
-                                    <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                                                        <td class="px-4 py-4 text-sm whitespace-nowrap">
                                         {% if p.city %}
                                             {{ p.city }}
                                         {% elif p.adresa %}
@@ -114,16 +117,14 @@
                                             —
                                         {% endif %}
                                     </td>
-                                    <!-- Vizita e fundit -->
-                                    <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                                                        <td class="px-4 py-4 text-sm whitespace-nowrap">
                                         {% if p.last_appointment %}
                                             {{ p.last_appointment|date:"d/m/Y" }}
                                         {% else %}
                                             —
                                         {% endif %}
                                     </td>
-                                    <!-- Data regjistrimit -->
-                                    <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                                                        <td class="px-4 py-4 text-sm whitespace-nowrap">
                                         {% if p.register_date %}
                                             {{ p.register_date|date:"d/m/Y" }}
                                         {% elif p.created_at %}
@@ -132,8 +133,7 @@
                                             —
                                         {% endif %}
                                     </td>
-                                    <!-- Actions -->
-                                    <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
+                                                                        <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
                                         <a href="{% url 'orto_patient_detail' p.id %}"
                                            class="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50">Shiko</a>
                                         <a href="{% url 'add_patient' %}?edit={{ p.id }}"

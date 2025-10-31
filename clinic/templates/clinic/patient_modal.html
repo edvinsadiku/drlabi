@@ -1,0 +1,44 @@
+<div id="patientModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div id="patientCard"
+       class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 transform transition-all duration-150 ease-out scale-95 opacity-0 border border-gray-200">
+    <div class="flex justify-between items-center px-6 py-4 border-b">
+      <h3 id="patientModalTitle" class="text-lg font-semibold text-gray-800">Shto pacient</h3>
+      <button type="button" onclick="closePatientModal()"
+              class="rounded-full p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition">✕</button>
+    </div>
+
+    <form id="patientForm" class="px-6 py-5 space-y-5" method="post">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label class="block text-sm text-gray-600 mb-1 font-medium">Emri dhe mbiemri *</label>
+          <input type="text" name="emri_mbiemri" required class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div><label class="block text-sm text-gray-600 mb-1 font-medium">Data e lindjes</label>
+          <input type="date" name="data_e_lindjes" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div><label class="block text-sm text-gray-600 mb-1 font-medium">Telefoni</label>
+          <input type="text" name="telefoni" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div><label class="block text-sm text-gray-600 mb-1 font-medium">Email</label>
+          <input type="email" name="emaili" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div><label class="block text-sm text-gray-600 mb-1 font-medium">Letërnjoftimi</label>
+          <input type="text" name="leternjoftimi" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div class="sm:col-span-2"><label class="block text-sm text-gray-600 mb-1 font-medium">Adresa</label>
+          <input type="text" name="adresa" class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+      </div>
+    </form>
+
+    <div class="px-6 py-4 border-t flex items-center justify-between">
+      <div id="patientModalHint" class="text-xs text-gray-500">Fushat me * janë të detyrueshme.</div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="closePatientModal()" class="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50 transition">Anulo</button>
+        <button type="button" id="btnSubmitPatient" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700">Ruaj</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastStack" class="fixed bottom-4 right-4 z-[110] space-y-2 pointer-events-none"></div>

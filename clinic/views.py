@@ -22,8 +22,7 @@ from .models import (Agreement, Appointment, CareHistory, Historia,
                      PatientDocument, Payment, Shpenzimet)
 from datetime import datetime
 from django.db.models.functions import Coalesce, Greatest
-
-
+from django.http import Http404
 from django.urls import reverse
 
 def redirect_tab(patient_id, tab):
@@ -35,8 +34,10 @@ def home(request):
     return patient_list(request)
 
 
+@login_required
 def patient_list(request):
     q = (request.GET.get("q") or "").strip()
+    has_debt = request.GET.get("debt") == "1"
 
     qs = Patient.objects.all()
 
@@ -48,16 +49,21 @@ def patient_list(request):
             | Q(emaili__icontains=q)
         )
 
-    # 🧩 Llogaritjet dhe renditja sipas historisë së fundit (CareHistory + Historia)
+    # 💰 Filtrimi i pacientëve me borxh
+    if has_debt:
+        qs = qs.filter(
+            Q(care_histories__amount__gt=F("care_histories__payments__amount"))
+            | Q(agreements__total_amount__gt=F("agreements__payments__amount"))
+        ).distinct()
+
+    # 📊 Statistikë dhe renditje
     qs = qs.annotate(
         historias_count=Count("historias"),
         last_historia=Max("historias__created_at"),
         last_care=Max("care_histories__date"),
     ).annotate(
         last_history=Case(
-            # nëse historia klasike është më e re se carehistory
             When(last_historia__gt=F("last_care"), then=F("last_historia")),
-            # përndryshe merret data e fundit nga carehistory
             default=F("last_care"),
             output_field=DateTimeField(),
         ),
@@ -65,10 +71,9 @@ def patient_list(request):
         city=Coalesce(F("adresa"), Value("")),
     )
 
-    # ✅ Rendit nga pacienti me historinë më të fundit (CareHistory ose Historia)
     qs = qs.order_by(F("last_history").desc(nulls_last=True), F("id").desc())
 
-    # 📄 Pagination
+    # 🔄 Paginimi
     paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get("page") or 1)
 
@@ -85,15 +90,17 @@ def patient_list(request):
             "page_obj": page_obj,
             "page_numbers": page_numbers,
             "q": q,
+            "has_debt": has_debt,
             "total_patients": paginator.count,
         },
     )
+
 
 @login_required
 def patient_detail(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
 
-    # ---------- LEGACY ----------
+    
     historias = patient.historias.order_by("-id")
     ortho_histories = HistoryOrtodentics.objects.filter(
         emri_i_pacientit=patient.emri_mbiemri
@@ -103,11 +110,11 @@ def patient_detail(request, pk):
     total_paguar = sum((h.paguar or Decimal("0")) for h in historias)
     total_borgji = sum((h.borgji or Decimal("0")) for h in historias)
 
-    # ---------- SISTEMI I RI ----------
+    
     DECIMAL = DecimalField(max_digits=18, decimal_places=2)
     ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
 
-    # Pagesat
+    
     payments_new_qs = (
         Payment.objects.filter(patient=patient)
         .select_related("history", "agreement", "created_by")
@@ -117,7 +124,7 @@ def patient_detail(request, pk):
         s=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL)
     )["s"]
 
-    # ✅ Subquery për pagesat e çdo historie
+    
     payments_subq = (
         Payment.objects.filter(history=OuterRef("pk"))
         .values("history")
@@ -125,7 +132,7 @@ def patient_detail(request, pk):
         .values("total")[:1]
     )
 
-    # ✅ përfshin pagesat edhe për child_histories
+    
     care_qs_base = (
         CareHistory.objects.filter(patient=patient)
         .select_related("agreement", "created_by")
@@ -144,7 +151,7 @@ def patient_detail(request, pk):
         )
     )
 
-    # ✅ Vetëm historitë prind
+    
     care_histories_all = (
         care_qs_base.filter(parent_history__isnull=True)
         .annotate(paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL))
@@ -164,14 +171,14 @@ def patient_detail(request, pk):
         .order_by("-date", "-id")
     )
 
-    # Totali jashtë marrëveshjeve
+    
     care_total_non_agreement = (
         care_qs_base.filter(
             agreement__isnull=True, included_in_agreement=False
         ).aggregate(s=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
     )["s"]
 
-    # Histori të papaguara
+    
     unpaid_histories = (
         care_qs_base.annotate(
             paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
@@ -186,7 +193,7 @@ def patient_detail(request, pk):
         .order_by("date", "id")
     )
 
-    # Marrëveshjet
+    
     agreements_qs = (
         Agreement.objects.filter(patient=patient)
         .annotate(paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL))
@@ -218,14 +225,14 @@ def patient_detail(request, pk):
     if debt_new < 0:
         debt_new = Decimal("0.00")
 
-    # ---------- DOKUMENTET ----------
+    
     documents = (
         PatientDocument.objects.filter(patient=patient)
         .select_related("uploaded_by")
         .order_by("-uploaded_at")
     )
 
-    # ---------- RENDER ----------
+    
     return render(
         request,
         "clinic/patient_detail.html",
@@ -249,21 +256,7 @@ def patient_detail(request, pk):
         },
     )
 
-@login_required
-def history_detail(request, pk):
-    history = get_object_or_404(
-        Historia, pk=pk
-    )  
-    return render(
-        request,
-        "clinic/history_detail.html",
-        {
-            "history": history,
-        },
-    )
 
-
-# -------------------- ORTO --------------------
 @login_required
 def orto_patient_list(request):
     q = (request.GET.get("q") or "").strip()
@@ -286,7 +279,7 @@ def orto_patient_detail(request, pk):
     return render(request, "clinic/orto_patient_detail.html", {"patient": p})
 
 
-# -------------------- ADD HISTORY (pa forms) --------------------
+
 def _to_decimal(val):
     """Kthen Decimal ose 0.00 për bosh/invalid."""
     try:
@@ -311,6 +304,88 @@ def _parse_date_any(value):
 
 
 @login_required
+def add_or_edit_patient(request, pk=None):
+    patient = None
+    if pk:
+        patient = get_object_or_404(Patient, pk=pk)
+
+        # formatin e datës për editim (nga "14.03.1998" në "1998-03-14")
+        if patient.data_e_lindjes:
+            try:
+                if isinstance(patient.data_e_lindjes, str):
+                    if "." in patient.data_e_lindjes:
+                        patient.data_e_lindjes = datetime.strptime(
+                            patient.data_e_lindjes, "%d.%m.%Y"
+                        ).strftime("%Y-%m-%d")
+                    elif "/" in patient.data_e_lindjes:
+                        patient.data_e_lindjes = datetime.strptime(
+                            patient.data_e_lindjes, "%d/%m/%Y"
+                        ).strftime("%Y-%m-%d")
+                    elif "-" in patient.data_e_lindjes and len(patient.data_e_lindjes) == 10:
+                        # format të saktë (YYYY-MM-DD)
+                        pass
+                else:
+                    # nëse është objekt date
+                    patient.data_e_lindjes = patient.data_e_lindjes.strftime("%Y-%m-%d")
+            except Exception:
+                pass
+
+    if request.method == "POST":
+        emri_mbiemri = request.POST.get("emri_mbiemri")
+        data_raw = request.POST.get("data_e_lindjes") or None
+        telefoni = request.POST.get("telefoni")
+        emaili = request.POST.get("emaili")
+        leternjoftimi = request.POST.get("leternjoftimi")
+        adresa = request.POST.get("adresa")
+
+        #Konverto datën në format "DD.MM.YYYY"
+        data_e_lindjes = None
+        if data_raw:
+            try:
+                data_e_lindjes = datetime.strptime(
+                    data_raw, "%Y-%m-%d"
+                ).strftime("%d.%m.%Y")
+            except ValueError:
+                data_e_lindjes = data_raw
+
+        if not emri_mbiemri:
+            messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
+        else:
+            if patient:  # EDIT
+                patient.emri_mbiemri = emri_mbiemri
+                patient.data_e_lindjes = data_e_lindjes
+                patient.telefoni = telefoni
+                patient.emaili = emaili
+                patient.leternjoftimi = leternjoftimi
+                patient.adresa = adresa
+                patient.updated_at = now()
+                patient.save()
+                messages.success(
+                    request,
+                    f"Pacienti {patient.emri_mbiemri} u përditësua me sukses."
+                )
+            else:  
+                patient = Patient.objects.create(
+                    emri_mbiemri=emri_mbiemri,
+                    data_e_lindjes=data_e_lindjes,
+                    telefoni=telefoni,
+                    emaili=emaili,
+                    leternjoftimi=leternjoftimi,
+                    adresa=adresa,
+                    created_at=now(),
+                    updated_at=now(),
+                )
+                messages.success(
+                    request,
+                    f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses."
+                )
+
+            return redirect("patient_list")
+
+    return render(request, "clinic/add_patient.html", {"patient": patient})
+
+
+@login_required
 def add_history(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
 
@@ -325,7 +400,7 @@ def add_history(request, pk):
     if request.method == "POST":
         date_obj = now().date()
 
-        # --- FUSHA TË TJERA ---
+        
         dhembi   = request.POST.get("dhembi") or None
         diagnoza = request.POST.get("diagnoza") or None
         trajtimi = request.POST.get("trajtimi") or None
@@ -334,11 +409,11 @@ def add_history(request, pk):
         tekniku  = request.POST.get("tekniku") or None
         verejtje = request.POST.get("verejtje") or None
 
-        # Shumat si Decimal (kurrë None)
+        
         vlera  = _to_decimal(request.POST.get("vlera"))
         paguar = _to_decimal(request.POST.get("paguar"))
 
-        # --- MARRËVESHJE ---
+        
         agreement = None
         agreement_id = request.POST.get("agreement_id") or None
         if agreement_id and str(agreement_id).isdigit():
@@ -350,23 +425,23 @@ def add_history(request, pk):
 
         included = bool(agreement)
 
-        # Rregullat:
-        # - me marrëveshje: amount = 0.00, pagesat (nëse ka) → agreement
-        # - pa marrëveshje: s’lejohet pagesë nëse vlera == 0
+        
+        
+        
         amount_for_history = Decimal("0.00") if included else vlera
 
         if not included and amount_for_history == Decimal("0.00") and paguar > Decimal("0.00"):
             messages.error(request, "Nuk mund të regjistrohet pagesë kur vlera është 0.")
             return redirect("add_history", pk=patient.pk)
 
-        # ✅ Krijo historinë
+        
         ch = CareHistory.objects.create(
             patient=patient,
             date=date_obj,
             tooth=dhembi,
             diagnosis=diagnoza,
             treatment=trajtimi,
-            amount=amount_for_history,                 # gjithmonë Decimal, kurrë None
+            amount=amount_for_history,                 
             notes=verejtje,
             doctor=doctor,
             punim_protetikor=punim_protetikor,
@@ -378,10 +453,10 @@ def add_history(request, pk):
             updated_by=request.user,
         )
 
-        # --- Pagesa ---
+        
         if paguar > Decimal("0.00"):
             if included and agreement:
-                # pagesa lidhet me marrëveshjen
+                
                 Payment.objects.create(
                     patient=patient,
                     amount=paguar,
@@ -392,7 +467,7 @@ def add_history(request, pk):
                     updated_by=request.user,
                 )
             else:
-                # pagesa lidhet me historinë
+                
                 Payment.objects.create(
                     patient=patient,
                     amount=paguar,
@@ -423,7 +498,7 @@ def edit_care_history(request, pk):
     patient = historia.patient
 
     if request.method == "POST":
-        # Lejohen vetëm këto fusha të ndryshohen
+        
         historia.doctor = request.POST.get("doctor") or historia.doctor
         historia.diagnosis = request.POST.get("diagnoza") or historia.diagnosis
         historia.treatment = request.POST.get("trajtimi") or historia.treatment
@@ -432,7 +507,7 @@ def edit_care_history(request, pk):
         historia.tekniku = request.POST.get("tekniku") or historia.tekniku
         historia.notes = request.POST.get("verejtje") or historia.notes
 
-        # Asnjë ndryshim për amount (vlera) dhe pagesat
+        
         historia.updated_by = request.user
         historia.save()
 
@@ -640,7 +715,7 @@ def reports(request):
                 )
 
     elif mode == "month":
-        month_str = request.GET.get("month")  # "YYYY-MM"
+        month_str = request.GET.get("month")  
         if month_str:
             y, m = month_str.split("-")
             y, m = int(y), int(m)
@@ -716,86 +791,86 @@ def reports(request):
 
 
 
-# @login_required
-# def add_or_edit_patient(request, pk=None):
-#     patient = None
-#     if pk:
-#         patient = get_object_or_404(Patient, pk=pk)
 
-#         # formatin e datës për editim (nga "14.03.1998" në "1998-03-14")
-#         if patient.data_e_lindjes:
-#             try:
-#                 if isinstance(patient.data_e_lindjes, str):
-#                     if "." in patient.data_e_lindjes:
-#                         patient.data_e_lindjes = datetime.strptime(
-#                             patient.data_e_lindjes, "%d.%m.%Y"
-#                         ).strftime("%Y-%m-%d")
-#                     elif "/" in patient.data_e_lindjes:
-#                         patient.data_e_lindjes = datetime.strptime(
-#                             patient.data_e_lindjes, "%d/%m/%Y"
-#                         ).strftime("%Y-%m-%d")
-#                     elif "-" in patient.data_e_lindjes and len(patient.data_e_lindjes) == 10:
-#                         # format të saktë (YYYY-MM-DD)
-#                         pass
-#                 else:
-#                     # nëse është objekt date
-#                     patient.data_e_lindjes = patient.data_e_lindjes.strftime("%Y-%m-%d")
-#             except Exception:
-#                 pass
 
-#     if request.method == "POST":
-#         emri_mbiemri = request.POST.get("emri_mbiemri")
-#         data_raw = request.POST.get("data_e_lindjes") or None
-#         telefoni = request.POST.get("telefoni")
-#         emaili = request.POST.get("emaili")
-#         leternjoftimi = request.POST.get("leternjoftimi")
-#         adresa = request.POST.get("adresa")
 
-#         #Konverto datën në format "DD.MM.YYYY"
-#         data_e_lindjes = None
-#         if data_raw:
-#             try:
-#                 data_e_lindjes = datetime.strptime(
-#                     data_raw, "%Y-%m-%d"
-#                 ).strftime("%d.%m.%Y")
-#             except ValueError:
-#                 data_e_lindjes = data_raw
 
-#         if not emri_mbiemri:
-#             messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
-#         else:
-#             if patient:  # EDIT
-#                 patient.emri_mbiemri = emri_mbiemri
-#                 patient.data_e_lindjes = data_e_lindjes
-#                 patient.telefoni = telefoni
-#                 patient.emaili = emaili
-#                 patient.leternjoftimi = leternjoftimi
-#                 patient.adresa = adresa
-#                 patient.updated_at = now()
-#                 patient.save()
-#                 messages.success(
-#                     request,
-#                     f"Pacienti {patient.emri_mbiemri} u përditësua me sukses."
-#                 )
-#             else:  
-#                 patient = Patient.objects.create(
-#                     emri_mbiemri=emri_mbiemri,
-#                     data_e_lindjes=data_e_lindjes,
-#                     telefoni=telefoni,
-#                     emaili=emaili,
-#                     leternjoftimi=leternjoftimi,
-#                     adresa=adresa,
-#                     created_at=now(),
-#                     updated_at=now(),
-#                 )
-#                 messages.success(
-#                     request,
-#                     f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses."
-#                 )
 
-#             return redirect("patient_list")
 
-#     return render(request, "clinic/add_patient.html", {"patient": patient})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @login_required
@@ -856,9 +931,9 @@ def appointments_events(request):
         qs = qs.filter(doctor=doctor)
 
     color_map = {
-        "scheduled": "#10B981",  # green
-        "completed": "#3B82F6",  # blue
-        "cancelled": "#EF4444",  # red
+        "scheduled": "#10B981",  
+        "completed": "#3B82F6",  
+        "cancelled": "#EF4444",  
     }
 
     events = []
@@ -887,7 +962,7 @@ def appointments_create(request):
     if request.method == "POST":
         data = json.loads(request.body)
 
-        # tani merret pacienti nga request
+        
         patient_id = data.get("patient")
         patient = get_object_or_404(Patient, pk=patient_id)
 
@@ -947,13 +1022,13 @@ def add_payment(request, pk):
     method = request.POST.get("method") or "cash"
     notes = request.POST.get("notes") or ""
 
-    # mund të vijë nga forma e vjetër (history_id) ose e re (history_ids[])
+    
     history_ids = request.POST.getlist("history_ids") or request.POST.getlist(
         "history_id"
     )
     agreement_id = request.POST.get("agreement_id") or ""
 
-    # Validime bazë
+    
     if not amount or amount <= 0:
         messages.error(request, "Shuma e pagesës nuk është e vlefshme.")
         return redirect("patient_detail", pk=patient.pk)
@@ -964,7 +1039,7 @@ def add_payment(request, pk):
         )
         return redirect("patient_detail", pk=patient.pk)
 
-    # --- Rast 1: Pagesë për MARRËVESHJE ---
+    
     if agreement_id:
         agreement = get_object_or_404(
             Agreement, pk=int(agreement_id), patient=patient, status="active"
@@ -983,13 +1058,13 @@ def add_payment(request, pk):
         return redirect_tab(patient.pk, "shto-pages")
 
 
-    # --- Rast 2: Pagesë për NJË ose DISA HISTORI ---
+    
     if not history_ids:
         messages.error(request, "Zgjidh të paktën një histori ose një marrëveshje.")
         return redirect_tab(patient.pk, "shto-pages")
 
 
-    # Merr historitë e zgjedhura (vetëm jashtë marrëveshjeve)
+    
     histories = CareHistory.objects.filter(
         id__in=[int(x) for x in history_ids],
         patient=patient,
@@ -997,7 +1072,7 @@ def add_payment(request, pk):
         included_in_agreement=False,
     ).order_by(
         "date", "id"
-    )  # aloko nga më e vjetra te më e reja
+    )  
     if not histories.exists():
         messages.error(
             request, "Asnjë nga historitë e zgjedhura nuk është e vlefshme për pagesë."
@@ -1005,7 +1080,7 @@ def add_payment(request, pk):
         return redirect_tab(patient.pk, "shto-pages")
 
 
-    # Llogarit borxhin e secilës histori: amount - sum(payments)
+    
     def history_outstanding(h: CareHistory) -> Decimal:
         if not h.amount:
             return Decimal("0")
@@ -1063,7 +1138,7 @@ def add_payment(request, pk):
 
 @login_required
 def agreement_close(request, agreement_id):
-    # Marrëveshja + total i paguar deri tani
+    
     agreement = (
         Agreement.objects.filter(pk=agreement_id)
         .annotate(
@@ -1083,7 +1158,7 @@ def agreement_close(request, agreement_id):
         messages.info(request, "Kjo marrëveshje nuk është aktive.")
         return redirect("patient_detail", pk=agreement.patient_id)
 
-    # Sa mbetet për t'u paguar
+    
     outstanding = (agreement.total_amount or Decimal("0")) - (
         agreement.paid_sum or Decimal("0")
     )
@@ -1094,7 +1169,7 @@ def agreement_close(request, agreement_id):
         )
         return redirect("patient_detail", pk=agreement.patient_id)
 
-    # OK — e mbyllim
+    
     agreement.status = "closed"
     agreement.updated_by = request.user
     agreement.updated_at = now()
@@ -1105,7 +1180,7 @@ def agreement_close(request, agreement_id):
 
 
 
-# ---------------- HELPER ----------------
+
 def _period_range(request):
     mode = (request.GET.get("mode") or "day").lower()
     today = datetime.now().date()
@@ -1140,7 +1215,7 @@ def _period_range(request):
             end = date(y, m + 1, 1) - timedelta(days=1)
         return start, end
 
-    # year
+    
     y_str = request.GET.get("year")
     y = int(y_str) if (y_str and y_str.isdigit()) else today.year
     return date(y, 1, 1), date(y, 12, 31)
@@ -1148,14 +1223,14 @@ def _period_range(request):
 
 def _obj_date(obj):
     """Gjithmonë kthen datetime për sortim."""
-    if hasattr(obj, "date") and obj.date:  # CareHistory
+    if hasattr(obj, "date") and obj.date:  
         return datetime.combine(obj.date, datetime.min.time())
-    if hasattr(obj, "created_at") and obj.created_at:  # Agreement / Payment
+    if hasattr(obj, "created_at") and obj.created_at:  
         return obj.created_at
     return datetime.min
 
 
-# ---------------- MAIN REPORT VIEW ----------------
+
 @login_required
 def reports_new(request):
     start_date, end_date = _period_range(request)
@@ -1176,7 +1251,9 @@ def reports_new(request):
     start_datetime = datetime.combine(start_date, time.min)
     end_datetime = datetime.combine(end_date, time.max)
 
-    # CARE HISTORIES
+    # ----------------------------------
+    # Payments per history
+    # ----------------------------------
     payments_subq = (
         Payment.objects.filter(history=OuterRef("pk"))
         .values("history")
@@ -1192,12 +1269,16 @@ def reports_new(request):
         )
     )
 
-    # AGREEMENTS
+    # ----------------------------------
+    # Agreements
+    # ----------------------------------
     agreements_qs = Agreement.objects.filter(created_at__date__lte=end_date).annotate(
         paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
     )
 
-    # PAGESA SIPAS DOKTORIT (nga histori)
+    # ----------------------------------
+    # Payments by doctor
+    # ----------------------------------
     payments_by_doctor = (
         Payment.objects.filter(
             created_at__gte=start_datetime,
@@ -1209,7 +1290,6 @@ def reports_new(request):
         .order_by("-total")
     )
 
-    # PAGESA SIPAS DOKTORIT (nga marrëveshje)
     payments_agreements = (
         Payment.objects.filter(
             created_at__gte=start_datetime,
@@ -1220,7 +1300,6 @@ def reports_new(request):
         .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
     )
 
-    # Kombino histori + marrëveshje
     payments_by_doctor_total = {}
     for p in payments_by_doctor:
         payments_by_doctor_total[p["doctor_name"]] = {
@@ -1243,7 +1322,9 @@ def reports_new(request):
             vals["from_agreements"] or Decimal("0.00")
         )
 
-    # TOTAL KPI
+    # ----------------------------------
+    # Totals (faturuar, paguar, borxh)
+    # ----------------------------------
     total_billed_histories = care_qs_all.filter(
         agreement__isnull=True, included_in_agreement=False
     ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
@@ -1254,20 +1335,28 @@ def reports_new(request):
         created_at__lte=end_datetime,
     ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
 
-    total_billed = (total_billed_histories or Decimal("0")) + (
-        billed_agreements or Decimal("0")
-    )
-
-    paid_histories = Payment.objects.filter(
-        history__in=care_qs_all,
+    # 💡 Pagesat e historive të bëra sot (edhe për histori të vjetra)
+    billed_histories_today = Payment.objects.filter(
         created_at__gte=start_datetime,
         created_at__lte=end_datetime,
+        history__isnull=False,
+    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
+
+    total_billed = (total_billed_histories or Decimal("0")) + (
+        billed_agreements or Decimal("0")
+    ) + (billed_histories_today or Decimal("0"))
+
+    # 💡 Pagesat reale të sotme (për total_paid)
+    paid_histories = Payment.objects.filter(
+        created_at__gte=start_datetime,
+        created_at__lte=end_datetime,
+        history__isnull=False,
     ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
 
     paid_agreements = Payment.objects.filter(
-        agreement__isnull=False,
         created_at__gte=start_datetime,
         created_at__lte=end_datetime,
+        agreement__isnull=False,
     ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
 
     total_paid = (paid_histories or Decimal("0")) + (paid_agreements or Decimal("0"))
@@ -1276,8 +1365,11 @@ def reports_new(request):
     if outstanding < 0:
         outstanding = Decimal("0.00")
 
-    # LISTA
+    # ----------------------------------
+    # Combine histories, agreements & payments
+    # ----------------------------------
     histories_and_agreements = []
+
     for h in care_qs_all:
         h.obj_type = "history"
         h.amount_display = h.amount or Decimal("0.00")
@@ -1296,6 +1388,28 @@ def reports_new(request):
         )
         histories_and_agreements.append(a)
 
+    # ----------------------------------
+    # Pagesat e historive (për datën e zgjedhur)
+    # ----------------------------------
+    payments_for_histories = Payment.objects.filter(
+        created_at__gte=start_datetime,
+        created_at__lte=end_datetime,
+        history__isnull=False,
+    ).select_related("history", "patient")
+
+    for p in payments_for_histories:
+        p.obj_type = "payment_history"
+        p.amount_display = p.amount or Decimal("0.00")
+        p.debt_sum = Decimal("0.00")
+        p.date = p.created_at
+        p.patient = p.patient
+        p.doctor = getattr(p.history, "doctor", None)
+        p.history_diagnosis = getattr(p.history, "diagnosis", "-")
+        histories_and_agreements.append(p)
+
+    # ----------------------------------
+    # Pagesat e marrëveshjeve
+    # ----------------------------------
     payments_for_agreements = Payment.objects.filter(
         created_at__gte=start_datetime,
         created_at__lte=end_datetime,
@@ -1308,10 +1422,16 @@ def reports_new(request):
         p.debt_sum = Decimal("0.00")
         histories_and_agreements.append(p)
 
+    # ----------------------------------
+    # Renditja
+    # ----------------------------------
     histories_and_agreements.sort(
         key=lambda x: (_obj_date(x), getattr(x, "id", 0)), reverse=(order == "desc")
     )
 
+    # ----------------------------------
+    # Render
+    # ----------------------------------
     return render(
         request,
         "clinic/reports_new.html",
@@ -1334,8 +1454,6 @@ def reports_new(request):
         },
     )
 
-
-# ---------------- AGREEMENT CREATE ----------------
 from django.utils.timezone import now
 
 
@@ -1356,7 +1474,7 @@ def agreement_create(request, pk):
             total_amount=total_amount,
             notes=notes,
             status=request.POST.get("status", "active"),
-            start_date=now().date(),  #  gjithmonë sot, pa u bazuar në POST
+            start_date=now().date(),  
             end_date=end_date,
             doctor=doctor,
             created_by=request.user,
@@ -1373,7 +1491,7 @@ def agreement_create(request, pk):
         "clinic/agreement_form.html",
         {
             "patient": patient,
-            "today": now().date(),  #  për template
+            "today": now().date(),  
         },
     )
 
@@ -1394,7 +1512,7 @@ def delete_patient_document(request, pk):
     doc = get_object_or_404(PatientDocument, pk=pk)
     patient_id = doc.patient.id
     if request.method == "POST":
-        doc.file.delete(save=False)  # fshin file nga media/
+        doc.file.delete(save=False)  
         doc.delete()
     return redirect_tab(patient_id, "dokumente")
 
@@ -1419,14 +1537,14 @@ def checkout(request):
     if patient_id:
         patient = get_object_or_404(Patient, pk=patient_id)
 
-        # Pagesat ekzistuese
+        
         payments = Payment.objects.filter(patient=patient).order_by("-created_at")
 
         total_paid = payments.aggregate(
             s=Coalesce(Sum("amount", output_field=DECIMAL), ZERO)
         )["s"] or Decimal("0.00")
 
-        # Histori të pacientit (vetëm me borxh)
+        
         histories = (
             CareHistory.objects.filter(
                 patient=patient, agreement__isnull=True, included_in_agreement=False
@@ -1440,7 +1558,7 @@ def checkout(request):
             .order_by("date")
         )
 
-        # Marrëveshje aktive (vetëm me borxh)
+        
         agreements = (
             Agreement.objects.filter(patient=patient, status="active")
             .annotate(
@@ -1452,7 +1570,7 @@ def checkout(request):
             .order_by("-created_at")
         )
 
-        # Totali i faturuar
+        
         total_billed = (
             CareHistory.objects.filter(patient=patient).aggregate(
                 s=Coalesce(Sum("amount", output_field=DECIMAL), ZERO)
@@ -1467,7 +1585,7 @@ def checkout(request):
 
         debt = max(total_billed - total_paid, Decimal("0.00"))
 
-    # POST – krijo pagesë
+    
     if request.method == "POST":
         patient_id = request.POST.get("patient")
         amount = Decimal(request.POST.get("amount") or "0")
@@ -1487,7 +1605,7 @@ def checkout(request):
             messages.error(request, "Zgjidh ose marrëveshje, ose histori – jo të dyja.")
             return redirect(f"/checkout/?patient={patient.id}")
 
-        # Pagesë për marrëveshje
+        
         if agreement_id:
             agreement = get_object_or_404(Agreement, pk=agreement_id, patient=patient)
             Payment.objects.create(
@@ -1503,7 +1621,7 @@ def checkout(request):
             )
             return redirect(f"/checkout/?patient={patient.id}")
 
-        # Pagesë për histori
+        
         if history_ids:
             for hid in history_ids:
                 h = CareHistory.objects.filter(id=hid, patient=patient).first()
@@ -1540,7 +1658,7 @@ def checkout(request):
         },
     )
 
-# 🔹 API për autocomplete të pacientëve
+
 @login_required
 def search_patients(request):
     q = request.GET.get("q", "")
@@ -1596,14 +1714,14 @@ def care_history_detail_api(request, pk):
         CareHistory.objects.select_related("patient", "agreement"), pk=pk
     )
 
-    # ✅ Sa është paguar për këtë histori (me DecimalField)
+    
     paid_sum = (
         Payment.objects.filter(history=ch)
         .aggregate(s=Coalesce(Sum("amount", output_field=DECIMAL), ZERO))["s"]
         or Decimal("0.00")
     )
 
-    # ✅ Llogarit borxhin dhe shumën e shfaqur
+    
     amount = Decimal(ch.amount or 0)
     if ch.included_in_agreement:
         display_amount = Decimal("0.00")
@@ -1664,7 +1782,7 @@ def add_or_edit_patient(request, pk=None):
     if pk:
         patient = get_object_or_404(Patient, pk=pk)
 
-        # ✅ Formatimi i datës për input date (YYYY-MM-DD)
+        
         if patient.data_e_lindjes:
             try:
                 if isinstance(patient.data_e_lindjes, str):
@@ -1683,7 +1801,7 @@ def add_or_edit_patient(request, pk=None):
             except Exception:
                 patient.data_e_lindjes = ""
 
-    # ✅ GET → përdoret për të mbushur modalin në editim
+    
     if request.method == "GET" and pk:
         return JsonResponse({
             "success": True,
@@ -1698,7 +1816,7 @@ def add_or_edit_patient(request, pk=None):
             }
         })
 
-    # ✅ POST → shton ose përditëson pacientin
+    
     if request.method == "POST":
         emri_mbiemri = request.POST.get("emri_mbiemri", "").strip()
         data_raw = (request.POST.get("data_e_lindjes") or "").strip()
@@ -1707,15 +1825,15 @@ def add_or_edit_patient(request, pk=None):
         leternjoftimi = request.POST.get("leternjoftimi", "").strip()
         adresa = request.POST.get("adresa", "").strip()
 
-        # ✅ Normalizo datën në formatin e duhur për ruajtje (“DD.MM.YYYY”)
+        
         data_e_lindjes = None
         if data_raw:
             try:
-                if "/" in data_raw:  # p.sh. 12/02/1992
+                if "/" in data_raw:  
                     data_e_lindjes = datetime.strptime(
                         data_raw, "%m/%d/%Y"
                     ).strftime("%d.%m.%Y")
-                elif "-" in data_raw:  # p.sh. 1992-12-02
+                elif "-" in data_raw:  
                     data_e_lindjes = datetime.strptime(
                         data_raw, "%Y-%m-%d"
                     ).strftime("%d.%m.%Y")
@@ -1724,14 +1842,14 @@ def add_or_edit_patient(request, pk=None):
             except Exception:
                 data_e_lindjes = data_raw
 
-        # ✅ Validim bazik
+        
         if not emri_mbiemri:
             return JsonResponse({
                 "success": False,
                 "message": "Ju lutem plotësoni emrin e pacientit."
             })
 
-        # ✅ Nëse ekziston pacienti → përditëso (pa redirect)
+        
         if patient:
             patient.emri_mbiemri = emri_mbiemri
             patient.data_e_lindjes = data_e_lindjes
@@ -1746,7 +1864,7 @@ def add_or_edit_patient(request, pk=None):
                 "message": f"Pacienti {patient.emri_mbiemri} u përditësua me sukses!"
             })
 
-        # ✅ Nëse është pacient i ri → krijo dhe bëj redirect
+        
         patient = Patient.objects.create(
             emri_mbiemri=emri_mbiemri,
             data_e_lindjes=data_e_lindjes,
@@ -1764,7 +1882,7 @@ def add_or_edit_patient(request, pk=None):
             "redirect_url": reverse("patient_detail", args=[patient.id]),
         })
 
-    # ✅ Nëse kërkesa nuk është GET apo POST
+    
     return JsonResponse({
         "success": False,
         "message": "Metodë e pavlefshme."

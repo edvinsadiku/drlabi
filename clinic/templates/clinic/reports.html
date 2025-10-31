@@ -1,15 +1,13 @@
 {% extends "clinic/base.html" %}
 {% block title %}Raportet{% endblock %}
 {% block content %}
-    <!-- Header -->
-    <div class="mb-5 flex items-center justify-between">
+        <div class="mb-5 flex items-center justify-between">
         <div>
             <h1 class="text-xl font-semibold tracking-tight">Raportet</h1>
             <p class="text-sm text-gray-500">Filtro sipas periudhës dhe renditje: vetëm të dhënat e zgjedhura.</p>
         </div>
     </div>
-    <!-- Filtrat -->
-    <form method="get"
+        <form method="get"
           class="bg-white border rounded-2xl p-4 mb-5 grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
         <div class="md:col-span-2">
             <label class="block text-xs text-gray-500 mb-1">Periudha</label>
@@ -22,32 +20,28 @@
                 <option value="year"  {% if mode == 'year' %}selected{% endif %}>Vjetor</option>
             </select>
         </div>
-        <!-- Fusha për DITË -->
-        <div id="fld_day" class="{% if mode != 'day' %}hidden{% endif %}">
+                <div id="fld_day" class="{% if mode != 'day' %}hidden{% endif %}">
             <label class="block text-xs text-gray-500 mb-1">Data</label>
             <input type="date"
                    name="day"
                    value="{{ picked_day }}"
                    class="w-full border rounded-lg px-3 py-2" />
         </div>
-        <!-- Fusha për JAVË -->
-        <div id="fld_week" class="{% if mode != 'week' %}hidden{% endif %}">
+                <div id="fld_week" class="{% if mode != 'week' %}hidden{% endif %}">
             <label class="block text-xs text-gray-500 mb-1">Java</label>
             <input type="week"
                    name="week"
                    value="{{ picked_week }}"
                    class="w-full border rounded-lg px-3 py-2" />
         </div>
-        <!-- Fusha për MUAJ -->
-        <div id="fld_month" class="{% if mode != 'month' %}hidden{% endif %}">
+                <div id="fld_month" class="{% if mode != 'month' %}hidden{% endif %}">
             <label class="block text-xs text-gray-500 mb-1">Muaji</label>
             <input type="month"
                    name="month"
                    value="{{ picked_month }}"
                    class="w-full border rounded-lg px-3 py-2" />
         </div>
-        <!-- Fusha për VIT -->
-        <div id="fld_year" class="{% if mode != 'year' %}hidden{% endif %}">
+                <div id="fld_year" class="{% if mode != 'year' %}hidden{% endif %}">
             <label class="block text-xs text-gray-500 mb-1">Viti</label>
             <select name="year" class="w-full border rounded-lg px-3 py-2">
                 {% for y in years %}
@@ -70,8 +64,7 @@
             <button class="w-full px-3 py-2 rounded-lg bg-emerald-600 text-white">Apliko</button>
         </div>
     </form>
-    <!-- KPI Totals -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
         <div class="bg-white border rounded-2xl p-4">
             <div class="text-xs text-gray-500">Totali</div>
             <div class="text-2xl font-semibold">{{ total_vlera }}</div>
@@ -89,8 +82,7 @@
             <div class="text-2xl font-semibold">{{ items|length }}</div>
         </div>
     </div>
-    <!-- Lista e historive të filtruar -->
-    <div class="bg-white border rounded-2xl overflow-hidden">
+        <div class="bg-white border rounded-2xl overflow-hidden">
         <div class="px-4 py-3 border-b flex items-center justify-between">
             <h3 class="font-semibold">Rezultatet</h3>
             <div class="text-sm text-gray-500">
@@ -142,14 +134,4 @@
             </table>
         </div>
     </div>
-    <script>
-  function onModeChange(val){
-    document.getElementById('fld_day').classList.toggle('hidden',  val!=='day');
-    document.getElementById('fld_week').classList.toggle('hidden', val!=='week');
-    document.getElementById('fld_month').classList.toggle('hidden',val!=='month');
-    document.getElementById('fld_year').classList.toggle('hidden', val!=='year');
-  }
-  // re-render icons if you use lucide in this page
-  document.addEventListener('DOMContentLoaded', () => { if(window.lucide){ lucide.createIcons(); } });
-    </script>
 {% endblock %}

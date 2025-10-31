@@ -5,9 +5,6 @@
 
 {% block content %}
 
-<!-- ============================= -->
-<!-- HERO / HEADER-->
-<!-- ============================= -->
 <section class="rounded-2xl mb-8 overflow-hidden shadow-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
   <div class="p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
     <div class="flex items-center gap-4">
@@ -31,12 +28,8 @@
   </div>
 </section>
 
-<!-- ============================= -->
-<!-- INFO + PËRMBLEDHJE -->
-<!-- ============================= -->
 <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-  <!-- Info pacienti -->
-  <article class="lg:col-span-2 bg-white rounded-xl border p-6">
+    <article class="lg:col-span-2 bg-white rounded-xl border p-6">
     <div class="flex items-center justify-between mb-6">
       <h2 class="font-semibold text-lg text-gray-800 flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -56,8 +49,7 @@
     </dl>
   </article>
 
-  <!-- Përmbledhje -->
-  <aside class="bg-white rounded-xl border p-6">
+    <aside class="bg-white rounded-xl border p-6">
     <h2 class="font-semibold text-lg text-gray-800 mb-6 flex items-center gap-2">
       <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 1.79-4 4v4h8v-4c0-2.21-1.79-4-4-4zM6 12H4m16 0h-2" />
@@ -81,9 +73,6 @@
   </aside>
 </section>
 
-<!-- ============================= -->
-<!-- TABS WRAPPER -->
-<!-- ============================= -->
 <section
   x-data="{
     active: new URL(location).searchParams.get('tab') || 'trajtimet',
@@ -104,8 +93,7 @@
 </section>
 
 {% include "clinic/patient/tabs/_care_history_modal.html" %}
-
-<!-- JS -->
-<script src="https://unpkg.com/alpinejs" defer></script>
 <script src="{% static 'clinic/js/patient_detail.js' %}" defer></script>
+<script src="https://unpkg.com/alpinejs" defer></script>
+
 {% endblock %}

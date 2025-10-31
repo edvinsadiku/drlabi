@@ -1,0 +1,77 @@
+  body { font-family: 'Inter', sans-serif; }
+  .fc {
+    --fc-border-color: #e5e7eb;
+    --fc-today-bg-color: #f8fafc;
+    --fc-button-bg-color: #10b981;
+    --fc-button-hover-bg-color: #059669;
+    --fc-button-active-bg-color: #047857;
+    --fc-button-text-color: #fff;
+  }
+  .fc-toolbar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  .fc-event {
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 0.85rem;
+    padding: 2px 6px;
+  }
+  .fc-view-timeGridDay .fc-event.scheduled { background-color: #10b981 !important; color: #fff !important; }
+  .fc-view-timeGridDay .fc-event.completed { background-color: #2563eb !important; color: #fff !important; }
+  .fc-view-timeGridDay .fc-event.cancelled { background-color: #ef4444 !important; color: #fff !important; }
+  .fc-view-listWeek .fc-event {
+    background-color: #fff !important;
+    border: 1px solid #e5e7eb !important;
+    color: #111827 !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease-in-out;
+  }
+  .fc-view-listWeek .fc-event:hover { background-color: #f9fafb !important; transform: scale(1.01); }
+
+  /* 📱 Mobile Responsiveness */
+  @media (max-width: 768px) {
+    .fc-toolbar {
+      flex-direction: column !important;
+      gap: 0.5rem !important;
+    }
+    .fc-toolbar-chunk {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+    .fc-toolbar-title {
+      font-size: 1rem !important;
+    }
+    #calendar {
+      padding: 0.5rem !important;
+    }
+    .fc-button {
+      font-size: 0.75rem !important;
+      padding: 0.35rem 0.6rem !important;
+    }
+  }
+
+  /* 📱 Modal adjustments for phones */
+  #appointmentModal .modal-content {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    overflow-y: auto;
+    padding: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    #appointmentModal .modal-content {
+      border-radius: 1rem;
+      max-width: 28rem;
+      height: auto;
+    }
+  }
+
+  /* Prevent body scroll when modal open */
+  body.modal-open {
+    overflow: hidden;
+  }
