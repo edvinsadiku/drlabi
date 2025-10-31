@@ -1252,7 +1252,7 @@ def reports_new(request):
     end_datetime = datetime.combine(end_date, time.max)
 
     # ----------------------------------
-    # Payments per history
+    # Payments per history (subquery)
     # ----------------------------------
     payments_subq = (
         Payment.objects.filter(history=OuterRef("pk"))
@@ -1261,23 +1261,37 @@ def reports_new(request):
         .values("total")[:1]
     )
 
+    # ----------------------------------
+    # Vetëm historitë që kanë pagesa sot
+    # ----------------------------------
     care_qs_all = (
         CareHistory.objects.select_related("patient")
-        .filter(date__gte=start_date, date__lte=end_date)
+        .filter(
+            payments__created_at__gte=start_datetime,
+            payments__created_at__lte=end_datetime
+        )
+        .distinct()
         .annotate(
             paid_sum=Coalesce(Subquery(payments_subq, output_field=DECIMAL), ZERO)
         )
     )
 
     # ----------------------------------
-    # Agreements
+    # Marrëveshjet që kanë pagesa sot
     # ----------------------------------
-    agreements_qs = Agreement.objects.filter(created_at__date__lte=end_date).annotate(
-        paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
+    agreements_qs = (
+        Agreement.objects.filter(
+            payments__created_at__gte=start_datetime,
+            payments__created_at__lte=end_datetime
+        )
+        .distinct()
+        .annotate(
+            paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
+        )
     )
 
     # ----------------------------------
-    # Payments by doctor
+    # Pagesat sipas doktorit (vetëm për sot)
     # ----------------------------------
     payments_by_doctor = (
         Payment.objects.filter(
@@ -1313,84 +1327,36 @@ def reports_new(request):
                 "from_histories": Decimal("0.00"),
                 "from_agreements": Decimal("0.00"),
             }
-        payments_by_doctor_total[p["doctor_name"]]["from_agreements"] = p[
-            "total"
-        ] or Decimal("0.00")
+        payments_by_doctor_total[p["doctor_name"]]["from_agreements"] = p["total"] or Decimal("0.00")
 
     for doc, vals in payments_by_doctor_total.items():
-        vals["total"] = (vals["from_histories"] or Decimal("0.00")) + (
-            vals["from_agreements"] or Decimal("0.00")
-        )
+        vals["total"] = (vals["from_histories"] or Decimal("0.00")) + (vals["from_agreements"] or Decimal("0.00"))
 
     # ----------------------------------
-    # Totals (faturuar, paguar, borxh)
+    # Totals (vetëm për pagesat e sotme)
     # ----------------------------------
-    total_billed_histories = care_qs_all.filter(
-        agreement__isnull=True, included_in_agreement=False
-    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
-
-    billed_agreements = Payment.objects.filter(
-        agreement__isnull=False,
-        created_at__gte=start_datetime,
-        created_at__lte=end_datetime,
-    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
-
-    # 💡 Pagesat e historive të bëra sot (edhe për histori të vjetra)
-    billed_histories_today = Payment.objects.filter(
+    total_paid_histories = Payment.objects.filter(
         created_at__gte=start_datetime,
         created_at__lte=end_datetime,
         history__isnull=False,
     ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
 
-    total_billed = (total_billed_histories or Decimal("0")) + (
-        billed_agreements or Decimal("0")
-    ) + (billed_histories_today or Decimal("0"))
-
-    # 💡 Pagesat reale të sotme (për total_paid)
-    paid_histories = Payment.objects.filter(
-        created_at__gte=start_datetime,
-        created_at__lte=end_datetime,
-        history__isnull=False,
-    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
-
-    paid_agreements = Payment.objects.filter(
+    total_paid_agreements = Payment.objects.filter(
         created_at__gte=start_datetime,
         created_at__lte=end_datetime,
         agreement__isnull=False,
     ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"]
 
-    total_paid = (paid_histories or Decimal("0")) + (paid_agreements or Decimal("0"))
-
-    outstanding = total_billed - total_paid
-    if outstanding < 0:
-        outstanding = Decimal("0.00")
+    total_paid = (total_paid_histories or Decimal("0")) + (total_paid_agreements or Decimal("0"))
+    total_billed = total_paid  # për raport ditor, faturuar = paguar
+    outstanding = Decimal("0.00")
 
     # ----------------------------------
-    # Combine histories, agreements & payments
+    # Kombino vetëm pagesat e sotme
     # ----------------------------------
     histories_and_agreements = []
 
-    for h in care_qs_all:
-        h.obj_type = "history"
-        h.amount_display = h.amount or Decimal("0.00")
-        h.debt_sum = max(
-            h.amount_display - (h.paid_sum or Decimal("0.00")), Decimal("0.00")
-        )
-        if h.amount_display > 0:
-            histories_and_agreements.append(h)
-
-    for a in agreements_qs:
-        a.obj_type = "agreement"
-        a.amount_display = a.total_amount or Decimal("0.00")
-        a.debt_sum = max(
-            (a.total_amount or Decimal("0.00")) - (a.paid_sum or Decimal("0.00")),
-            Decimal("0.00"),
-        )
-        histories_and_agreements.append(a)
-
-    # ----------------------------------
-    # Pagesat e historive (për datën e zgjedhur)
-    # ----------------------------------
+    # Pagesat e historive
     payments_for_histories = Payment.objects.filter(
         created_at__gte=start_datetime,
         created_at__lte=end_datetime,
@@ -1407,9 +1373,7 @@ def reports_new(request):
         p.history_diagnosis = getattr(p.history, "diagnosis", "-")
         histories_and_agreements.append(p)
 
-    # ----------------------------------
     # Pagesat e marrëveshjeve
-    # ----------------------------------
     payments_for_agreements = Payment.objects.filter(
         created_at__gte=start_datetime,
         created_at__lte=end_datetime,
@@ -1423,10 +1387,11 @@ def reports_new(request):
         histories_and_agreements.append(p)
 
     # ----------------------------------
-    # Renditja
+    # Renditja (nga më i riu ose më i vjetri)
     # ----------------------------------
     histories_and_agreements.sort(
-        key=lambda x: (_obj_date(x), getattr(x, "id", 0)), reverse=(order == "desc")
+        key=lambda x: (_obj_date(x), getattr(x, "id", 0)),
+        reverse=(order == "desc"),
     )
 
     # ----------------------------------
