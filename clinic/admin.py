@@ -114,6 +114,53 @@ class PaymentAdmin(admin.ModelAdmin):
         verbose_name = "Pagesë"
         verbose_name_plural = "Pagesa"
 
+
+
+@admin.register(models.Prescription)
+class PrescriptionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "patient",          # lidhja reale (shfaqet si objekti Patient)
+        "patient_name",     # snapshot teksti
+        "doctor",
+        "prescription_date",
+        "has_allergy",
+        "complaint_short",
+    )
+    list_filter = ("doctor", "prescription_date")
+    search_fields = (
+        "patient__emri_mbiemri",  # kërko te pacienti
+        "patient_name", "complaint", "diagnosis", "therapy", "allergy_notes",
+    )
+    date_hierarchy = "prescription_date"
+    ordering = ("-prescription_date", "-id")
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("patient", "created_by")  # më shpejt për DB të mëdha
+
+    fieldsets = (
+        ("Pacienti", {
+            "fields": ("patient", "patient_name", "patient_birthdate", "patient_address")
+        }),
+        ("Përmbajtja e recetës", {
+            "fields": ("complaint", "diagnosis", "therapy", "allergy_notes")
+        }),
+        ("Meta", {
+            "fields": ("doctor", "prescription_date", "created_by", "created_at", "updated_at")
+        }),
+    )
+
+    @admin.display(description="Alergji", boolean=True)
+    def has_allergy(self, obj):
+        return bool(obj.allergy_notes)
+
+    @admin.display(description="Ankesa (shkurt)")
+    def complaint_short(self, obj):
+        if not obj.complaint:
+            return "-"
+        t = obj.complaint.strip().replace("\n", " ")
+        return (t[:60] + "…") if len(t) > 60 else t
+
+
 admin.site.site_header = "🦷 Paneli i Administrimit – DR Labi"
 admin.site.site_title = "Administrimi i Klinikës DR Labi"
 admin.site.index_title = "Menaxhimi i Pacientëve, Historive dhe Pagesave"
