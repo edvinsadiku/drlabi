@@ -24,16 +24,15 @@
     <div class="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Form -->
       <form class="lg:col-span-1 space-y-4" @submit.prevent="save">
+
+        <!-- Diagnoza -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Ankesa e pacientit <span class="text-red-600">*</span></label>
-          <textarea x-model="form.complaint" rows="3" placeholder="Shkruaj ankesën…"
-            class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Diagnoza</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Diagnoza <span class="text-red-600">*</span></label>
           <textarea x-model="form.diagnosis" rows="3" placeholder="Shkruaj diagnozën…"
             class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm"></textarea>
         </div>
+
+        <!-- Terapia -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Terapia <span class="text-red-600">*</span></label>
           <textarea x-model="form.therapy" rows="4" placeholder="Shkruaj terapinë…"
@@ -56,7 +55,6 @@
             </label>
           </fieldset>
 
-          <!-- Hap kur uiAllergy === 'yes' -->
           <div class="mt-3" x-show="uiAllergy === 'yes'" x-transition.opacity>
             <label class="block text-sm font-medium text-gray-700 mb-1">Detaje të alergjisë (opsionale)</label>
             <textarea x-model="form.allergy_notes" rows="2" placeholder="p.sh. Penicilina, anestetikë lokalë, lateks…"
@@ -64,8 +62,8 @@
             <p class="mt-1 text-xs text-gray-500">Ky tekst ruhet te receta (nuk ruajmë boolean).</p>
           </div>
         </div>
-        <!-- /Alergjia -->
 
+        <!-- Doktori -->
         <fieldset>
           <legend class="block text-sm font-medium text-gray-700 mb-2">Doktori <span class="text-red-600">*</span></legend>
           <div class="flex items-center gap-6">
@@ -82,6 +80,7 @@
           </div>
         </fieldset>
 
+        <!-- Butonat -->
         <div class="flex items-center gap-3">
           <button type="submit"
             class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
@@ -109,7 +108,7 @@
                 <th class="px-4 py-3 text-left">#</th>
                 <th class="px-4 py-3 text-left">Data</th>
                 <th class="px-4 py-3 text-left">Doktori</th>
-                <th class="px-4 py-3 text-left">Ankesa</th>
+                <th class="px-4 py-3 text-left">Diagnoza</th>
                 <th class="px-4 py-3 text-right">Veprime</th>
               </tr>
             </thead>
@@ -119,14 +118,7 @@
                   <td class="px-4 py-3 whitespace-nowrap" x-text="idx+1"></td>
                   <td class="px-4 py-3 whitespace-nowrap" x-text="p.prescription_date"></td>
                   <td class="px-4 py-3" x-text="p.doctor"></td>
-                  <td class="px-4 py-3">
-                    <span x-text="p.complaint_short"></span>
-                    <template x-if="p.has_allergy_notes">
-                      <span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border border-amber-300 bg-amber-50 text-amber-700">
-                        Alergji
-                      </span>
-                    </template>
-                  </td>
+                  <td class="px-4 py-3" x-text="p.diagnosis_short"></td>
                   <td class="px-4 py-3 text-right whitespace-nowrap">
                     <a :href="urlPrint(p.id)"
                        target="_blank" rel="noopener"
@@ -153,10 +145,9 @@
       return {
         items: [],
         errors: [],
-        form: { complaint: '', diagnosis: '', therapy: '', doctor: '', allergy_notes: '' },
-        uiAllergy: 'no', // 'yes' | 'no'
+        form: { diagnosis: '', therapy: '', doctor: '', allergy_notes: '' },
+        uiAllergy: 'no',
 
-        // Pastrim automatik i fushës kur kalon në "no"
         init(){
           this.load();
           this.$watch('uiAllergy', (v) => { if (v !== 'yes') this.form.allergy_notes = ''; });
@@ -173,23 +164,22 @@
         },
 
         resetForm(){
-          this.form = { complaint:'', diagnosis:'', therapy:'', doctor:'', allergy_notes:'' };
+          this.form = { diagnosis:'', therapy:'', doctor:'', allergy_notes:'' };
           this.uiAllergy = 'no';
           this.errors = [];
         },
 
         validate(){
           const errs = [];
-          if (!this.form.complaint.trim()) errs.push('Shkruaj "Ankesa".');
-          if (!this.form.therapy.trim())   errs.push('Shkruaj "Terapia".');
-          if (!this.form.doctor)           errs.push('Zgjidh doktorin.');
+          if (!this.form.diagnosis.trim()) errs.push('Shkruaj "Diagnozën".');
+          if (!this.form.therapy.trim()) errs.push('Shkruaj "Terapinë".');
+          if (!this.form.doctor) errs.push('Zgjidh doktorin.');
           this.errors = errs;
           return !errs.length;
         },
 
         async save(){
           if (!this.validate()) return;
-          // Mos dërgo alergji kur është 'no'
           if (this.uiAllergy !== 'yes') this.form.allergy_notes = '';
 
           try {

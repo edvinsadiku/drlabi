@@ -2087,18 +2087,18 @@ def prescription_save(request, patient_id):
     except json.JSONDecodeError:
         return HttpResponseBadRequest("Body nuk është JSON.")
 
-    complaint = (payload.get("complaint") or "").strip()
+    # Merr vetëm fushat reale
     diagnosis = (payload.get("diagnosis") or "").strip()
-    therapy   = (payload.get("therapy")   or "").strip()
-    doctor    = (payload.get("doctor")    or "").strip()
-    # ⬇⬇ NEW: prano opsionalisht shënimet e alergjisë (pa boolean)
+    therapy = (payload.get("therapy") or "").strip()
+    doctor = (payload.get("doctor") or "").strip()
     allergy_notes = (payload.get("allergy_notes") or "").strip()
 
     errors = {}
-    if not complaint:
-        errors["complaint"] = "Ankesa është e detyrueshme."
+    if not diagnosis:
+        errors["diagnosis"] = "Diagnoza është e detyrueshme."
     if not therapy:
         errors["therapy"] = "Terapia është e detyrueshme."
+
     valid_doctors = dict(DOCTOR_CHOICES)
     if doctor not in valid_doctors:
         errors["doctor"] = "Zgjidh doktorin (p.sh. Dr. Labi ose Dr. Linda)."
@@ -2106,16 +2106,15 @@ def prescription_save(request, patient_id):
     if errors:
         return JsonResponse({"ok": False, "errors": errors}, status=400)
 
+    # Krijo recetën
     obj = Prescription.objects.create(
         patient=patient,
         patient_name=patient.emri_mbiemri or "",
         patient_birthdate=patient.data_e_lindjes or "",
         patient_address=patient.adresa or "",
-        complaint=complaint,
-        diagnosis=diagnosis or None,
+        diagnosis=diagnosis,
         therapy=therapy,
         doctor=doctor,
-        # ⬇⬇ NEW: ruaje nëse ka diçka
         allergy_notes=allergy_notes or None,
         prescription_date=timezone.localdate(),
         created_by=request.user,
@@ -2125,24 +2124,24 @@ def prescription_save(request, patient_id):
 
 @login_required
 def prescription_list_json(request, patient_id):
-    """Lista e recetave (për tab-in)"""
     patient = get_object_or_404(Patient, pk=patient_id)
-    qs = patient.prescriptions.all().order_by("-prescription_date", "-id")[:100]
+    items = (
+        Prescription.objects
+        .filter(patient=patient)
+        .order_by("-id")
+        .values("id", "prescription_date", "doctor", "diagnosis", "therapy", "allergy_notes")
+    )
+
     results = []
-    for p in qs:
-        txt = (p.complaint or "").strip()
-        if len(txt) > 60:
-            txt = txt[:60].rstrip() + "…"
+    for p in items:
         results.append({
-            "id": p.id,
-            "prescription_date": p.prescription_date.strftime("%Y-%m-%d"),
-            "doctor": p.doctor,
-            "complaint_short": txt or "—",
-            # ⬇⬇ NEW: ndihmon UI (badge ose ikonë)
-            "has_allergy_notes": bool(p.allergy_notes),
-            # nëse do t’i shfaqësh direkt, shto edhe vijën poshtë:
-            # "allergy_notes": p.allergy_notes or "",
+            "id": p["id"],
+            "prescription_date": p["prescription_date"].strftime("%d/%m/%Y"),
+            "doctor": p["doctor"],
+            "diagnosis_short": (p["diagnosis"] or "")[:80],   # kjo do shfaqet në listë
+            "has_allergy_notes": bool(p["allergy_notes"]),
         })
+
     return JsonResponse({"results": results})
 
 @login_required
