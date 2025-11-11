@@ -1,0 +1,71 @@
+{# templates/clinic/prescription_print_fallback.html #}
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="utf-8">
+  <title>Recetë – {{ p.patient_name }}</title>
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    @media print {.no-print{display:none}}
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding:24px; color:#111; }
+    .head { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ddd; padding-bottom:8px; }
+    .brand { display:flex; align-items:center; gap:10px; }
+    .brand .name { font-weight:700; font-size:18px; }
+    .brand .sub { color:#666; font-size:12px; }
+    .meta { text-align:right; font-size:12px; color:#555; }
+    h1 { margin:18px 0 8px; font-size:22px; }
+    .kv { display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; font-size:12px; margin-top:8px; }
+    .kv .full { grid-column:1 / -1; }
+    .block { margin-top:14px; }
+    .block h2 { margin:0 0 6px; font-size:14px; }
+    .block p { white-space:pre-wrap; font-size:12px; line-height:1.5; }
+    .foot { margin-top:16px; display:flex; justify-content:space-between; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <div class="brand">
+      <div class="name">DR. LABI</div>
+      <div class="sub">Dental Clinic</div>
+    </div>
+    <div class="meta">
+      <div>📍 Rr. Ali Pashë Tepelena</div>
+      <div>📞 +383 45 654 288</div>
+    </div>
+  </div>
+
+  <h1>Recetë</h1>
+
+  <section class="kv">
+    <div><strong>Emri dhe Mbiemri:</strong> {{ p.patient_name }}</div>
+    {% if p.patient_birthdate %}<div><strong>Data e Lindjes:</strong> {{ p.patient_birthdate }}</div>{% endif %}
+    {% if p.patient_address %}<div class="full"><strong>Adresa:</strong> {{ p.patient_address }}</div>{% endif %}
+  </section>
+
+  <section class="block">
+    <h2>Ankesa e Pacientit</h2>
+    <p>{{ p.complaint }}</p>
+  </section>
+
+  {% if p.diagnosis %}
+  <section class="block">
+    <h2>Diagnoza</h2>
+    <p>{{ p.diagnosis }}</p>
+  </section>
+  {% endif %}
+
+  <section class="block">
+    <h2>Terapia</h2>
+    <p>{{ p.therapy }}</p>
+  </section>
+
+  <section class="foot">
+    <div>Data: <strong>{{ p.prescription_date }}</strong></div>
+    <div>Doktori: <strong>{{ p.doctor }}</strong></div>
+  </section>
+
+  <div class="no-print" style="margin-top:16px">
+    <button onclick="window.print()">Printo</button>
+  </div>
+</body>
+</html>

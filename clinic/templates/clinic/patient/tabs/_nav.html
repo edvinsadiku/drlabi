@@ -8,5 +8,15 @@
     <button @click="set('arkiva-histori')" :class="active==='arkiva-histori' ? 'text-emerald-700 border-b-2 border-emerald-600 font-semibold' : 'text-gray-600 hover:text-gray-800'" class="py-3 text-sm transition whitespace-nowrap" role="tab" :aria-selected="active==='arkiva-histori'">Historitë (Arkiva)</button>
     <button @click="set('arkiva-ortho')"  :class="active==='arkiva-ortho' ? 'text-emerald-700 border-b-2 border-emerald-600 font-semibold' : 'text-gray-600 hover:text-gray-800'" class="py-3 text-sm transition whitespace-nowrap" role="tab" :aria-selected="active==='arkiva-ortho'">Ortodonci (Arkiva)</button>
     <button @click="set('arkiva-financa')" :class="active==='arkiva-financa' ? 'text-emerald-700 border-b-2 border-emerald-600 font-semibold' : 'text-gray-600 hover:text-gray-800'" class="py-3 text-sm transition whitespace-nowrap" role="tab" :aria-selected="active==='arkiva-financa'">Përmbledhje financiare</button>
+    <button
+      @click="set('recetat')"
+      :class="active==='recetat'
+              ? 'text-emerald-700 border-b-2 border-emerald-600 font-semibold'
+              : 'text-gray-600 hover:text-gray-800'"
+      class="py-3 text-sm transition whitespace-nowrap"
+      role="tab"
+      :aria-selected="active==='recetat'">
+      Recetat
+    </button>
   </div>
 </nav>

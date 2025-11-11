@@ -19,11 +19,27 @@ from django.views.decorators.http import require_POST
 
 from .models import (Agreement, Appointment, CareHistory, Historia,
                      HistoryOrtodentics, PatienOrtodentics, Patient,
-                     PatientDocument, Payment, Shpenzimet)
+                     PatientDocument, Payment, Shpenzimet,Prescription)
 from datetime import datetime
 from django.db.models.functions import Coalesce, Greatest
 from django.http import Http404
 from django.urls import reverse
+import json
+from decimal import Decimal
+
+from django.contrib.auth.decorators import login_required
+from django.db import models
+from django.db.models import (
+    Sum, Value, F, Case, When, OuterRef, Subquery, ExpressionWrapper, DecimalField
+)
+from django.db.models.functions import Coalesce
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse, Http404
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_POST
+from django.template.loader import render_to_string
+
 
 def redirect_tab(patient_id, tab):
     return redirect(f"{reverse('patient_detail', args=[patient_id])}?tab={tab}")
@@ -96,11 +112,18 @@ def patient_list(request):
     )
 
 
+# ---- OPTIONAL: WeasyPrint nëse e ke të instaluar ----
+try:
+    from weasyprint import HTML  # type: ignore
+    WEASYPRINT_AVAILABLE = True
+except Exception:
+    WEASYPRINT_AVAILABLE = False
+
+
 @login_required
 def patient_detail(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
 
-    
     historias = patient.historias.order_by("-id")
     ortho_histories = HistoryOrtodentics.objects.filter(
         emri_i_pacientit=patient.emri_mbiemri
@@ -110,11 +133,9 @@ def patient_detail(request, pk):
     total_paguar = sum((h.paguar or Decimal("0")) for h in historias)
     total_borgji = sum((h.borgji or Decimal("0")) for h in historias)
 
-    
     DECIMAL = DecimalField(max_digits=18, decimal_places=2)
     ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
 
-    
     payments_new_qs = (
         Payment.objects.filter(patient=patient)
         .select_related("history", "agreement", "created_by")
@@ -124,7 +145,6 @@ def patient_detail(request, pk):
         s=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL)
     )["s"]
 
-    
     payments_subq = (
         Payment.objects.filter(history=OuterRef("pk"))
         .values("history")
@@ -132,7 +152,6 @@ def patient_detail(request, pk):
         .values("total")[:1]
     )
 
-    
     care_qs_base = (
         CareHistory.objects.filter(patient=patient)
         .select_related("agreement", "created_by")
@@ -142,7 +161,7 @@ def patient_detail(request, pk):
                 queryset=CareHistory.objects.annotate(
                     paid_sum=Coalesce(Subquery(payments_subq), Value(Decimal("0.00"))),
                     debt_sum=ExpressionWrapper(
-                        Coalesce(F("amount"), Value(Decimal("0.00"))) - 
+                        Coalesce(F("amount"), Value(Decimal("0.00"))) -
                         Coalesce(Subquery(payments_subq), Value(Decimal("0.00"))),
                         output_field=DECIMAL,
                     ),
@@ -151,7 +170,6 @@ def patient_detail(request, pk):
         )
     )
 
-    
     care_histories_all = (
         care_qs_base.filter(parent_history__isnull=True)
         .annotate(paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL))
@@ -171,14 +189,11 @@ def patient_detail(request, pk):
         .order_by("-date", "-id")
     )
 
-    
     care_total_non_agreement = (
-        care_qs_base.filter(
-            agreement__isnull=True, included_in_agreement=False
-        ).aggregate(s=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
+        care_qs_base.filter(agreement__isnull=True, included_in_agreement=False)
+        .aggregate(s=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
     )["s"]
 
-    
     unpaid_histories = (
         care_qs_base.annotate(
             paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL)
@@ -193,7 +208,6 @@ def patient_detail(request, pk):
         .order_by("date", "id")
     )
 
-    
     agreements_qs = (
         Agreement.objects.filter(patient=patient)
         .annotate(paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL))
@@ -206,33 +220,29 @@ def patient_detail(request, pk):
     )
 
     agreements_active = agreements_qs.filter(status="active")
-
     agreements_total_amount = agreements_qs.aggregate(
         s=Coalesce(Sum("total_amount"), ZERO, output_field=DECIMAL)
     )["s"]
 
-    total_agreements_balance = sum(
-        (a.bal_sum for a in agreements_active), Decimal("0.00")
-    )
+    total_agreements_balance = sum((a.bal_sum for a in agreements_active), Decimal("0.00"))
     if total_agreements_balance < 0:
         total_agreements_balance = Decimal("0.00")
 
-    total_billed_new = (care_total_non_agreement or Decimal("0.00")) + (
-        agreements_total_amount or Decimal("0.00")
-    )
+    total_billed_new = (care_total_non_agreement or Decimal("0.00")) + (agreements_total_amount or Decimal("0.00"))
 
     debt_new = total_billed_new - (total_paid_new or Decimal("0.00"))
     if debt_new < 0:
         debt_new = Decimal("0.00")
 
-    
     documents = (
         PatientDocument.objects.filter(patient=patient)
         .select_related("uploaded_by")
         .order_by("-uploaded_at")
     )
 
-    
+    # (opsionale) Recent prescriptions në context — tab-i gjithsesi i merr me AJAX
+    prescriptions = patient.prescriptions.all().order_by("-prescription_date", "-id")[:50]
+
     return render(
         request,
         "clinic/patient_detail.html",
@@ -253,6 +263,7 @@ def patient_detail(request, pk):
             "care_histories_all": care_histories_all,
             "unpaid_histories": unpaid_histories,
             "documents": documents,
+            "prescriptions": prescriptions,
         },
     )
 
@@ -303,86 +314,86 @@ def _parse_date_any(value):
     return now().date()
 
 
-@login_required
-def add_or_edit_patient(request, pk=None):
-    patient = None
-    if pk:
-        patient = get_object_or_404(Patient, pk=pk)
+# @login_required
+# def add_or_edit_patient(request, pk=None):
+#     patient = None
+#     if pk:
+#         patient = get_object_or_404(Patient, pk=pk)
 
-        # formatin e datës për editim (nga "14.03.1998" në "1998-03-14")
-        if patient.data_e_lindjes:
-            try:
-                if isinstance(patient.data_e_lindjes, str):
-                    if "." in patient.data_e_lindjes:
-                        patient.data_e_lindjes = datetime.strptime(
-                            patient.data_e_lindjes, "%d.%m.%Y"
-                        ).strftime("%Y-%m-%d")
-                    elif "/" in patient.data_e_lindjes:
-                        patient.data_e_lindjes = datetime.strptime(
-                            patient.data_e_lindjes, "%d/%m/%Y"
-                        ).strftime("%Y-%m-%d")
-                    elif "-" in patient.data_e_lindjes and len(patient.data_e_lindjes) == 10:
-                        # format të saktë (YYYY-MM-DD)
-                        pass
-                else:
-                    # nëse është objekt date
-                    patient.data_e_lindjes = patient.data_e_lindjes.strftime("%Y-%m-%d")
-            except Exception:
-                pass
+#         # formatin e datës për editim (nga "14.03.1998" në "1998-03-14")
+#         if patient.data_e_lindjes:
+#             try:
+#                 if isinstance(patient.data_e_lindjes, str):
+#                     if "." in patient.data_e_lindjes:
+#                         patient.data_e_lindjes = datetime.strptime(
+#                             patient.data_e_lindjes, "%d.%m.%Y"
+#                         ).strftime("%Y-%m-%d")
+#                     elif "/" in patient.data_e_lindjes:
+#                         patient.data_e_lindjes = datetime.strptime(
+#                             patient.data_e_lindjes, "%d/%m/%Y"
+#                         ).strftime("%Y-%m-%d")
+#                     elif "-" in patient.data_e_lindjes and len(patient.data_e_lindjes) == 10:
+#                         # format të saktë (YYYY-MM-DD)
+#                         pass
+#                 else:
+#                     # nëse është objekt date
+#                     patient.data_e_lindjes = patient.data_e_lindjes.strftime("%Y-%m-%d")
+#             except Exception:
+#                 pass
 
-    if request.method == "POST":
-        emri_mbiemri = request.POST.get("emri_mbiemri")
-        data_raw = request.POST.get("data_e_lindjes") or None
-        telefoni = request.POST.get("telefoni")
-        emaili = request.POST.get("emaili")
-        leternjoftimi = request.POST.get("leternjoftimi")
-        adresa = request.POST.get("adresa")
+#     if request.method == "POST":
+#         emri_mbiemri = request.POST.get("emri_mbiemri")
+#         data_raw = request.POST.get("data_e_lindjes") or None
+#         telefoni = request.POST.get("telefoni")
+#         emaili = request.POST.get("emaili")
+#         leternjoftimi = request.POST.get("leternjoftimi")
+#         adresa = request.POST.get("adresa")
 
-        #Konverto datën në format "DD.MM.YYYY"
-        data_e_lindjes = None
-        if data_raw:
-            try:
-                data_e_lindjes = datetime.strptime(
-                    data_raw, "%Y-%m-%d"
-                ).strftime("%d.%m.%Y")
-            except ValueError:
-                data_e_lindjes = data_raw
+#         #Konverto datën në format "DD.MM.YYYY"
+#         data_e_lindjes = None
+#         if data_raw:
+#             try:
+#                 data_e_lindjes = datetime.strptime(
+#                     data_raw, "%Y-%m-%d"
+#                 ).strftime("%d.%m.%Y")
+#             except ValueError:
+#                 data_e_lindjes = data_raw
 
-        if not emri_mbiemri:
-            messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
-        else:
-            if patient:  # EDIT
-                patient.emri_mbiemri = emri_mbiemri
-                patient.data_e_lindjes = data_e_lindjes
-                patient.telefoni = telefoni
-                patient.emaili = emaili
-                patient.leternjoftimi = leternjoftimi
-                patient.adresa = adresa
-                patient.updated_at = now()
-                patient.save()
-                messages.success(
-                    request,
-                    f"Pacienti {patient.emri_mbiemri} u përditësua me sukses."
-                )
-            else:  
-                patient = Patient.objects.create(
-                    emri_mbiemri=emri_mbiemri,
-                    data_e_lindjes=data_e_lindjes,
-                    telefoni=telefoni,
-                    emaili=emaili,
-                    leternjoftimi=leternjoftimi,
-                    adresa=adresa,
-                    created_at=now(),
-                    updated_at=now(),
-                )
-                messages.success(
-                    request,
-                    f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses."
-                )
+#         if not emri_mbiemri:
+#             messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
+#         else:
+#             if patient:  # EDIT
+#                 patient.emri_mbiemri = emri_mbiemri
+#                 patient.data_e_lindjes = data_e_lindjes
+#                 patient.telefoni = telefoni
+#                 patient.emaili = emaili
+#                 patient.leternjoftimi = leternjoftimi
+#                 patient.adresa = adresa
+#                 patient.updated_at = now()
+#                 patient.save()
+#                 messages.success(
+#                     request,
+#                     f"Pacienti {patient.emri_mbiemri} u përditësua me sukses."
+#                 )
+#             else:  
+#                 patient = Patient.objects.create(
+#                     emri_mbiemri=emri_mbiemri,
+#                     data_e_lindjes=data_e_lindjes,
+#                     telefoni=telefoni,
+#                     emaili=emaili,
+#                     leternjoftimi=leternjoftimi,
+#                     adresa=adresa,
+#                     created_at=now(),
+#                     updated_at=now(),
+#                 )
+#                 messages.success(
+#                     request,
+#                     f"Pacienti {patient.emri_mbiemri} (ID: {patient.id}) u shtua me sukses."
+#                 )
 
-            return redirect("patient_list")
+#             return redirect("patient_list")
 
-    return render(request, "clinic/add_patient.html", {"patient": patient})
+#     return render(request, "clinic/add_patient.html", {"patient": patient})
 
 
 @login_required
@@ -1930,15 +1941,15 @@ from .models import Patient
 def add_or_edit_patient(request, pk=None):
     """
     Shton ose editon pacientin (përmes modalit AJAX).
-    Nëse kërkesa është GET → kthen JSON për modalin.
-    Nëse është POST → ruan ndryshimet dhe, në rast shtimi, kthen redirect_url.
+    Nëse kërkesa është GET → kthen JSON për modalin (search, autofill, etj).
+    Nëse është POST → ruan ndryshimet.
     """
 
     patient = None
     if pk:
         patient = get_object_or_404(Patient, pk=pk)
 
-        
+        # Formatimi i datës për editim
         if patient.data_e_lindjes:
             try:
                 if isinstance(patient.data_e_lindjes, str):
@@ -1957,7 +1968,7 @@ def add_or_edit_patient(request, pk=None):
             except Exception:
                 patient.data_e_lindjes = ""
 
-    
+    # 🟢 Kthe JSON kur bëhet kërkesë GET — për modalin ose autofill
     if request.method == "GET" and pk:
         return JsonResponse({
             "success": True,
@@ -1972,7 +1983,7 @@ def add_or_edit_patient(request, pk=None):
             }
         })
 
-    
+    # 🟡 Ruajtja (POST)
     if request.method == "POST":
         emri_mbiemri = request.POST.get("emri_mbiemri", "").strip()
         data_raw = (request.POST.get("data_e_lindjes") or "").strip()
@@ -1981,15 +1992,15 @@ def add_or_edit_patient(request, pk=None):
         leternjoftimi = request.POST.get("leternjoftimi", "").strip()
         adresa = request.POST.get("adresa", "").strip()
 
-        
+        # Konverto datën në format uniform
         data_e_lindjes = None
         if data_raw:
             try:
-                if "/" in data_raw:  
+                if "/" in data_raw:
                     data_e_lindjes = datetime.strptime(
                         data_raw, "%m/%d/%Y"
                     ).strftime("%d.%m.%Y")
-                elif "-" in data_raw:  
+                elif "-" in data_raw:
                     data_e_lindjes = datetime.strptime(
                         data_raw, "%Y-%m-%d"
                     ).strftime("%d.%m.%Y")
@@ -1998,14 +2009,13 @@ def add_or_edit_patient(request, pk=None):
             except Exception:
                 data_e_lindjes = data_raw
 
-        
         if not emri_mbiemri:
             return JsonResponse({
                 "success": False,
                 "message": "Ju lutem plotësoni emrin e pacientit."
             })
 
-        
+        # Editim ose krijim
         if patient:
             patient.emri_mbiemri = emri_mbiemri
             patient.data_e_lindjes = data_e_lindjes
@@ -2020,7 +2030,6 @@ def add_or_edit_patient(request, pk=None):
                 "message": f"Pacienti {patient.emri_mbiemri} u përditësua me sukses!"
             })
 
-        
         patient = Patient.objects.create(
             emri_mbiemri=emri_mbiemri,
             data_e_lindjes=data_e_lindjes,
@@ -2038,8 +2047,119 @@ def add_or_edit_patient(request, pk=None):
             "redirect_url": reverse("patient_detail", args=[patient.id]),
         })
 
-    
+    # Nëse metoda s’është as GET as POST
     return JsonResponse({
         "success": False,
         "message": "Metodë e pavlefshme."
     })
+
+# clinic/views.py
+import json
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_POST
+
+from .models import Patient, Prescription, DOCTOR_CHOICES
+
+@ensure_csrf_cookie
+@login_required
+def prescription_sheet(request, patient_id):
+    """Faqja e recetës (nëse e përdor veç), vendos CSRF cookie në GET."""
+    patient = get_object_or_404(Patient, pk=patient_id)
+    return render(
+        request,
+        "clinic/prescription_sheet.html",
+        {"patient": patient, "today": timezone.localdate()},
+    )
+
+
+@login_required
+@require_POST
+def prescription_save(request, patient_id):
+    """POST JSON nga fetch(): validim + create + kthen JSON {ok,id}."""
+    patient = get_object_or_404(Patient, pk=patient_id)
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Body nuk është JSON.")
+
+    complaint = (payload.get("complaint") or "").strip()
+    diagnosis = (payload.get("diagnosis") or "").strip()
+    therapy   = (payload.get("therapy")   or "").strip()
+    doctor    = (payload.get("doctor")    or "").strip()
+    # ⬇⬇ NEW: prano opsionalisht shënimet e alergjisë (pa boolean)
+    allergy_notes = (payload.get("allergy_notes") or "").strip()
+
+    errors = {}
+    if not complaint:
+        errors["complaint"] = "Ankesa është e detyrueshme."
+    if not therapy:
+        errors["therapy"] = "Terapia është e detyrueshme."
+    valid_doctors = dict(DOCTOR_CHOICES)
+    if doctor not in valid_doctors:
+        errors["doctor"] = "Zgjidh doktorin (p.sh. Dr. Labi ose Dr. Linda)."
+
+    if errors:
+        return JsonResponse({"ok": False, "errors": errors}, status=400)
+
+    obj = Prescription.objects.create(
+        patient=patient,
+        patient_name=patient.emri_mbiemri or "",
+        patient_birthdate=patient.data_e_lindjes or "",
+        patient_address=patient.adresa or "",
+        complaint=complaint,
+        diagnosis=diagnosis or None,
+        therapy=therapy,
+        doctor=doctor,
+        # ⬇⬇ NEW: ruaje nëse ka diçka
+        allergy_notes=allergy_notes or None,
+        prescription_date=timezone.localdate(),
+        created_by=request.user,
+    )
+
+    return JsonResponse({"ok": True, "id": obj.id})
+
+@login_required
+def prescription_list_json(request, patient_id):
+    """Lista e recetave (për tab-in)"""
+    patient = get_object_or_404(Patient, pk=patient_id)
+    qs = patient.prescriptions.all().order_by("-prescription_date", "-id")[:100]
+    results = []
+    for p in qs:
+        txt = (p.complaint or "").strip()
+        if len(txt) > 60:
+            txt = txt[:60].rstrip() + "…"
+        results.append({
+            "id": p.id,
+            "prescription_date": p.prescription_date.strftime("%Y-%m-%d"),
+            "doctor": p.doctor,
+            "complaint_short": txt or "—",
+            # ⬇⬇ NEW: ndihmon UI (badge ose ikonë)
+            "has_allergy_notes": bool(p.allergy_notes),
+            # nëse do t’i shfaqësh direkt, shto edhe vijën poshtë:
+            # "allergy_notes": p.allergy_notes or "",
+        })
+    return JsonResponse({"results": results})
+
+@login_required
+def prescription_print(request, pk):
+    """Gjenero PDF me WeasyPrint; me base_url që të ngarkohen /static/ (logo, css)."""
+    p = get_object_or_404(Prescription, pk=pk)
+    ctx = {"p": p, "patient": p.patient}
+
+    if WEASYPRINT_AVAILABLE:
+        html_string = render_to_string("clinic/prescription_print.html", ctx)
+        pdf_file = HTML(
+            string=html_string,
+            base_url=request.build_absolute_uri('/')  # <<< KJO e mundëson logon nga {% static %}
+        ).write_pdf()
+        resp = HttpResponse(pdf_file, content_type="application/pdf")
+        resp["Content-Disposition"] = f'inline; filename="recepta_{p.id}.pdf"'
+        return resp
+
+    # Fallback HTML (pa PDF)
+    return render(request, "clinic/prescription_print_fallback.html", ctx)

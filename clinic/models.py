@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.timezone import now
+from django.utils import timezone
 
 
 class CustomUser(AbstractUser):
@@ -285,7 +286,7 @@ class Agreement(models.Model):
     class Meta:
         db_table = "lp_agreements"  # tabela e re
         ordering = ["-created_at"]
-        managed = False
+        managed = True
         verbose_name = "Marreveshjet"
         verbose_name_plural = "Marreveshjet"
 
@@ -429,7 +430,7 @@ class Payment(models.Model):
     class Meta:
         db_table = "lp_payments"
         ordering = ["-date", "-id"]
-        managed = False
+        managed = True
         verbose_name = "Pagesat"
         verbose_name_plural = "Pagesat"
 
@@ -437,3 +438,46 @@ class Payment(models.Model):
     def __str__(self):
         t = "histori" if self.history_id else "marrëveshje"
         return f"{self.patient.emri_mbiemri or 'Pacient'} – {self.amount}€ ({t})"
+
+
+DOCTOR_CHOICES = [("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")]
+
+class Prescription(models.Model):
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.CASCADE,
+        related_name="prescriptions",
+        db_column="patient_id",
+    )
+    # Snapshot (opsionale por të dobishme për dokumente të printueshme)
+    patient_name = models.CharField(max_length=191)
+    patient_birthdate = models.CharField(max_length=191, blank=True, null=True)
+    patient_address = models.CharField(max_length=191, blank=True, null=True)
+
+    complaint = models.TextField(help_text="Ankesa e pacientit")
+    diagnosis = models.TextField(help_text="Diagnoza e pacientit", blank=True, null=True)
+    therapy = models.TextField(help_text="Terapia e pacientit")
+    allergy_notes = models.TextField(blank=True, null=True, help_text="Detaje të alergjisë (nëse ka)")
+
+
+    doctor = models.CharField(max_length=50, choices=DOCTOR_CHOICES)
+    prescription_date = models.DateField(default=timezone.localdate)  # data e sotme
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="created_prescriptions",
+    )
+
+    class Meta:
+        db_table = "lp_prescriptions"
+        ordering = ["-prescription_date", "-id"]
+        verbose_name = "Recetë"
+        verbose_name_plural = "Recetat"
+
+    def __str__(self):
+        return f"Recetë #{self.pk} – {self.patient_name} – {self.prescription_date:%Y-%m-%d}"

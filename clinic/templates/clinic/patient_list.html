@@ -191,10 +191,25 @@ document.addEventListener("DOMContentLoaded", function() {
       fetch(`?q=${encodeURIComponent(q)}`, {
         headers: { "X-Requested-With": "XMLHttpRequest" }
       })
-        .then(response => response.text())
-        .then(html => {
+        .then(async response => {
+          const text = await response.text();
+
+          // Kontrollo nëse përgjigjja është JSON apo HTML
+          try {
+            const data = JSON.parse(text);
+            if (data.success && data.patient) {
+              console.log("Pacienti gjetur:", data.patient);
+              // nëse do, mund t’i mbushësh automatikisht në modal:
+              // document.getElementById("f_emri").value = data.patient.emri_mbiemri;
+              return;
+            }
+          } catch (e) {
+            // nuk është JSON → vazhdo me HTML
+          }
+
+          // nëse nuk është JSON, trajtoje si HTML (update tabelën)
           const parser = new DOMParser();
-          const doc = parser.parseFromString(html, "text/html");
+          const doc = parser.parseFromString(text, "text/html");
           const newTable = doc.querySelector("table");
           const oldTable = document.querySelector("table");
           const newCount = doc.querySelector("span.px-3"); 
@@ -236,6 +251,43 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 });
+function rebindEditButtons() {
+  document.querySelectorAll('a[href*="/edit/"]').forEach(btn => {
+    btn.addEventListener("click", async e => {
+      e.preventDefault();
+      const form = document.getElementById("patientForm");
+      const modal = document.getElementById("patientModal");
+      const card = document.getElementById("patientCard");
+      const title = document.getElementById("patientModalTitle");
+
+      const editUrl = btn.getAttribute("href");
+      form.dataset.url = editUrl;
+      title.textContent = "Ndrysho pacient";
+
+      try {
+        const res = await fetch(editUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+        const data = await res.json();
+        if (data.success && data.patient) {
+          const p = data.patient;
+          form.querySelector("[name='emri_mbiemri']").value = p.emri_mbiemri || "";
+          form.querySelector("[name='data_e_lindjes']").value = p.data_e_lindjes || "";
+          form.querySelector("[name='telefoni']").value = p.telefoni || "";
+          form.querySelector("[name='emaili']").value = p.emaili || "";
+          form.querySelector("[name='leternjoftimi']").value = p.leternjoftimi || "";
+          form.querySelector("[name='adresa']").value = p.adresa || "";
+        }
+        modal.classList.remove("hidden"); modal.classList.add("flex");
+        setTimeout(() => {
+          card.classList.remove("opacity-0", "scale-95");
+          card.classList.add("opacity-100", "scale-100");
+        }, 20);
+      } catch (err) {
+        console.error("Gabim gjatë marrjes së pacientit:", err);
+      }
+    });
+  });
+}
+
 </script>
 
 <!-- ========================= -->
@@ -307,84 +359,19 @@ document.addEventListener("DOMContentLoaded", function() {
 <!-- ========================= -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  // Elements common
+  const input = document.getElementById("searchInput");
+  const tableContainer = document.querySelector("table").parentElement;
   const modal = document.getElementById("patientModal");
   const card = document.getElementById("patientCard");
   const form = document.getElementById("patientForm");
   const btnSave = document.getElementById("btnSubmitPatient");
   const title = document.getElementById("patientModalTitle");
+  const toastStack = document.getElementById("toastStack");
 
-  // 🔹 Open ADD modal
-  const btnAdd = document.querySelector('a[href="{% url "add_patient" %}"]');
-  if (btnAdd) {
-    btnAdd.addEventListener("click", e => {
-      e.preventDefault();
-      form.reset();
-      form.dataset.url = "/patients/add/";
-      title.textContent = "Shto pacient";
-      openPatientModal();
-    });
-  }
+  let timeout = null;
 
-  // 🔹 Open EDIT modal
-  document.querySelectorAll('a[href*="/edit/"]').forEach(btn => {
-    btn.addEventListener("click", async e => {
-      e.preventDefault();
-      const editUrl = btn.getAttribute("href");
-      form.dataset.url = editUrl;
-      title.textContent = "Ndrysho pacient";
-      try {
-        const res = await fetch(editUrl);
-        const data = await res.json();
-        if (data.success && data.patient) {
-          const p = data.patient;
-          form.querySelector("[name='emri_mbiemri']").value = p.emri_mbiemri || "";
-          form.querySelector("[name='data_e_lindjes']").value = formatDate(p.data_e_lindjes);
-          form.querySelector("[name='telefoni']").value = p.telefoni || "";
-          form.querySelector("[name='emaili']").value = p.emaili || "";
-          form.querySelector("[name='leternjoftimi']").value = p.leternjoftimi || "";
-          form.querySelector("[name='adresa']").value = p.adresa || "";
-        }
-        openPatientModal();
-      } catch (err) {
-        console.error("Gabim gjatë marrjes së të dhënave:", err);
-      }
-    });
-  });
-
-  // 🔹 Save (add/edit)
-  btnSave.addEventListener("click", async () => {
-    const formData = new FormData(form);
-    const url = form.dataset.url;
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        body: formData,
-        headers: { "X-Requested-With": "XMLHttpRequest" }
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        showToast(data.message, "success");
-        closePatientModal();
-
-        // ✅ Redirect te detajet e pacientit nëse ekziston redirect_url
-        if (data.redirect_url) {
-          setTimeout(() => window.location.href = data.redirect_url, 800);
-        } else {
-          setTimeout(() => location.reload(), 800);
-        }
-      } else {
-        showToast(data.message || "Gabim gjatë ruajtjes", "error");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Gabim në lidhje me serverin", "error");
-    }
-  });
-
-  // ========================
-  // Helper functions
-  // ========================
+  // ---------- Helper UI functions ----------
   function openPatientModal() {
     modal.classList.remove("hidden"); modal.classList.add("flex");
     setTimeout(() => {
@@ -392,7 +379,6 @@ document.addEventListener("DOMContentLoaded", () => {
       card.classList.add("opacity-100", "scale-100");
     }, 20);
   }
-
   function closePatientModal() {
     card.classList.add("opacity-0", "scale-95");
     card.classList.remove("opacity-100", "scale-100");
@@ -409,7 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
       type === "success" ? "bg-emerald-600" : "bg-red-600"
     }`;
     toast.textContent = msg;
-    document.getElementById("toastStack").appendChild(toast);
+    toastStack.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
   }
 
@@ -421,8 +407,199 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     return value;
   }
+
+  function fillFormWithPatient(p) {
+    form.querySelector("[name='emri_mbiemri']").value = p.emri_mbiemri || "";
+    form.querySelector("[name='data_e_lindjes']").value = formatDate(p.data_e_lindjes) || "";
+    form.querySelector("[name='telefoni']").value = p.telefoni || "";
+    form.querySelector("[name='emaili']").value = p.emaili || "";
+    form.querySelector("[name='leternjoftimi']").value = p.leternjoftimi || "";
+    form.querySelector("[name='adresa']").value = p.adresa || "";
+  }
+
+  // ---------- Add button (unchanged) ----------
+  const btnAdd = document.querySelector('a[href="{% url "add_patient" %}"]');
+  if (btnAdd) {
+    btnAdd.addEventListener("click", e => {
+      e.preventDefault();
+      form.reset();
+      form.dataset.url = "/patients/add/";
+      title.textContent = "Shto pacient";
+      openPatientModal();
+    });
+  }
+
+  // ---------- Delegated handler for "Ndrysho" links ----------
+  // This handles clicks on any <a href="/patients/edit/<id>/"> even after table update
+  document.addEventListener("click", async (e) => {
+    const el = e.target.closest('a[href*="/edit/"]');
+    if (!el) return;
+    e.preventDefault();
+
+    const editUrl = el.getAttribute("href");
+    // ensure form exists
+    if (!form) return;
+
+    form.dataset.url = editUrl;
+    title.textContent = "Ndrysho pacient";
+
+    try {
+      // IMPORTANT: include X-Requested-With header so Django returns JSON
+      const res = await fetch(editUrl, {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      });
+
+      // If server returns JSON, parse it
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json") || contentType.includes("text/json")) {
+        const data = await res.json();
+        if (data.success && data.patient) {
+          fillFormWithPatient(data.patient);
+        } else {
+          showToast(data.message || "Pacienti nuk u gjend", "error");
+        }
+        openPatientModal();
+        return;
+      }
+
+      // Otherwise, server returned HTML (fallback) - parse and try to extract inputs
+      const text = await res.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "text/html");
+      // try to find patient fields in returned HTML (if any)
+      const nameInput = doc.querySelector("input[name='emri_mbiemri']");
+      if (nameInput) {
+        // copy values
+        form.querySelector("[name='emri_mbiemri']").value = nameInput.value || "";
+        const dateInput = doc.querySelector("input[name='data_e_lindjes']");
+        if (dateInput) form.querySelector("[name='data_e_lindjes']").value = dateInput.value || "";
+        const tel = doc.querySelector("input[name='telefoni']");
+        if (tel) form.querySelector("[name='telefoni']").value = tel.value || "";
+        const email = doc.querySelector("input[name='emaili']");
+        if (email) form.querySelector("[name='emaili']").value = email.value || "";
+        const lj = doc.querySelector("input[name='leternjoftimi']");
+        if (lj) form.querySelector("[name='leternjoftimi']").value = lj.value || "";
+        const adr = doc.querySelector("input[name='adresa']");
+        if (adr) form.querySelector("[name='adresa']").value = adr.value || "";
+      }
+      openPatientModal();
+    } catch (err) {
+      console.error("Gabim gjatë marrjes së të dhënave:", err);
+      showToast("Gabim gjatë marrjes së të dhënave", "error");
+    }
+  });
+
+  // ---------- Save handler (add/edit) ----------
+  btnSave.addEventListener("click", async () => {
+    const formData = new FormData(form);
+    const url = form.dataset.url;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showToast(data.message, "success");
+        closePatientModal();
+
+        if (data.redirect_url) {
+          // small delay so user sees toast
+          setTimeout(() => window.location.href = data.redirect_url, 600);
+        } else {
+          setTimeout(() => location.reload(), 600);
+        }
+      } else {
+        showToast(data.message || "Gabim gjatë ruajtjes", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Gabim në lidhje me serverin", "error");
+    }
+  });
+
+  // ---------- Live search (input event) ----------
+  input.addEventListener("input", function() {
+    clearTimeout(timeout);
+    timeout = setTimeout(async () => {
+      const q = input.value.trim();
+      try {
+        const res = await fetch(`?q=${encodeURIComponent(q)}`, {
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+
+        // Try to parse JSON (some endpoints may return patient JSON)
+        const text = await res.text();
+
+        // If text is JSON (server returned patient object), handle accordingly
+        try {
+          const data = JSON.parse(text);
+          if (data && data.success && data.patient) {
+            // If you want: open modal automatically when AJAX search returns a single patient
+            // For now we just log and fill the form (but don't auto-open modal)
+            console.log("AJAX search found patient:", data.patient);
+            // optional: open modal automatically:
+            // form.dataset.url = `/patients/edit/${data.patient.id}/`;
+            // fillFormWithPatient(data.patient);
+            // openPatientModal();
+            return;
+          }
+        } catch (err) {
+          // not JSON -> treat as HTML table
+        }
+
+        // Parse HTML and update table + count
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+        const newTable = doc.querySelector("table");
+        const oldTable = document.querySelector("table");
+        const newCount = doc.querySelector("span.px-3");
+        const oldCount = document.querySelector("span.px-3");
+
+        if (newTable && oldTable) {
+          oldTable.innerHTML = newTable.innerHTML;
+        }
+        if (newCount && oldCount) {
+          oldCount.innerHTML = newCount.innerHTML;
+        }
+
+        // No need to rebind because we use delegated click handler above
+
+      } catch (err) {
+        console.error("Gabim në kërkim:", err);
+      }
+    }, 400);
+  });
+
+  // ---------- Pagination links (delegated) ----------
+  // If pagination links have class .pagination-link, handle them
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("a");
+    if (!link) return;
+    // adjust this condition if your pagination links have special class or href pattern
+    const href = link.getAttribute("href") || "";
+    if (href.includes("?page=") || link.classList.contains("pagination-link")) {
+      e.preventDefault();
+      fetch(href, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(r => r.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const newTable = doc.querySelector("table");
+          const oldTable = document.querySelector("table");
+          const newCount = doc.querySelector("span.px-3");
+          const oldCount = document.querySelector("span.px-3");
+          if (newTable && oldTable) oldTable.innerHTML = newTable.innerHTML;
+          if (newCount && oldCount) oldCount.innerHTML = newCount.innerHTML;
+          // delegated handlers still work
+        })
+        .catch(err => console.error("Gabim në pagination:", err));
+    }
+  });
+
 });
 </script>
-
 
 {% endblock %}

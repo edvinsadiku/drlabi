@@ -45,6 +45,9 @@ urlpatterns = [
     path("care-history/<int:pk>/json/", views.care_history_detail_api, name="care_history_detail_api"),
     path("api/patient/save/", views.add_or_edit_patient, name="add_or_edit_patient"),
     path("reports/new/export/", views.reports_new_export_excel, name="reports_new_export"),
+    path("patients/<int:patient_id>/prescriptions/list.json", views.prescription_list_json, name="prescription_list_json"),
+    path("patients/<int:patient_id>/prescriptions/save/", views.prescription_save, name="prescription_save"),
+    path("prescriptions/print/<int:pk>/", views.prescription_print, name="prescription_print"),
 
 
 

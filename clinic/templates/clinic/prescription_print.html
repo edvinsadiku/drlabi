@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="UTF-8">
+  <title>Recetë Mjekësore</title>
+  <style>
+    /* ---- A4 kompakte, 1 faqe ---- */
+    @page { size: A4; margin: 1.4cm; }
+
+    :root{
+      --c-primary: #006D41;
+      --fz-base: 10.5pt;
+      --fz-small: 9pt;
+      --fz-h1: 14pt;
+      --fz-h2: 12pt;
+      --lh: 1.35;
+      --pad-block: 8px;
+      --minh: 42px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { padding:0; margin:0; height:100%; }
+    body {
+      font-family: "Helvetica","Arial",sans-serif;
+      font-size: var(--fz-base);
+      line-height: var(--lh);
+      color: #000;
+    }
+
+    /* Kontejneri i faqes: shtyn nënshkrim+footer në fund */
+    .page {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      text-align: center;
+      border-bottom: 1.5px solid var(--c-primary);
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+    }
+    header h1 {
+      color: var(--c-primary);
+      margin: 0 0 2px 0;
+      font-size: var(--fz-h1);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    header p { margin: 0; font-size: var(--fz-small); }
+
+    .info { margin-bottom: 10px; }
+    .info table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--fz-base);
+    }
+    .info td { padding: 3px 4px; vertical-align: top; }
+
+    .main { /* kjo merr hapësirën dhe shtyn .bottom-pos në fund */
+      flex: 1 1 auto;
+    }
+
+    .section-title {
+      font-size: var(--fz-h2);
+      font-weight: bold;
+      color: var(--c-primary);
+      border-bottom: 1px solid var(--c-primary);
+      margin: 14px 0 6px 0;
+      padding-bottom: 2px;
+      page-break-inside: avoid;
+    }
+
+    .section-content {
+      font-size: var(--fz-base);
+      color: #000;
+      padding: var(--pad-block);
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      background: #fafafa;
+      min-height: var(--minh);
+      page-break-inside: avoid;
+    }
+
+    .bottom-pos { /* blloku i fundit (nënshkrimi + footer) */
+      margin-top: auto;      /* ky e shtyn poshtë */
+      page-break-inside: avoid;
+    }
+
+    .signature {
+      text-align: right;
+      margin-top: 20px;
+      margin-bottom: 8px;   /* pak distancë mbi footer */
+    }
+    .signature-line {
+      border-top: 1px solid #000;
+      width: 220px;
+      margin-left: auto;
+    }
+
+    footer {
+      text-align: right;
+      font-size: var(--fz-small);
+      color: #374151;
+    }
+
+    /* Shmang thyerjet e panevojshme mes titujve dhe përmbajtjes */
+    h3, .section-content { page-break-inside: avoid; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <!-- SHTUAR: logoja, pa ndryshuar layout-in -->
+<img src="{% static 'assets/img/logo.svg' %}" alt="Clinic Logo"
+     style="height:78px; width:auto; margin-bottom:6px; display:block; margin-left:auto; margin-right:auto;">
+
+      <h1>ORDINANCA DENTARE DR. LABI</h1>
+      <p>Rr. Ali Pashë Tepelena, Prishtinë</p>
+      <p>📞 +383 45 654 283 &nbsp;&nbsp; ✉️ info@drlabi.com</p>
+    </header>
+
+    <div class="info">
+      <table>
+        <tr>
+          <td><strong>Emri dhe Mbiemri:</strong> {{ patient.emri_mbiemri }}</td>
+          <td><strong>Data e lindjes:</strong> {{ patient.data_e_lindjes|default:"-" }}</td>
+        </tr>
+        <tr>
+          <td><strong>Adresa:</strong> {{ patient.adresa|default:"-" }}</td>
+          <td><strong>Data e recetës:</strong> {{ p.prescription_date|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+          <td colspan="2"><strong>Mjeku:</strong> {{ p.doctor }}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="main">
+      <h3 class="section-title">Ankesa e Pacientit</h3>
+      <p class="section-content">{{ p.complaint|default:"-"|linebreaksbr }}</p>
+
+      <h3 class="section-title">Diagnoza</h3>
+      <p class="section-content">{{ p.diagnosis|default:"-"|linebreaksbr }}</p>
+
+      <h3 class="section-title">Terapia e Përshkruar</h3>
+      <p class="section-content">{{ p.therapy|default:"-"|linebreaksbr }}</p>
+
+      {% if p.allergy_notes %}
+        <h3 class="section-title">Alergji</h3>
+        <p class="section-content">{{ p.allergy_notes|linebreaksbr }}</p>
+      {% endif %}
+    </div>
+
+    <div class="bottom-pos">
+      <div class="signature">
+        <div class="signature-line"></div>
+        <p>Nënshkrimi i mjekut</p>
+      </div>
+
+      <footer>
+        <p>© {% now "Y" %} Ordinanca Dentare Dr. Labi – Të gjitha të drejtat e rezervuara.</p>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,201 @@
+{% extends "clinic/base.html" %}
+{% load static %}
+{% block title %}Recetë – {{ patient.emri_mbiemri }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl bg-white shadow-sm ring-1 ring-gray-200 rounded-2xl p-6 md:p-8 print:shadow-none print:ring-0">
+  <!-- Header -->
+  <header class="flex items-center justify-between gap-6 border-b pb-4">
+    <div class="flex items-center gap-4">
+      <img src="{% static 'assets/img/logo.svg' %}" alt="DR. LABI" class="h-10 w-10">
+      <div>
+        <div class="text-lg font-bold tracking-tight">DR. LABI</div>
+        <div class="text-sm text-gray-500">Dental Clinic</div>
+      </div>
+    </div>
+    <div class="text-right text-sm text-gray-600">
+      <div>📍 Rr. Ali Pashë Tepelena</div>
+      <div>📞 +383 45 654 288</div>
+    </div>
+  </header>
+
+  <h1 class="mt-6 text-2xl font-semibold tracking-tight">Recetë</h1>
+
+  <!-- KV -->
+  <section class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+    <div class="flex items-center gap-2">
+      <span class="text-gray-500">Emri dhe Mbiemri:</span>
+      <strong class="text-gray-900">{{ patient.emri_mbiemri|default:"-" }}</strong>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-gray-500">Data e Lindjes:</span>
+      <strong class="text-gray-900">{{ patient.data_e_lindjes|default:"-" }}</strong>
+    </div>
+    <div class="md:col-span-2 flex items-center gap-2">
+      <span class="text-gray-500">Adresa:</span>
+      <strong class="text-gray-900">{{ patient.adresa|default:"-" }}</strong>
+    </div>
+  </section>
+
+  <!-- Fields -->
+  <section class="mt-6 space-y-6">
+    <div>
+      <h2 class="text-base font-medium text-gray-900 mb-2">Ankesa e Pacientit</h2>
+      <textarea id="complaintBox" rows="3"
+        placeholder="Shkruaj ankesën e pacientit këtu…"
+        class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 resize-y"></textarea>
+    </div>
+
+    <div>
+      <h2 class="text-base font-medium text-gray-900 mb-2">Diagnoza e Pacientit</h2>
+      <textarea id="diagnosisBox" rows="3"
+        placeholder="Shkruaj diagnozën këtu…"
+        class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 resize-y"></textarea>
+    </div>
+
+    <div>
+      <h2 class="text-base font-medium text-gray-900 mb-2">Terapia</h2>
+      <textarea id="therapyBox" rows="4"
+        placeholder="Shkruaj terapinë këtu…"
+        class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 resize-y"></textarea>
+    </div>
+
+    <!-- Alergjia (vetëm UI) -->
+    <div class="print:hidden">
+      <h2 class="text-base font-medium text-gray-900 mb-2">Alergjik?</h2>
+      <fieldset class="flex items-center gap-6">
+        <legend class="sr-only">Alergjik?</legend>
+        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+          <input type="radio" name="ui_allergy" value="po"
+                 class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500">
+          Po
+        </label>
+        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+          <input type="radio" name="ui_allergy" value="jo"
+                 class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500" checked>
+          Jo
+        </label>
+      </fieldset>
+
+      <div id="allergyNotesWrap" class="mt-3 hidden">
+        <label for="allergyNotes" class="block text-sm font-medium text-gray-700 mb-1">Detaje të alergjisë (opsionale)</label>
+        <textarea id="allergyNotes" rows="2" placeholder="p.sh. Penicilina, anestetikë lokalë, lateks…"
+          class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 resize-y"></textarea>
+        <p class="mt-1 text-xs text-gray-500">Shënimet e alergjisë ruhen si tekst në recetë.</p>
+      </div>
+    </div>
+    <!-- /Alergjia -->
+  </section>
+
+  <!-- Footer row -->
+  <section class="mt-6 flex items-center justify-between text-sm">
+    <div>Data: <strong id="dateText">{{ today }}</strong></div>
+    <div>Doktori: <strong id="doctorText" class="tabular-nums">__________</strong></div>
+  </section>
+
+  <!-- Controls (hidden on print) -->
+  <div class="mt-6 flex items-center justify-between gap-4 print:hidden">
+    <fieldset class="flex items-center gap-6">
+      <legend class="sr-only">Zgjidh doktorin</legend>
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+        <input type="radio" name="doctor" value="Dr. Labi"
+               class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500">
+        Dr. Labi
+      </label>
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+        <input type="radio" name="doctor" value="Dr. Linda"
+               class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500">
+        Dr. Linda
+      </label>
+    </fieldset>
+
+    <div class="flex items-center gap-3">
+      <button id="saveBtn"
+        class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        Ruaj
+      </button>
+      <a href="javascript:history.back()"
+         class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+        Kthehu
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // CSRF helper
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+  const CSRF = getCookie('csrftoken');
+
+  // Sync radiobutton -> tekst
+  const doctorSpan = document.getElementById('doctorText');
+  document.querySelectorAll('input[name="doctor"]').forEach(r => {
+    r.addEventListener('change', () => { doctorSpan.textContent = r.value; });
+  });
+
+  // Alergjia: hap/mbyll fushën e shënimeve
+  const allergyWrap = document.getElementById('allergyNotesWrap');
+  const allergyTextarea = document.getElementById('allergyNotes');
+  document.querySelectorAll('input[name="ui_allergy"]').forEach(r => {
+    r.addEventListener('change', () => {
+      if (r.checked && r.value === 'po') {
+        allergyWrap.classList.remove('hidden');
+        allergyTextarea.focus();
+      } else if (r.checked && r.value === 'jo') {
+        allergyWrap.classList.add('hidden');
+        allergyTextarea.value = '';
+      }
+    });
+  });
+
+  function collectData() {
+    const complaint = document.getElementById('complaintBox').value.trim();
+    const diagnosis = document.getElementById('diagnosisBox').value.trim();
+    const therapy   = document.getElementById('therapyBox').value.trim();
+    const doctorInp = document.querySelector('input[name="doctor"]:checked');
+    const doctor    = doctorInp ? doctorInp.value : '';
+    const allergy_notes = (allergyTextarea.value || '').trim(); // dërgohet vetëm si tekst
+    return { complaint, diagnosis, therapy, doctor, allergy_notes };
+  }
+
+  async function savePrescription() {
+    const payload = collectData();
+
+    const errs = [];
+    if (!payload.complaint) errs.push('Shkruaj "Ankesa e Pacientit".');
+    if (!payload.therapy)   errs.push('Shkruaj "Terapia".');
+    if (!payload.doctor)    errs.push('Zgjidh doktorin.');
+    if (errs.length) { alert(errs.join('\n')); return; }
+
+    try {
+      const res = await fetch("{% url 'prescription_save' patient.id %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        const msg = data && data.errors ? Object.values(data.errors).join('\n') : 'Gabim gjatë ruajtjes.';
+        alert(msg);
+        return;
+      }
+
+      // Hape printimin në TAB të RI
+      const url = "/prescriptions/print/" + data.id + "/";
+      window.open(url, "_blank", "noopener");
+    } catch (e) {
+      alert("Gabim rrjeti: " + e.message);
+    }
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    savePrescription();
+  });
+</script>
+{% endblock %}
