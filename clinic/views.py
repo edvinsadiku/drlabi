@@ -2169,16 +2169,15 @@ def prescription_print(request, pk):
 
 
 from decimal import Decimal, InvalidOperation
-
 from django.contrib.auth.decorators import login_required
 from django.db.models import (
-    Sum, Value, F, Q, DecimalField, Count, Min, Case, When
+    Sum, Value, F, Q, DecimalField, Count, Min, Case, When, OuterRef, Subquery
 )
-from django.db.models.functions import Coalesce, Least
+from django.db.models.functions import Coalesce
 from django.db.models import DateField
 from django.core.paginator import Paginator
 
-from .models import Patient, DOCTOR_CHOICES
+from .models import Patient, CareHistory, Agreement, Payment, DOCTOR_CHOICES
 
 
 @login_required
@@ -2212,7 +2211,7 @@ def debt_report(request):
             | Q(emaili__icontains=q)
         )
 
-    # 🩺 Filtër sipas doktorit (histori ose marrëveshje)
+    # 🩺 Filtër sipas doktorit (histori ose marrëveshje) - në nivel pacienti
     if doctor_filter:
         qs = qs.filter(
             Q(care_histories__doctor=doctor_filter)
@@ -2223,17 +2222,43 @@ def debt_report(request):
     qs = qs.distinct()
 
     # =========================
+    #   FILTRAT për Subquery
+    # =========================
+
+    # Histori pa marrëveshje (vetëm ata të doktorit nëse është filtruar)
+    hist_base_q = Q(
+        agreement__isnull=True,
+        included_in_agreement=False,
+    )
+    if doctor_filter:
+        hist_base_q &= Q(doctor=doctor_filter)
+
+    # Pagesat për historitë pa marrëveshje
+    pay_hist_base_q = Q(
+        history__agreement__isnull=True,
+        history__included_in_agreement=False,
+    )
+    if doctor_filter:
+        pay_hist_base_q &= Q(history__doctor=doctor_filter)
+
+    # Marrëveshjet
+    agr_base_q = Q()
+    if doctor_filter:
+        agr_base_q &= Q(doctor=doctor_filter)
+
+    # Pagesat për marrëveshje
+    agr_pay_base_q = Q()
+    if doctor_filter:
+        agr_pay_base_q &= Q(agreement__doctor=doctor_filter)
+
+    # =========================
     #   SUBQUERY-t e sakta
     # =========================
 
-    # 1) Histori pa marrëveshje (trajtime të zakonshme) - TOTAL BILLED
+    # 1) Histori pa marrëveshje - TOTAL BILLED
     histories_no_agreement = (
         CareHistory.objects
-        .filter(
-            patient=OuterRef("pk"),
-            agreement__isnull=True,
-            included_in_agreement=False,
-        )
+        .filter(hist_base_q, patient=OuterRef("pk"))
         .values("patient")
         .annotate(total=Sum("amount"))
         .values("total")
@@ -2242,11 +2267,7 @@ def debt_report(request):
     # 2) Pagesat e historive pa marrëveshje - TOTAL PAID
     histories_no_agreement_paid = (
         Payment.objects
-        .filter(
-            history__patient=OuterRef("pk"),
-            history__agreement__isnull=True,
-            history__included_in_agreement=False,
-        )
+        .filter(pay_hist_base_q, history__patient=OuterRef("pk"))
         .values("history__patient")
         .annotate(total=Sum("amount"))
         .values("total")
@@ -2255,7 +2276,7 @@ def debt_report(request):
     # 3) Marrëveshjet - TOTAL BILLED
     agreements_total = (
         Agreement.objects
-        .filter(patient=OuterRef("pk"))
+        .filter(agr_base_q, patient=OuterRef("pk"))
         .values("patient")
         .annotate(total=Sum("total_amount"))
         .values("total")
@@ -2264,7 +2285,7 @@ def debt_report(request):
     # 4) Pagesat për marrëveshje - TOTAL PAID
     agreements_paid = (
         Payment.objects
-        .filter(agreement__patient=OuterRef("pk"))
+        .filter(agr_pay_base_q, agreement__patient=OuterRef("pk"))
         .values("agreement__patient")
         .annotate(total=Sum("amount"))
         .values("total")
@@ -2273,6 +2294,18 @@ def debt_report(request):
     # =========================
     #   ANNOTATE për çdo pacient
     # =========================
+
+    # Filtrat për datat e para të borxhit
+    hist_date_q = Q(
+        care_histories__agreement__isnull=True,
+        care_histories__included_in_agreement=False,
+    )
+    if doctor_filter:
+        hist_date_q &= Q(care_histories__doctor=doctor_filter)
+
+    agr_date_q = Q(agreements__status="active")
+    if doctor_filter:
+        agr_date_q &= Q(agreements__doctor=doctor_filter)
 
     qs = qs.annotate(
         ch_billed=Coalesce(
@@ -2303,25 +2336,21 @@ def debt_report(request):
             default=ZERO,
             output_field=DECIMAL,
         ),
-        # Data e parë e borxhit (min midis historive dhe marrëveshjeve)
         first_hist_date=Min(
             "care_histories__date",
-            filter=Q(
-                care_histories__agreement__isnull=True,
-                care_histories__included_in_agreement=False,
-            ),
+            filter=hist_date_q,
         ),
         first_agr_date=Min(
             "agreements__start_date",
-            filter=Q(agreements__status="active"),
+            filter=agr_date_q,
         ),
     ).annotate(
+        # Data e parë e borxhit = min(first_hist_date, first_agr_date)
         first_debt_date=Case(
             When(
                 first_hist_date__isnull=False,
                 first_agr_date__isnull=False,
                 then=Case(
-                    # Least nuk ka direkt support në të gjitha DB, ndaj përdorim Case
                     When(first_hist_date__lte=F("first_agr_date"), then=F("first_hist_date")),
                     default=F("first_agr_date"),
                     output_field=DateField(),
