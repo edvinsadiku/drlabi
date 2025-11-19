@@ -1,0 +1,180 @@
+{% extends "clinic/base.html" %}
+{% load static %}
+
+{% block title %}Raporti i borxheve{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+  <div>
+    <h1 class="text-xl font-semibold text-gray-800">Raporti i Borxheve</h1>
+    <p class="text-sm text-gray-500 mt-1">
+      Lista e pacientëve me borxh aktiv nga më i vjetri te më i riu, me filtra dhe renditje.
+    </p>
+  </div>
+
+  <div class="flex flex-col items-start md:items-end gap-2 text-sm">
+    <div class="flex flex-wrap gap-2">
+      <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800">
+        <span class="text-xs uppercase tracking-wide">Pacientë me borxh</span>
+        <span class="font-semibold">{{ total_patients }}</span>
+      </span>
+      <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700">
+        <span class="text-xs uppercase tracking-wide">Borxh total</span>
+        <span class="font-semibold">{{ total_debt|floatformat:2 }}€</span>
+      </span>
+    </div>
+    <p class="text-xs text-gray-400">
+      Renditur sipas:
+      {% if order == "newest" %} borxhit më të ri {% elif order == "highest" %} borxhit më të madh {% else %} borxhit më të vjetër {% endif %}
+    </p>
+  </div>
+</div>
+
+<!-- Filtrat -->
+<section class="mb-6 bg-white border rounded-xl shadow-sm">
+  <form method="get" class="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1">Kërko pacientin</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Emri, telefoni, emaili..."
+             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500">
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1">Doktori</label>
+      <select name="doctor"
+              class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500">
+        <option value="">Të gjithë doktorët</option>
+        {% for value, label in doctor_choices %}
+          <option value="{{ value }}" {% if value == doctor_filter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1">Borxh minimal (€)</label>
+      <input type="number" step="0.01" name="min_debt" value="{{ min_debt_raw }}"
+             placeholder="p.sh. 50.00"
+             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500">
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1">Rendit sipas</label>
+      <select name="order"
+              class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500">
+        <option value="oldest" {% if order == "oldest" %}selected{% endif %}>Borxhi më i vjetër</option>
+        <option value="newest" {% if order == "newest" %}selected{% endif %}>Borxhi më i ri</option>
+        <option value="highest" {% if order == "highest" %}selected{% endif %}>Borxhi më i madh</option>
+      </select>
+    </div>
+
+    <div class="md:col-span-4 flex justify-end gap-2 pt-1">
+      <a href="{% url 'debt_report' %}"
+         class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-xs md:text-sm hover:bg-gray-50">
+        Reseto filtrat
+      </a>
+      <button type="submit"
+              class="inline-flex items-center px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs md:text-sm hover:bg-emerald-700 shadow-sm">
+        Apliko filtrat
+      </button>
+    </div>
+  </form>
+</section>
+
+<!-- Tabela -->
+<section class="bg-white border rounded-xl shadow-sm overflow-hidden">
+  <div class="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
+    <h2 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+      <span class="inline-flex items-center justify-center rounded-full bg-red-100 text-red-700 w-6 h-6 text-xs font-bold">
+        {{ total_patients }}
+      </span>
+      Pacientë me borxh aktiv
+    </h2>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-100 text-xs uppercase tracking-wide text-gray-500 border-b">
+        <tr>
+          <th class="px-4 py-3 text-left">#</th>
+          <th class="px-4 py-3 text-left">Pacienti</th>
+          <th class="px-4 py-3 text-left">Kontakti</th>
+          <th class="px-4 py-3 text-right">Faturuar (€)</th>
+          <th class="px-4 py-3 text-right">Paguar (€)</th>
+          <th class="px-4 py-3 text-right">Borxh (€)</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        {% for p in page_obj %}
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-4 py-3 text-gray-500 text-xs">
+              {{ forloop.counter0|add:page_obj.start_index }}
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <a href="{% url 'patient_detail' p.id %}" class="text-sm font-medium text-emerald-700 hover:underline">
+                {{ p.emri_mbiemri|default:"(pa emër)" }}
+              </a>
+              {% if p.first_debt_date %}
+                <div class="mt-0.5 text-xs text-gray-400">
+                  Që nga: {{ p.first_debt_date|date:"Y-m-d" }}
+                </div>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-xs text-gray-600">
+              {% if p.telefoni %}<div>📞 {{ p.telefoni }}</div>{% endif %}
+              {% if p.emaili %}<div>✉️ {{ p.emaili }}</div>{% endif %}
+              {% if not p.telefoni and not p.emaili %}-{% endif %}
+            </td>
+            <td class="px-4 py-3 text-right text-gray-700">
+              {{ p.total_billed|floatformat:2 }}€
+            </td>
+            <td class="px-4 py-3 text-right text-gray-700">
+              {{ p.total_paid|floatformat:2 }}€
+            </td>
+            <td class="px-4 py-3 text-right">
+              <span class="font-semibold 
+    {% if p.debt > 0 %}
+        text-red-600
+    {% else %}
+        text-emerald-600
+    {% endif %}
+">
+    {{ p.debt|floatformat:2 }}€
+</span>
+
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="px-4 py-6 text-center text-gray-400 text-sm">
+              Nuk ka pacientë me borxh sipas filtrave aktualë.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginimi -->
+  {% if page_obj.paginator.num_pages > 1 %}
+    <div class="px-4 py-3 border-t bg-gray-50 flex items-center justify-between text-xs text-gray-600">
+      <div>
+        Faqja {{ page_obj.number }} nga {{ page_obj.paginator.num_pages }}
+      </div>
+      <div class="flex gap-1">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&doctor={{ doctor_filter }}&min_debt={{ min_debt_raw }}&order={{ order }}"
+             class="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100">
+            Mbrapa
+          </a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&doctor={{ doctor_filter }}&min_debt={{ min_debt_raw }}&order={{ order }}"
+             class="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100">
+            Para
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

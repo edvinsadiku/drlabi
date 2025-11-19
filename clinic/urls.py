@@ -48,6 +48,8 @@ urlpatterns = [
     path("patients/<int:patient_id>/prescriptions/list.json", views.prescription_list_json, name="prescription_list_json"),
     path("patients/<int:patient_id>/prescriptions/save/", views.prescription_save, name="prescription_save"),
     path("prescriptions/print/<int:pk>/", views.prescription_print, name="prescription_print"),
+    path("debts/",views.debt_report, name="debt_report"),
+
 
 
 

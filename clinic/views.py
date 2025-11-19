@@ -2162,3 +2162,174 @@ def prescription_print(request, pk):
 
     # Fallback HTML (pa PDF)
     return render(request, "clinic/prescription_print_fallback.html", ctx)
+
+
+
+
+
+
+from decimal import Decimal, InvalidOperation
+from django.db.models import (
+    Sum, Value, F, Q, DecimalField, Count, Min, Case, When
+)
+from django.db.models.functions import Coalesce, Least
+from django.db.models import DateField
+from django.core.paginator import Paginator
+
+from .models import Patient, DOCTOR_CHOICES
+
+@login_required
+def debt_report(request):
+    """
+    Raport profesional i borxheve:
+    - 1 rresht për çdo pacient me borxh > 0
+    - kombinon CareHistory + Agreements + Payments
+    - filtrohet dhe renditet nga borxhi më i vjetër / më i ri / borxhi më i madh
+    """
+    q = (request.GET.get("q") or "").strip()
+    doctor_filter = (request.GET.get("doctor") or "").strip()
+    order = (request.GET.get("order") or "oldest").lower()
+    min_debt_raw = (request.GET.get("min_debt") or "").replace(",", ".").strip()
+
+    try:
+        min_debt = Decimal(min_debt_raw) if min_debt_raw else Decimal("0.00")
+    except (InvalidOperation, ValueError):
+        min_debt = Decimal("0.00")
+
+    DECIMAL = DecimalField(max_digits=18, decimal_places=2)
+    ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
+
+    qs = Patient.objects.all()
+
+    # 🔍 Kërkim (emër, telefon, email)
+    if q:
+        qs = qs.filter(
+            Q(emri_mbiemri__icontains=q)
+            | Q(telefoni__icontains=q)
+            | Q(emaili__icontains=q)
+        )
+
+    # 🩺 Filtër sipas doktorit (histori ose marrëveshje)
+    if doctor_filter:
+        qs = qs.filter(
+            Q(care_histories__doctor=doctor_filter)
+            | Q(agreements__doctor=doctor_filter)
+        )
+
+    # 📊 Llogaritjet kryesore
+    qs = qs.annotate(
+        # Histori jashtë marrëveshjeve (trajtimet e thjeshta)
+        ch_billed=Coalesce(
+            Sum(
+                "care_histories__amount",
+                filter=Q(
+                    care_histories__agreement__isnull=True,
+                    care_histories__included_in_agreement=False,
+                ),
+                output_field=DECIMAL,
+            ),
+            ZERO,
+        ),
+        ch_paid=Coalesce(
+            Sum(
+                "care_histories__payments__amount",
+                filter=Q(
+                    care_histories__agreement__isnull=True,
+                    care_histories__included_in_agreement=False,
+                ),
+                output_field=DECIMAL,
+            ),
+            ZERO,
+        ),
+        # Marrëveshjet (akti⁠ve / të anuluara) – të mbyllurat zakonisht s’kanë borxh
+        agr_billed=Coalesce(
+            Sum(
+                "agreements__total_amount",
+                filter=Q(agreements__status__in=["active", "cancelled"]),
+                output_field=DECIMAL,
+            ),
+            ZERO,
+        ),
+        agr_paid=Coalesce(
+            Sum(
+                "agreements__payments__amount",
+                filter=Q(agreements__status__in=["active", "cancelled"]),
+                output_field=DECIMAL,
+            ),
+            ZERO,
+        ),
+        # Data e parë e trajtimit me borxh potencial (histori)
+        first_hist_date=Min(
+            "care_histories__date",
+            filter=Q(
+                care_histories__agreement__isnull=True,
+                care_histories__included_in_agreement=False,
+            ),
+        ),
+        # Data e parë e marrëveshjes aktive
+        first_agr_date=Min(
+            "agreements__start_date",
+            filter=Q(agreements__status="active"),
+        ),
+    ).annotate(
+        total_billed=F("ch_billed") + F("agr_billed"),
+        total_paid=F("ch_paid") + F("agr_paid"),
+    ).annotate(
+        debt_raw=F("total_billed") - F("total_paid"),
+    ).annotate(
+        # Borxhi final (s’lejojmë negativ, min 0.00)
+        debt=Case(
+            When(debt_raw__gt=0, then=F("debt_raw")),
+            default=ZERO,
+            output_field=DECIMAL,
+        ),
+        # Data e parë e borxhit (minimum midis historisë dhe marrëveshjes)
+        first_debt_date=Case(
+            When(
+                first_hist_date__isnull=False,
+                first_agr_date__isnull=False,
+                then=Least("first_hist_date", "first_agr_date"),
+            ),
+            When(first_hist_date__isnull=False, then=F("first_hist_date")),
+            When(first_agr_date__isnull=False, then=F("first_agr_date")),
+            default=None,
+            output_field=DateField(),
+        ),
+    )
+
+    # Vetëm pacientët me borxh > 0
+    qs = qs.filter(debt__gt=0)
+
+    # Filtri i borxhit minimal
+    if min_debt > 0:
+        qs = qs.filter(debt__gte=min_debt)
+
+    # 📈 Totale para paginimit
+    totals = qs.aggregate(
+        total_debt=Coalesce(Sum(F("debt"), output_field=DECIMAL), ZERO),
+        total_patients=Count("id", distinct=True),
+    )
+
+    # 🧭 Renditja
+    if order == "newest":
+        qs = qs.order_by(F("first_debt_date").desc(nulls_last=True), "emri_mbiemri")
+    elif order == "highest":
+        qs = qs.order_by(F("debt").desc(nulls_last=True), "emri_mbiemri")
+    else:  # default: oldest
+        qs = qs.order_by(F("first_debt_date").asc(nulls_last=True), "emri_mbiemri")
+
+    # 🔄 Paginim
+    paginator = Paginator(qs, 50)
+    page_obj = paginator.get_page(request.GET.get("page") or 1)
+
+    context = {
+        "page_obj": page_obj,
+        "q": q,
+        "doctor_filter": doctor_filter,
+        "order": order,
+        "min_debt_raw": min_debt_raw,
+        "total_debt": totals["total_debt"] or Decimal("0.00"),
+        "total_patients": totals["total_patients"] or 0,
+        "doctor_choices": DOCTOR_CHOICES,
+    }
+    return render(request, "clinic/debt_report.html", context)
