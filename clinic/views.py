@@ -2169,6 +2169,8 @@ def prescription_print(request, pk):
 
 
 from decimal import Decimal, InvalidOperation
+
+from django.contrib.auth.decorators import login_required
 from django.db.models import (
     Sum, Value, F, Q, DecimalField, Count, Min, Case, When
 )
@@ -2178,12 +2180,13 @@ from django.core.paginator import Paginator
 
 from .models import Patient, DOCTOR_CHOICES
 
+
 @login_required
 def debt_report(request):
     """
     Raport profesional i borxheve:
     - 1 rresht për çdo pacient me borxh > 0
-    - kombinon CareHistory + Agreements + Payments
+    - kombinon CareHistory + Agreements + Payments pa dyfishime
     - filtrohet dhe renditet nga borxhi më i vjetër / më i ri / borxhi më i madh
     """
     q = (request.GET.get("q") or "").strip()
@@ -2216,60 +2219,77 @@ def debt_report(request):
             | Q(agreements__doctor=doctor_filter)
         )
 
-    # 📊 Llogaritjet kryesore
+    # Sigurohu që çdo pacient shfaqet vetëm një herë
+    qs = qs.distinct()
+
+    # =========================
+    #   SUBQUERY-t e sakta
+    # =========================
+
+    # 1) Histori pa marrëveshje (trajtime të zakonshme) - TOTAL BILLED
+    histories_no_agreement = (
+        CareHistory.objects
+        .filter(
+            patient=OuterRef("pk"),
+            agreement__isnull=True,
+            included_in_agreement=False,
+        )
+        .values("patient")
+        .annotate(total=Sum("amount"))
+        .values("total")
+    )
+
+    # 2) Pagesat e historive pa marrëveshje - TOTAL PAID
+    histories_no_agreement_paid = (
+        Payment.objects
+        .filter(
+            history__patient=OuterRef("pk"),
+            history__agreement__isnull=True,
+            history__included_in_agreement=False,
+        )
+        .values("history__patient")
+        .annotate(total=Sum("amount"))
+        .values("total")
+    )
+
+    # 3) Marrëveshjet - TOTAL BILLED
+    agreements_total = (
+        Agreement.objects
+        .filter(patient=OuterRef("pk"))
+        .values("patient")
+        .annotate(total=Sum("total_amount"))
+        .values("total")
+    )
+
+    # 4) Pagesat për marrëveshje - TOTAL PAID
+    agreements_paid = (
+        Payment.objects
+        .filter(agreement__patient=OuterRef("pk"))
+        .values("agreement__patient")
+        .annotate(total=Sum("amount"))
+        .values("total")
+    )
+
+    # =========================
+    #   ANNOTATE për çdo pacient
+    # =========================
+
     qs = qs.annotate(
-        # Histori jashtë marrëveshjeve (trajtimet e thjeshta)
         ch_billed=Coalesce(
-            Sum(
-                "care_histories__amount",
-                filter=Q(
-                    care_histories__agreement__isnull=True,
-                    care_histories__included_in_agreement=False,
-                ),
-                output_field=DECIMAL,
-            ),
+            Subquery(histories_no_agreement, output_field=DECIMAL),
             ZERO,
         ),
         ch_paid=Coalesce(
-            Sum(
-                "care_histories__payments__amount",
-                filter=Q(
-                    care_histories__agreement__isnull=True,
-                    care_histories__included_in_agreement=False,
-                ),
-                output_field=DECIMAL,
-            ),
+            Subquery(histories_no_agreement_paid, output_field=DECIMAL),
             ZERO,
         ),
-        # Marrëveshjet (akti⁠ve / të anuluara) – të mbyllurat zakonisht s’kanë borxh
         agr_billed=Coalesce(
-            Sum(
-                "agreements__total_amount",
-                filter=Q(agreements__status__in=["active", "cancelled"]),
-                output_field=DECIMAL,
-            ),
+            Subquery(agreements_total, output_field=DECIMAL),
             ZERO,
         ),
         agr_paid=Coalesce(
-            Sum(
-                "agreements__payments__amount",
-                filter=Q(agreements__status__in=["active", "cancelled"]),
-                output_field=DECIMAL,
-            ),
+            Subquery(agreements_paid, output_field=DECIMAL),
             ZERO,
-        ),
-        # Data e parë e trajtimit me borxh potencial (histori)
-        first_hist_date=Min(
-            "care_histories__date",
-            filter=Q(
-                care_histories__agreement__isnull=True,
-                care_histories__included_in_agreement=False,
-            ),
-        ),
-        # Data e parë e marrëveshjes aktive
-        first_agr_date=Min(
-            "agreements__start_date",
-            filter=Q(agreements__status="active"),
         ),
     ).annotate(
         total_billed=F("ch_billed") + F("agr_billed"),
@@ -2277,18 +2297,35 @@ def debt_report(request):
     ).annotate(
         debt_raw=F("total_billed") - F("total_paid"),
     ).annotate(
-        # Borxhi final (s’lejojmë negativ, min 0.00)
+        # Borxhi final (mos lejo negativ)
         debt=Case(
             When(debt_raw__gt=0, then=F("debt_raw")),
             default=ZERO,
             output_field=DECIMAL,
         ),
-        # Data e parë e borxhit (minimum midis historisë dhe marrëveshjes)
+        # Data e parë e borxhit (min midis historive dhe marrëveshjeve)
+        first_hist_date=Min(
+            "care_histories__date",
+            filter=Q(
+                care_histories__agreement__isnull=True,
+                care_histories__included_in_agreement=False,
+            ),
+        ),
+        first_agr_date=Min(
+            "agreements__start_date",
+            filter=Q(agreements__status="active"),
+        ),
+    ).annotate(
         first_debt_date=Case(
             When(
                 first_hist_date__isnull=False,
                 first_agr_date__isnull=False,
-                then=Least("first_hist_date", "first_agr_date"),
+                then=Case(
+                    # Least nuk ka direkt support në të gjitha DB, ndaj përdorim Case
+                    When(first_hist_date__lte=F("first_agr_date"), then=F("first_hist_date")),
+                    default=F("first_agr_date"),
+                    output_field=DateField(),
+                ),
             ),
             When(first_hist_date__isnull=False, then=F("first_hist_date")),
             When(first_agr_date__isnull=False, then=F("first_agr_date")),
