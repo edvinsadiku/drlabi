@@ -1,199 +1,409 @@
 {% extends "clinic/base.html" %}
-{% block title %}Raportet (Sistemi i ri){% endblock %}
-{% block content %}
 {% load static %}
+
+{% block title %}Raportet (Sistemi i ri){% endblock %}
+
+{% block content %}
 
 <link rel="stylesheet" href="{% static 'clinic/css/reports_new.css' %}">
 
-<div class="mb-5 flex items-center justify-between print:hidden">
-    <div>
-        <h1 class="text-xl font-semibold tracking-tight">Raportet – Sistemi i ri</h1>
-        <p class="text-sm text-gray-500">Bazohet në CareHistory & Agreement, me ndarje sipas faturimit dhe pagesave.</p>
-    </div>
-    <button onclick="window.print()" class="px-3 py-2 rounded-lg border hover:bg-gray-50">Printo</button>
-</div>
+<div class="space-y-6">
 
-<form method="get"
-      class="bg-white border rounded-2xl p-4 mb-5 grid grid-cols-1 md:grid-cols-6 gap-3 items-end print:hidden">
-    <div class="md:col-span-2">
-        <label class="block text-xs text-gray-500 mb-1">Periudha</label>
-        <select name="mode"
-                class="w-full border rounded-lg px-3 py-2"
-                onchange="onModeChange(this.value)">
-            <option value="day"   {% if mode == 'day' %}selected{% endif %}>Ditor</option>
-            <option value="week"  {% if mode == 'week' %}selected{% endif %}>Javor</option>
-            <option value="month" {% if mode == 'month' %}selected{% endif %}>Mujor</option>
-            <option value="year"  {% if mode == 'year' %}selected{% endif %}>Vjetor</option>
-        </select>
+  <!-- HEADER + KPI + PRINT (stili si Raporti i Borxheve) -->
+  <div class="relative print:hidden">
+    <!-- Butoni Print lart djathtas -->
+    <div class="absolute right-3 top-3 z-10">
+      <button
+        onclick="window.print()"
+        class="inline-flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl border border-emerald-200 bg-white/90 text-sm text-emerald-800 hover:bg-emerald-50 shadow-sm"
+      >
+        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"
+                d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M8 15h8M9 18h6v3H9z" />
+        </svg>
+        <span>Printo</span>
+      </button>
     </div>
-    <div id="fld_day" class="{% if mode != 'day' %}hidden{% endif %}">
-        <label class="block text-xs text-gray-500 mb-1">Data</label>
-        <input type="text"
-               id="day-picker"
-               name="day"
-               value="{{ picked_day }}"
-               class="w-full border rounded-lg px-3 py-2" />
-    </div>
-    <div id="fld_week" class="{% if mode != 'week' %}hidden{% endif %}">
-        <label class="block text-xs text-gray-500 mb-1">Java</label>
-        <input type="week"
-               name="week"
-               value="{{ picked_week }}"
-               class="w-full border rounded-lg px-3 py-2" />
-    </div>
-    <div id="fld_month" class="{% if mode != 'month' %}hidden{% endif %}">
-        <label class="block text-xs text-gray-500 mb-1">Muaji</label>
-        <input type="month"
-               name="month"
-               value="{{ picked_month }}"
-               class="w-full border rounded-lg px-3 py-2" />
-    </div>
-    <div id="fld_year" class="{% if mode != 'year' %}hidden{% endif %}">
-        <label class="block text-xs text-gray-500 mb-1">Viti</label>
-        <select name="year" class="w-full border rounded-lg px-3 py-2">
-            {% for y in years %}
-                <option value="{{ y }}"
-                        {% if picked_year|stringformat:"s" == y|stringformat:"s" %}selected{% endif %}>
-                    {{ y }}
-                </option>
-            {% endfor %}
-        </select>
-    </div>
-    <div>
-        <label class="block text-xs text-gray-500 mb-1">Renditja</label>
-        <select name="order" class="w-full border rounded-lg px-3 py-2">
-            <option value="desc" {% if order == 'desc' %}selected{% endif %}>Më i riu → i vjetri</option>
-            <option value="asc"  {% if order == 'asc' %}selected{% endif %}>I vjetri → më i riu</option>
-        </select>
-    </div>
-    <div class="md:col-span-1">
-        <label class="block text-xs text-transparent mb-1">_</label>
-        <button class="w-full px-3 py-2 rounded-lg bg-emerald-600 text-white">Apliko</button>
-    </div>
-</form>
 
-<div class="kpi-boxes grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-    <div class="bg-white border rounded-2xl p-4">
-        <div class="text-xs text-gray-500">Faturuar (Totali)</div>
-        <div class="text-2xl font-semibold">{{ total_billed }}€</div>
-    </div>
-    <div class="bg-white border rounded-2xl p-4">
-        <div class="text-xs text-gray-500">Paguar (Cash-in)</div>
-        <div class="text-2xl font-semibold text-emerald-700">{{ total_paid }}€</div>
-    </div>
-    <div class="bg-white border rounded-2xl p-4">
-        <div class="text-xs text-gray-500">Borxh</div>
-        <div class="text-2xl font-semibold {% if outstanding > 0 %}text-red-600{% endif %}">{{ outstanding }}€</div>
-    </div>
-</div>
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-    <div class="bg-white border rounded-2xl overflow-hidden">
-        <div class="px-4 py-3 border-b font-semibold">Pagesa sipas doktorit (histori + marrëveshje)</div>
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-gray-600">
-                <tr>
-                    <th class="p-3 text-left">Doktori</th>
-                    <th class="p-3 text-right">Nga histori (€)</th>
-                    <th class="p-3 text-right">Nga marrëveshje (€)</th>
-                    <th class="p-3 text-right">Totali (€)</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y">
-                {% for doctor, vals in payments_by_doctor_total.items %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-3">{{ doctor|default:"-" }}</td>
-                        <td class="p-3 text-right">{{ vals.from_histories }}</td>
-                        <td class="p-3 text-right">{{ vals.from_agreements }}</td>
-                        <td class="p-3 text-right font-semibold">{{ vals.total }}</td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="4" class="p-3 text-gray-500">S’ka të dhëna.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div class="bg-white border rounded-2xl overflow-hidden">
-    <div class="px-4 py-3 border-b flex items-center justify-between">
-        <h3 class="font-semibold">Historitë, Marrëveshjet & Pagesat</h3>
-        <div class="flex items-center gap-3 text-sm text-gray-500">
-            <span>Nga {{ start_date }} deri {{ end_date }}</span>
-            <a
-              class="px-3 py-1.5 rounded-lg border hover:bg-gray-50"
-              href="{% url 'reports_new_export' %}?mode={{ mode }}&day={{ picked_day }}&week={{ picked_week }}&month={{ picked_month }}&year={{ picked_year }}&order={{ order }}"
-            >
-              Eksporto Excel
-            </a>
+    <div class="bg-gradient-to-r from-emerald-50 via-emerald-100/60 to-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 md:px-7 md:py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between shadow-sm">
+      <!-- Teksti majtas -->
+      <div class="space-y-1.5 pr-16 md:pr-4">
+        <div class="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 border border-emerald-100">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+            Sistemi i ri i raporteve
+          </span>
         </div>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-100 text-gray-700 text-xs uppercase tracking-wide">
-                <tr>
-                    <th class="p-3 text-left">Data</th>
-                    <th class="p-3 text-left">Pacienti</th>
-                    <th class="p-3 text-left">Lloji</th>
-                    <th class="p-3 text-left">Doktori</th>
-                    <th class="p-3 text-right">Vlera</th>
-                    <th class="p-3 text-right">Paguar</th>
-                    <th class="p-3 text-right">Borxh</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y">
-                {% for h in histories_and_agreements %}
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="p-3 whitespace-nowrap">
-                            {% if h.obj_type == "payment_agreement" %}
-                                {{ h.created_at|date:"Y-m-d H:i" }}
-                            {% elif h.obj_type == "payment_history" %}
-                                {{ h.date|date:"Y-m-d H:i" }}
-                            {% endif %}
-                        </td>
-                        <td class="p-3 font-medium text-gray-800">{{ h.patient.emri_mbiemri }}</td>
-                        <td class="p-3">
-                            {% if h.obj_type == "payment_agreement" %}
-                                <span class="text-emerald-700 font-semibold">Marrëveshje:</span> {{ h.agreement.title }}
-                            {% elif h.obj_type == "payment_history" %}
-                                <span class="text-emerald-700 font-semibold">Histori:</span> {{ h.history_diagnosis|default:"-" }}
-                            {% endif %}
-                        </td>
-                        <td class="p-3 text-gray-700">
-                            {% if h.obj_type == "payment_agreement" %}
-                                {{ h.agreement.doctor|default:"-" }}
-                            {% elif h.obj_type == "payment_history" %}
-                                {{ h.doctor|default:"-" }}
-                            {% endif %}
-                        </td>
-                        <td class="p-3 text-right">{{ h.amount_display }}€</td>
-                        <td class="p-3 text-right font-medium {% if h.obj_type == 'payment_agreement' or h.obj_type == 'payment_history' %}text-emerald-700{% endif %}">{{ h.paid_sum }}€</td>
-                        <td class="p-3 text-right {% if h.debt_sum > 0 %}text-red-600 font-semibold{% endif %}">
-                            {% if h.obj_type == "payment_agreement" %}
-                                -
-                            {% else %}
-                                {{ h.debt_sum }}€
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="7" class="p-6 text-center text-gray-500">S’ka të dhëna.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
+        <h1 class="text-xl md:text-2xl font-semibold text-emerald-900">
+          Raportet financiare të klinikës
+        </h1>
+        <p class="text-xs md:text-sm text-emerald-800/80 max-w-xl">
+          Bazohet në Histori &amp; Marrëveshje, me ndarje sipas faturimit, pagesave dhe borxheve.
+        </p>
+        <p class="text-[11px] text-emerald-900/70 mt-1">
+          Periudha aktuale: <span class="font-semibold">{{ start_date }}</span> – <span class="font-semibold">{{ end_date }}</span>
+        </p>
+      </div>
 
-<div class="print-only mt-6">
+      <!-- KPI në të djathtë -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto text-sm">
+        <!-- Faturuar -->
+        <div class="bg-white/85 border border-emerald-100 rounded-xl px-3.5 py-3 flex flex-col justify-between shadow-[0_6px_16px_rgba(16,185,129,0.08)]">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+              Faturuar (Totali)
+            </span>
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 text-xs font-semibold">
+              €
+            </span>
+          </div>
+          <div class="text-lg md:text-xl font-semibold text-emerald-900">
+            {{ total_billed }}€
+          </div>
+          <div class="mt-1 text-[11px] text-gray-400">
+            Gjithsej faturime për periudhën.
+          </div>
+        </div>
+
+        <!-- Paguar -->
+        <div class="bg-white/85 border border-emerald-100 rounded-xl px-3.5 py-3 flex flex-col justify-between shadow-[0_6px_16px_rgba(16,185,129,0.12)]">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+              Paguar (Cash-in)
+            </span>
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 text-xs font-semibold">
+              ✓
+            </span>
+          </div>
+          <div class="text-lg md:text-xl font-semibold text-emerald-700">
+            {{ total_paid }}€
+          </div>
+          <div class="mt-1 text-[11px] text-gray-400">
+            Shuma reale e futur në klinikë.
+          </div>
+        </div>
+
+        <!-- Borxh -->
+        <div class="bg-white/85 border border-red-100 rounded-xl px-3.5 py-3 flex flex-col justify-between shadow-[0_6px_16px_rgba(248,113,113,0.12)]">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+              Borxh aktiv
+            </span>
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-500 text-xs font-semibold">
+              !
+            </span>
+          </div>
+          <div class="text-lg md:text-xl font-semibold {% if outstanding > 0 %}text-red-600{% else %}text-emerald-700{% endif %}">
+            {{ outstanding }}€
+          </div>
+          <div class="mt-1 text-[11px] text-gray-400">
+            Diferenca mes faturuarës dhe cash-in.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTRAT / PERIUDHA (të gjithë në një vijë në desktop) -->
+  <form method="get"
+        class="bg-white border border-slate-100 rounded-2xl p-4 md:p-5 mb-4 grid grid-cols-1 md:grid-cols-6 gap-3 md:gap-4 items-end shadow-sm print:hidden">
+
+    <!-- Mode -->
+    <div class="md:col-span-2">
+      <label class="block text-[11px] font-semibold text-slate-600 tracking-wide mb-1">
+        Periudha
+      </label>
+      <select
+        name="mode"
+        class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-slate-50/60
+               focus:bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 transition"
+        onchange="onModeChange(this.value)"
+      >
+        <option value="day"   {% if mode == 'day' %}selected{% endif %}>Ditor</option>
+        <option value="week"  {% if mode == 'week' %}selected{% endif %}>Javor</option>
+        <option value="month" {% if mode == 'month' %}selected{% endif %}>Mujor</option>
+        <option value="year"  {% if mode == 'year' %}selected{% endif %}>Vjetor</option>
+      </select>
+    </div>
+
+    <!-- Day -->
+    <div id="fld_day" class="{% if mode != 'day' %}hidden{% endif %}">
+      <label class="block text-[11px] font-semibold text-slate-600 tracking-wide mb-1">
+        Data
+      </label>
+      <input
+        type="text"
+        id="day-picker"
+        name="day"
+        value="{{ picked_day }}"
+        class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-slate-50/60
+               focus:bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 transition"
+      />
+    </div>
+
+    <!-- Week -->
+    <div id="fld_week" class="{% if mode != 'week' %}hidden{% endif %}">
+      <label class="block text-[11px] font-semibold text-slate-600 tracking-wide mb-1">
+        Java
+      </label>
+      <input
+        type="week"
+        name="week"
+        value="{{ picked_week }}"
+        class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-slate-50/60
+               focus:bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 transition"
+      />
+    </div>
+
+    <!-- Month -->
+    <div id="fld_month" class="{% if mode != 'month' %}hidden{% endif %}">
+      <label class="block text-[11px] font-semibold text-slate-600 tracking-wide mb-1">
+        Muaji
+      </label>
+      <input
+        type="month"
+        name="month"
+        value="{{ picked_month }}"
+        class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-slate-50/60
+               focus:bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 transition"
+      />
+    </div>
+
+    <!-- Year -->
+    <div id="fld_year" class="{% if mode != 'year' %}hidden{% endif %}">
+      <label class="block text-[11px] font-semibold text-slate-600 tracking-wide mb-1">
+        Viti
+      </label>
+      <select
+        name="year"
+        class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-slate-50/60
+               focus:bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 transition"
+      >
+        {% for y in years %}
+          <option
+            value="{{ y }}"
+            {% if picked_year|stringformat:"s" == y|stringformat:"s" %}selected{% endif %}
+          >
+            {{ y }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Order -->
+    <div>
+      <label class="block text-[11px] font-semibold text-slate-600 tracking-wide mb-1">
+        Renditja
+      </label>
+      <select
+        name="order"
+        class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-slate-50/60
+               focus:bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 transition"
+      >
+        <option value="desc" {% if order == 'desc' %}selected{% endif %}>
+          Më i riu → i vjetri
+        </option>
+        <option value="asc"  {% if order == 'asc' %}selected{% endif %}>
+          I vjetri → më i riu
+        </option>
+      </select>
+    </div>
+
+    <!-- Submit -->
+    <div class="md:col-span-1">
+      <label class="block text-xs text-transparent mb-1">_</label>
+      <button
+        class="w-full px-3 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium
+               hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition"
+      >
+        Apliko
+      </button>
+    </div>
+  </form>
+
+  <!-- PAGESA SIPAS DOKTORIT -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+      <div class="px-4 md:px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <div class="text-sm font-semibold text-slate-800">
+            Pagesa sipas doktorit
+          </div>
+          <p class="text-[11px] text-slate-400">
+            Kombinon pagesat nga historia dhe marrëveshjet.
+          </p>
+        </div>
+        <span class="hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-100">
+          Analizë doktoresh
+        </span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-600 text-xs uppercase tracking-wide">
+            <tr>
+              <th class="p-3 text-left font-semibold">Doktori</th>
+              <th class="p-3 text-right font-semibold">Nga histori (€)</th>
+              <th class="p-3 text-right font-semibold">Nga marrëveshje (€)</th>
+              <th class="p-3 text-right font-semibold">Totali (€)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+{% for doctor, vals in payments_by_doctor_total.items %}
+  <tr class="hover:bg-emerald-50/40 transition-colors">
+    <td class="p-3 text-slate-800">
+      {{ doctor|default:"-" }}
+    </td>
+
+    {# NGA HISTORI (€) – nëse s’ka histori, merre vlerën nga marrëveshjet #}
+    <td class="p-3 text-right text-slate-700">
+      {% with h=vals.from_histories a=vals.from_agreements %}
+        {% if h %}
+          {{ h }}
+        {% elif a %}
+          {{ a }}
+        {% else %}
+          0.00
+        {% endif %}
+      {% endwith %}
+    </td>
+
+    {# NGA MARRËVESHJE (€) – mbetet siç është #}
+    <td class="p-3 text-right text-slate-700">
+      {{ vals.from_agreements }}
+    </td>
+
+    {# TOTALI (€) #}
+    <td class="p-3 text-right font-semibold text-slate-900">
+      {{ vals.total }}
+    </td>
+  </tr>
+{% empty %}
+  <tr>
+    <td colspan="4" class="p-3 text-slate-500 text-sm">
+      S’ka të dhëna.
+    </td>
+  </tr>
+{% endfor %}
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Slot bosh për të ardhmen (grafik, breakdown tjetër, etj.) -->
+    <div class="hidden md:block"></div>
+  </div>
+
+  <!-- HISTORITË, MARRËVESHJET & PAGESAT -->
+  <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+    <div class="px-4 md:px-5 py-3 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <div>
+        <h3 class="font-semibold text-slate-900">Historitë, Marrëveshjet &amp; Pagesat</h3>
+        <p class="text-[11px] text-slate-400">
+          Të gjitha lëvizjet financiare sipas periudhës së zgjedhur.
+        </p>
+      </div>
+      <div class="flex items-center gap-3 text-xs md:text-sm text-slate-500">
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-100">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Nga {{ start_date }} deri {{ end_date }}</span>
+        </span>
+        <a
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs md:text-sm"
+          href="{% url 'reports_new_export' %}?mode={{ mode }}&day={{ picked_day }}&week={{ picked_week }}&month={{ picked_month }}&year={{ picked_year }}&order={{ order }}"
+        >
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"
+                  d="M9 8v8m6-8v8M5 12h14M4 4h16v3H4z" />
+          </svg>
+          <span>Eksporto Excel</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wide">
+          <tr>
+            <th class="p-3 text-left font-semibold">Data</th>
+            <th class="p-3 text-left font-semibold">Pacienti</th>
+            <th class="p-3 text-left font-semibold">Lloji</th>
+            <th class="p-3 text-left font-semibold">Doktori</th>
+            <th class="p-3 text-right font-semibold">Vlera</th>
+            <th class="p-3 text-right font-semibold">Paguar</th>
+            <th class="p-3 text-right font-semibold">Borxh</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for h in histories_and_agreements %}
+            <tr class="hover:bg-emerald-50/40 transition-colors">
+              <td class="p-3 whitespace-nowrap text-slate-700">
+                {% if h.obj_type == "payment_agreement" %}
+                  {{ h.created_at|date:"Y-m-d H:i" }}
+                {% elif h.obj_type == "payment_history" %}
+                  {{ h.date|date:"Y-m-d H:i" }}
+                {% endif %}
+              </td>
+              <td class="p-3 font-medium text-slate-900">
+                {{ h.patient.emri_mbiemri }}
+              </td>
+              <td class="p-3 text-slate-800">
+                {% if h.obj_type == "payment_agreement" %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold mr-1">
+                    Marrëveshje
+                  </span>
+                  <span class="text-slate-700 text-sm">{{ h.agreement.title }}</span>
+                {% elif h.obj_type == "payment_history" %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 text-slate-700 text-[11px] font-semibold mr-1">
+                    Histori
+                  </span>
+                  <span class="text-slate-700 text-sm">{{ h.history_diagnosis|default:"-" }}</span>
+                {% endif %}
+              </td>
+              <td class="p-3 text-slate-700">
+                {% if h.obj_type == "payment_agreement" %}
+                  {{ h.agreement.doctor|default:"-" }}
+                {% elif h.obj_type == "payment_history" %}
+                  {{ h.doctor|default:"-" }}
+                {% endif %}
+              </td>
+              <td class="p-3 text-right text-slate-800">
+                {{ h.amount_display }}€
+              </td>
+              <td class="p-3 text-right font-medium {% if h.obj_type == 'payment_agreement' or h.obj_type == 'payment_history' %}text-emerald-700{% endif %}">
+                {{ h.paid_sum }}€
+              </td>
+              <td class="p-3 text-right {% if h.debt_sum > 0 %}text-red-600 font-semibold{% else %}text-slate-500{% endif %}">
+                {% if h.obj_type == "payment_agreement" %}
+                  -
+                {% else %}
+                  {{ h.debt_sum }}€
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="p-6 text-center text-slate-500">
+                S’ka të dhëna.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PRINT VERSION SUMMARY -->
+  <div class="print-only mt-6 text-sm space-y-1">
     <p><strong>Totali i faturuar:</strong> {{ total_billed }}€</p>
     <p><strong>Totali i paguar:</strong> {{ total_paid }}€</p>
     <p><strong>Borxhi:</strong> {{ outstanding }}€</p>
+    <p><strong>Periudha:</strong> {{ start_date }} – {{ end_date }}</p>
+  </div>
+
 </div>
 
+<!-- FLATPICKR -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
@@ -203,6 +413,11 @@ function onModeChange(mode) {
   document.getElementById('fld_month')?.classList.toggle('hidden', mode !== 'month');
   document.getElementById('fld_year')?.classList.toggle('hidden', mode !== 'year');
 }
-flatpickr("#day-picker", { dateFormat: "Y-m-d", allowInput: true });
+
+flatpickr("#day-picker", {
+  dateFormat: "Y-m-d",
+  allowInput: true
+});
 </script>
+
 {% endblock %}

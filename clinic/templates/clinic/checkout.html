@@ -1,180 +1,340 @@
 {% extends "clinic/base.html" %}
 {% block title %}Checkout Pagesa{% endblock %}
 {% block content %}
-        <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Pagesat</h1>
-        <p class="text-gray-500 text-sm">Kërko pacientin, kontrollo historitë/marrëveshjet dhe regjistro pagesën.</p>
+
+<div class="space-y-6">
+
+    <!-- HEADER KRYESOR -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Pagesat</h1>
+            <p class="text-sm text-slate-500">
+                Kërko pacientin, kontrollo historitë/marrëveshjet dhe regjistro pagesën.
+            </p>
+        </div>
+        {% if patient and debt > 0 %}
+        <div class="inline-flex items-center gap-2 rounded-full bg-red-50 border border-red-100 px-3 py-1 text-xs text-red-700">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+            <span>Pacienti ka borxh aktiv: <strong>{{ debt }}€</strong></span>
+        </div>
+        {% endif %}
     </div>
-        <div x-data="{ query: '', results: [] }" class="mb-6 relative">
-        <input type="text"
-               x-model="query"
-               @input.debounce.300ms=" fetch('/patients/search/?q=' + query) .then(r => r.json()) .then(data => results = data)"
-               placeholder="Kërko pacientin me emër ose telefon..."
-               class="w-full rounded-lg border-gray-300 focus:border-emerald-500 shadow-sm pl-3 pr-4 py-2">
-                <ul class="absolute z-10 bg-white border rounded-lg mt-1 w-full shadow-lg divide-y divide-gray-100"
-            x-show="results.length > 0">
+
+    <!-- KËRKIMI I PACIENTIT -->
+    <div x-data="{ query: '{{ patient.emri_mbiemri|default_if_none:'' }}', results: [] }" class="relative mb-4">
+        <div class="relative">
+            <input
+                type="text"
+                x-model="query"
+                @input.debounce.300ms="
+                    if (query.length < 2) { results = []; return; }
+                    fetch('/patients/search/?q=' + encodeURIComponent(query))
+                        .then(r => r.json())
+                        .then(data => results = data)
+                "
+                placeholder="Kërko pacientin me emër ose telefon..."
+                class="w-full rounded-2xl border border-slate-200 bg-white/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 shadow-sm pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400"
+            >
+            <span class="absolute left-3 inset-y-0 flex items-center text-slate-400">
+                🔍
+            </span>
+        </div>
+
+        <!-- LISTA E REZULTATEVE -->
+        <ul
+            class="absolute z-20 bg-white border border-slate-100 rounded-2xl mt-2 w-full shadow-lg divide-y divide-slate-100 max-h-64 overflow-auto"
+            x-show="results.length > 0"
+            x-cloak
+        >
             <template x-for="p in results" :key="p.id">
-                <li @click="window.location='?patient='+p.id"
-                    class="px-4 py-2 hover:bg-emerald-50 cursor-pointer text-sm"
-                    x-text="p.emri_mbiemri + ' – ' + p.telefoni"></li>
+                <li
+                    @click="window.location='?patient=' + p.id"
+                    class="px-4 py-2.5 hover:bg-emerald-50 cursor-pointer text-sm flex items-center justify-between gap-2"
+                >
+                    <div class="flex flex-col">
+                        <span class="font-medium text-slate-800" x-text="p.emri_mbiemri"></span>
+                        <span class="text-xs text-slate-400" x-text="p.telefoni || ''"></span>
+                    </div>
+                    <span class="text-[10px] uppercase tracking-wide text-emerald-600 border border-emerald-100 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        Zgjidh
+                    </span>
+                </li>
             </template>
         </ul>
     </div>
+
     {% if patient %}
-                <div class="bg-white shadow-sm rounded-xl p-5 mb-8 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg">
+    <!-- HEADER PACIENT + KPI (premium) -->
+    <div class="bg-gradient-to-r from-emerald-50 via-emerald-100/60 to-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 md:px-7 md:py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between shadow-sm">
+
+        <!-- Info pacienti -->
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-600 flex items-center justify-center text-white font-semibold text-lg uppercase shadow-sm">
                 {{ patient.emri_mbiemri|first }}
             </div>
             <div>
-                <h2 class="text-lg font-semibold text-gray-800">{{ patient.emri_mbiemri }}</h2>
-                <p class="text-sm text-gray-500">
+                <h2 class="text-lg md:text-xl font-semibold text-emerald-900">
+                    {{ patient.emri_mbiemri }}
+                </h2>
+                <p class="text-xs md:text-sm text-emerald-900/80">
                     {% if patient.data_e_lindjes %}{{ patient.data_e_lindjes }}{% endif %}
-                    {% if patient.telefoni %}&nbsp;| {{ patient.telefoni }}{% endif %}
+                    {% if patient.telefoni %}{% if patient.data_e_lindjes %} · {% endif %}{{ patient.telefoni }}{% endif %}
                 </p>
-            </div>
-        </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="bg-white shadow-sm rounded-xl p-4">
-                <p class="text-sm text-gray-500">Totali i Faturuar</p>
-                <p class="text-2xl font-semibold text-gray-800">{{ total_billed }} €</p>
-            </div>
-            <div class="bg-white shadow-sm rounded-xl p-4">
-                <p class="text-sm text-gray-500">Totali i Paguar</p>
-                <p class="text-2xl font-semibold text-emerald-600">{{ total_paid }} €</p>
-            </div>
-            <div class="bg-white shadow-sm rounded-xl p-4">
-                <p class="text-sm text-gray-500">Borxhi</p>
-                <p class="text-2xl font-semibold text-red-600">{{ debt }} €</p>
-            </div>
-        </div>
-                <form method="post"
-              class="bg-white shadow-sm rounded-xl p-6 mb-8 space-y-6">
-            {% csrf_token %}
-            <input type="hidden" name="patient" value="{{ patient.id }}">
-                        <div>
-                <h2 class="text-base font-semibold text-gray-700 mb-2">Histori</h2>
-                {% if histories %}
-                    <div class="space-y-2">
-                        {% for h in histories %}
-                            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 text-sm">
-                                <input type="checkbox"
-                                       name="history_ids"
-                                       value="{{ h.id }}"
-                                       class="h-4 w-4 text-emerald-600">
-                                <span>{{ h.date }} – {{ h.diagnosis|default:"Histori" }} (Borxh: {{ h.debt_sum }} €)</span>
-                            </label>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-gray-400 text-sm">Nuk ka histori për këtë pacient.</p>
+                {% if patient.email %}
+                <p class="text-[11px] text-emerald-900/70 mt-0.5 truncate max-w-xs">
+                    {{ patient.email }}
+                </p>
                 {% endif %}
             </div>
-                        <div>
-                <h2 class="text-base font-semibold text-gray-700 mb-2">Marrëveshje Aktive</h2>
-                {% if agreements %}
-                    <div class="space-y-2">
-                        {% for a in agreements %}
-                            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 text-sm">
-                                <input type="radio"
-                                       name="agreement_id"
-                                       value="{{ a.id }}"
-                                       class="h-4 w-4 text-emerald-600">
-                                <span>{{ a.title }} – Borxh: {{ a.debt_sum }} €</span>
-                            </label>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-gray-400 text-sm">Nuk ka marrëveshje aktive.</p>
-                {% endif %}
+        </div>
+
+        <!-- KPI -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto text-sm">
+            <div class="bg-white/90 rounded-xl border border-emerald-100 px-3.5 py-3 shadow-[0_6px_14px_rgba(16,185,129,0.08)] flex flex-col justify-between">
+                <span class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+                    Totali i Faturuar
+                </span>
+                <span class="text-lg font-semibold text-slate-900 mt-1">
+                    {{ total_billed }} €
+                </span>
+                <span class="text-[11px] text-slate-400 mt-1">
+                    Të gjitha shërbimet e regjistruara.
+                </span>
             </div>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-3.314 0-6 1.79-6 4s2.686 4 6 4 6-1.79 6-4-2.686-4-6-4z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 8v4" />
-            </svg>
-            Shuma (€)
-        </label>
-        <input
-            type="number"
-            step="0.01"
-            name="amount"
-            required
-            placeholder="Shkruaj shumën..."
-            class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-gray-800"
-        >
+            <div class="bg-white/90 rounded-xl border border-emerald-100 px-3.5 py-3 shadow-[0_6px_14px_rgba(16,185,129,0.08)] flex flex-col justify-between">
+                <span class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+                    Totali i Paguar
+                </span>
+                <span class="text-lg font-semibold text-emerald-700 mt-1">
+                    {{ total_paid }} €
+                </span>
+                <span class="text-[11px] text-slate-400 mt-1">
+                    Pagesat e regjistruara deri tani.
+                </span>
+            </div>
+            <div class="bg-white/90 rounded-xl border {% if debt > 0 %}border-red-200{% else %}border-emerald-100{% endif %} px-3.5 py-3 shadow-[0_6px_14px_rgba(248,113,113,0.10)] flex flex-col justify-between">
+                <span class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+                    Borxhi
+                </span>
+                <span class="text-lg font-semibold {% if debt > 0 %}text-red-600{% else %}text-emerald-700{% endif %} mt-1">
+                    {{ debt }} €
+                </span>
+                <span class="text-[11px] text-slate-400 mt-1">
+                    Diferenca që mbetet për t’u paguar.
+                </span>
+            </div>
+        </div>
     </div>
 
-                                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h10m2-8V7a2 2 0 00-2-2H7a2 2 0 00-2 2v1" />
-                        </svg>
-                        Metoda e pagesës
-                    </label>
-                    <select
-                        name="method"
-                        class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-gray-800"
-                    >
-                        <option value="cash">Cash</option>
-                        <option value="card">Kartë</option>
-                        <option value="bank">Bankë</option>
-                        <option value="other">Tjetër</option>
-                    </select>
-                </div>
+    <!-- GRID: HISTORI + MARRËVESHJE + FORMA -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-                                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13m-6 6h6M3 6h.01M3 12h.01M3 18h.01" />
-                        </svg>
-                        Shënime
-                    </label>
-                    <input
-                        type="text"
-                        name="notes"
-                        placeholder="Opsionale..."
-                        class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-gray-800"
-                    >
+        <!-- HISTORI -->
+        <div class="bg-white shadow-sm rounded-2xl p-5 border border-slate-100 lg:col-span-2">
+            <h2 class="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold">
+                    H
+                </span>
+                Histori të pacientit
+            </h2>
+            {% if histories %}
+                <div class="space-y-2 max-h-64 overflow-auto pr-1">
+                    {% for h in histories %}
+                        <label class="flex items-center gap-2 p-2 border border-slate-100 rounded-xl cursor-pointer hover:bg-emerald-50/50 text-sm transition">
+                            <input
+                                type="checkbox"
+                                name="history_ids"
+                                value="{{ h.id }}"
+                                form="payment-form"
+                                class="h-4 w-4 text-emerald-600 border-slate-300 rounded"
+                            >
+                            <div class="flex flex-col">
+                                <span class="font-medium text-slate-800">
+                                    {{ h.date }} – {{ h.diagnosis|default:"Histori pa titull" }}
+                                </span>
+                                <span class="text-[11px] text-slate-500">
+                                    Borxh: <strong>{{ h.debt_sum }} €</strong>
+                                </span>
+                            </div>
+                        </label>
+                    {% endfor %}
                 </div>
+            {% else %}
+                <p class="text-slate-400 text-sm italic">
+                    Nuk ka histori për këtë pacient.
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- MARRËVESHJE AKTIVE -->
+        <div class="bg-white shadow-sm rounded-2xl p-5 border border-slate-100">
+            <h2 class="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold">
+                    M
+                </span>
+                Marrëveshje aktive
+            </h2>
+            {% if agreements %}
+                <div class="space-y-2 max-h-64 overflow-auto pr-1">
+                    {% for a in agreements %}
+                        <label class="flex items-center gap-2 p-2 border border-slate-100 rounded-xl cursor-pointer hover:bg-emerald-50/50 text-sm transition">
+                            <input
+                                type="radio"
+                                name="agreement_id"
+                                value="{{ a.id }}"
+                                form="payment-form"
+                                class="h-4 w-4 text-emerald-600 border-slate-300"
+                            >
+                            <div class="flex flex-col">
+                                <span class="font-medium text-slate-800">
+                                    {{ a.title }}
+                                </span>
+                                <span class="text-[11px] text-slate-500">
+                                    Borxh: <strong>{{ a.debt_sum }} €</strong>
+                                </span>
+                            </div>
+                        </label>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-slate-400 text-sm italic">
+                    Nuk ka marrëveshje aktive.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- FORMA E PAGESËS -->
+    <form
+        id="payment-form"
+        method="post"
+        class="bg-white shadow-sm rounded-2xl p-6 border border-slate-100 space-y-6"
+    >
+        {% csrf_token %}
+        <input type="hidden" name="patient" value="{{ patient.id }}">
+
+        <h2 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white text-xs font-bold">
+                €
+            </span>
+            Regjistro pagesën
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- Shuma -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-3.314 0-6 1.79-6 4s2.686 4 6 4 6-1.79 6-4-2.686-4-6-4z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 8v4" />
+                    </svg>
+                    Shuma (€)
+                </label>
+                <input
+                    type="number"
+                    step="0.01"
+                    name="amount"
+                    required
+                    placeholder="Shkruaj shumën..."
+                    class="w-full rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-slate-800"
+                >
             </div>
 
-                        <div class="flex justify-end">
-                <button class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 transition text-white font-medium rounded-lg shadow-sm">
-                    Paguaj
-                </button>
+            <!-- Metoda -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h10m2-8V7a2 2 0 00-2-2H7a2 2 0 00-2 2v1" />
+                    </svg>
+                    Metoda e pagesës
+                </label>
+                <select
+                    name="method"
+                    class="w-full rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-slate-800"
+                >
+                    <option value="cash">Cash</option>
+                    <option value="card">Kartë</option>
+                    <option value="bank">Bankë</option>
+                    <option value="other">Tjetër</option>
+                </select>
             </div>
-        </form>
-                <div class="bg-white shadow-sm rounded-xl overflow-hidden">
-            <div class="px-6 py-3 bg-gray-50 border-b">
-                <h3 class="text-gray-700 font-medium">Pagesat e Kryera</h3>
+
+            <!-- Shënime -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13m-6 6h6M3 6h.01M3 12h.01M3 18h.01" />
+                    </svg>
+                    Shënime
+                </label>
+                <input
+                    type="text"
+                    name="notes"
+                    placeholder="Opsionale..."
+                    class="w-full rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-slate-800"
+                >
             </div>
-            <table class="min-w-full text-sm divide-y divide-gray-200">
-                <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
+        </div>
+
+        <div class="flex justify-end">
+            <button
+                class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 transition text-white font-semibold rounded-xl shadow-sm shadow-emerald-200 flex items-center gap-2"
+            >
+                <span>Paguaj</span>
+            </button>
+        </div>
+    </form>
+
+    <!-- PAGESAT E KRYERA -->
+    <div class="bg-white shadow-sm rounded-2xl overflow-hidden border border-slate-100">
+        <div class="px-6 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-slate-800 font-medium text-sm md:text-base">
+                Pagesat e kryera
+            </h3>
+            <span class="text-[11px] text-slate-500">
+                Totali: {{ payments|length }} pagesa
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm divide-y divide-slate-200">
+                <thead class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wide">
                     <tr>
-                        <th class="px-4 py-3 text-left">Data</th>
-                        <th class="px-4 py-3 text-left">Metoda</th>
-                        <th class="px-4 py-3 text-left">Shënime</th>
-                        <th class="px-4 py-3 text-right">Shuma</th>
+                        <th class="px-4 py-3 text-left font-semibold">Data</th>
+                        <th class="px-4 py-3 text-left font-semibold">Metoda</th>
+                        <th class="px-4 py-3 text-left font-semibold">Shënime</th>
+                        <th class="px-4 py-3 text-right font-semibold">Shuma</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-slate-100 bg-white">
                     {% for p in payments %}
-                        <tr>
-                            <td class="px-4 py-2">{{ p.created_at|date:"d.m.Y H:i" }}</td>
-                            <td class="px-4 py-2">{{ p.method|title }}</td>
-                            <td class="px-4 py-2">{{ p.notes }}</td>
-                            <td class="px-4 py-2 text-right font-semibold text-emerald-600">{{ p.amount }} €</td>
+                        <tr class="hover:bg-emerald-50/40 transition-colors">
+                            <td class="px-4 py-2 text-slate-800">
+                                {{ p.created_at|date:"d.m.Y H:i" }}
+                            </td>
+                            <td class="px-4 py-2 text-slate-700">
+                                {{ p.method|title }}
+                            </td>
+                            <td class="px-4 py-2 text-slate-600">
+                                {{ p.notes|default:"-" }}
+                            </td>
+                            <td class="px-4 py-2 text-right font-semibold text-emerald-700">
+                                {{ p.amount }} €
+                            </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="4" class="px-4 py-6 text-center text-gray-400">S’ka pagesa për këtë pacient.</td>
+                            <td colspan="4" class="px-4 py-6 text-center text-slate-400 text-sm">
+                                S’ka pagesa për këtë pacient.
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+    </div>
+
     {% endif %}
-        <script src="https://unpkg.com/alpinejs" defer></script>
+</div>
+
+<script src="https://unpkg.com/alpinejs" defer></script>
 {% endblock %}

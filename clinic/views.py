@@ -1254,6 +1254,7 @@ from django.utils import timezone
 # from .models import CareHistory, Agreement, Payment, Patient
 # nga kodi yt ekzistojnë _period_range dhe _obj_date
 
+
 @login_required
 def reports_new(request):
     start_date, end_date = _period_range(request)
@@ -1272,7 +1273,7 @@ def reports_new(request):
     ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
 
     start_dt = datetime.combine(start_date, time.min)
-    end_dt   = datetime.combine(end_date, time.max)
+    end_dt = datetime.combine(end_date, time.max)
 
     # -------- Payments në periudhë --------
     payments_for_histories = (
@@ -1315,9 +1316,13 @@ def reports_new(request):
                 "from_histories": Decimal("0.00"),
                 "from_agreements": Decimal("0.00"),
             }
-        payments_by_doctor_total[p["doctor_name"]]["from_agreements"] = p["total"] or Decimal("0.00")
+        payments_by_doctor_total[p["doctor_name"]]["from_agreements"] = (
+            p["total"] or Decimal("0.00")
+        )
     for doc, vals in payments_by_doctor_total.items():
-        vals["total"] = (vals["from_histories"] or Decimal("0.00")) + (vals["from_agreements"] or Decimal("0.00"))
+        vals["total"] = (
+            vals["from_histories"] or Decimal("0.00")
+        ) + (vals["from_agreements"] or Decimal("0.00"))
 
     # -------- KPI Totals (CASH-IN) --------
     total_paid_histories = payments_for_histories.aggregate(
@@ -1335,7 +1340,9 @@ def reports_new(request):
     histories_and_agreements = []
 
     # Map i paguar-deri-tani (all-time) për historitë që kanë pagesa në periudhë
-    history_ids = list(payments_for_histories.values_list("history_id", flat=True).distinct())
+    history_ids = list(
+        payments_for_histories.values_list("history_id", flat=True).distinct()
+    )
     paid_alltime_map = {}
     if history_ids:
         paid_alltime = (
@@ -1343,7 +1350,10 @@ def reports_new(request):
             .values("history_id")
             .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
         )
-        paid_alltime_map = {row["history_id"]: (row["total"] or Decimal("0.00")) for row in paid_alltime}
+        paid_alltime_map = {
+            row["history_id"]: (row["total"] or Decimal("0.00"))
+            for row in paid_alltime
+        }
 
     # Rreshta për pagesat e historive
     # - Vlera = amount i historisë
@@ -1364,7 +1374,19 @@ def reports_new(request):
 
         p.date = p.created_at
         p.doctor = getattr(h, "doctor", None)
-        p.history_diagnosis = getattr(h, "diagnosis", "-")
+
+        # ───────── Historia: TRAJTIM ose DIAGNOZË ─────────
+        # CareHistory ka fields: treatment, diagnosis
+        treatment = (getattr(h, "treatment", "") or "").strip()
+        diagnosis = (getattr(h, "diagnosis", "") or "").strip()
+
+        if treatment:
+            p.history_diagnosis = treatment
+        elif diagnosis:
+            p.history_diagnosis = diagnosis
+        else:
+            p.history_diagnosis = "-"
+
         histories_and_agreements.append(p)
 
     # Rreshta për pagesat e marrëveshjeve (pa borxh)
