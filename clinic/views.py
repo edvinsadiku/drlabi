@@ -1497,22 +1497,26 @@ def reports_new_export_excel(request):
         debt_now = history_amount - paid_to_date
         if debt_now < 0:
             debt_now = Decimal("0.00")
+        method_display = p.get_method_display() if hasattr(p, "get_method_display") else (p.method or "-")
         rows.append([
             _naive_local(p.created_at),
             getattr(p.patient, "emri_mbiemri", "-"),
             f"Histori: {getattr(h, 'diagnosis', '-') or '-'}",
             getattr(h, "doctor", None) or "-",
+            method_display,
             float(history_amount),
             float(p.amount or Decimal("0.00")),
             float(debt_now),
         ])
 
     for p in payments_for_agreements:
+        method_display = p.get_method_display() if hasattr(p, "get_method_display") else (p.method or "-")
         rows.append([
             _naive_local(p.created_at),
             getattr(p.patient, "emri_mbiemri", "-"),
             f"Marrëveshje: {getattr(p.agreement, 'title', '-') or '-'}",
             getattr(p.agreement, "doctor", None) or "-",
+            method_display,
             float(p.amount or Decimal("0.00")),
             float(p.amount or Decimal("0.00")),
             float(0),
@@ -1529,7 +1533,7 @@ def reports_new_export_excel(request):
     ws = wb.active
     ws.title = "Raporti"
 
-    headers = ["Data", "Pacienti", "Lloji", "Doktori", "Vlera (€)", "Paguar (€)", "Borxh (€)"]
+    headers = ["Data", "Pacienti", "Lloji", "Doktori", "Metoda", "Vlera (€)", "Paguar (€)", "Borxh (€)"]
     ws.append(headers)
     for r in rows:
         ws.append(r)
@@ -1556,7 +1560,7 @@ def reports_new_export_excel(request):
         for col_idx in range(1, max_col + 1):
             c = ws.cell(row=row_idx, column=col_idx)
             c.border = border_all
-            if col_idx in (5, 6, 7):
+            if col_idx in (6, 7, 8):
                 c.alignment = Alignment(horizontal="right", vertical="center")
                 c.number_format = currency_fmt
             elif col_idx == 1:
@@ -1565,7 +1569,7 @@ def reports_new_export_excel(request):
             else:
                 c.alignment = Alignment(vertical="center")
 
-    widths = {1: 19, 2: 26, 3: 36, 4: 18, 5: 14, 6: 14, 7: 14}
+    widths = {1: 19, 2: 26, 3: 36, 4: 18, 5: 14, 6: 14, 7: 14, 8: 14}
     for col_idx, w in widths.items():
         ws.column_dimensions[chr(64 + col_idx)].width = w
 
@@ -1588,20 +1592,20 @@ def reports_new_export_excel(request):
     totals_row_idx = data_last_row + 1
 
     ws.cell(row=totals_row_idx, column=1, value="Totali")
-    ws.merge_cells(start_row=totals_row_idx, start_column=1, end_row=totals_row_idx, end_column=4)
-    ws.cell(row=totals_row_idx, column=5, value=f"=SUM(E{data_first_row}:E{data_last_row})")
+    ws.merge_cells(start_row=totals_row_idx, start_column=1, end_row=totals_row_idx, end_column=5)
     ws.cell(row=totals_row_idx, column=6, value=f"=SUM(F{data_first_row}:F{data_last_row})")
     ws.cell(row=totals_row_idx, column=7, value=f"=SUM(G{data_first_row}:G{data_last_row})")
+    ws.cell(row=totals_row_idx, column=8, value=f"=SUM(H{data_first_row}:H{data_last_row})")
 
     bold_font = Font(bold=True)
     total_fill = PatternFill("solid", fgColor="EEF2FF")
-    for col_idx in range(1, 8):
+    for col_idx in range(1, 9):
         c = ws.cell(row=totals_row_idx, column=col_idx)
         c.font = bold_font
         c.fill = total_fill
         c.border = border_all
-        c.alignment = Alignment(horizontal="right" if col_idx >= 5 else "left", vertical="center")
-        if col_idx in (5, 6, 7):
+        c.alignment = Alignment(horizontal="right" if col_idx >= 6 else "left", vertical="center")
+        if col_idx in (6, 7, 8):
             c.number_format = currency_fmt
 
     # ==== Fleta KPI ====
