@@ -52,13 +52,16 @@ def home(request):
 
 @login_required
 def dashboard(request):
-    today = timezone.localdate()
+    now_local = timezone.localtime()
+    today = now_local.date()
     month_start = today.replace(day=1)
 
     total_patients = Patient.objects.count()
+    month_start_dt = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    next_month_dt = (month_start_dt + timedelta(days=32)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     new_patients_month = Patient.objects.filter(
-        created_at__date__gte=month_start,
-        created_at__date__lte=today,
+        created_at__gte=month_start_dt,
+        created_at__lt=next_month_dt,
     ).count()
 
     DECIMAL = DecimalField(max_digits=18, decimal_places=2)
@@ -183,9 +186,11 @@ def dashboard(request):
         Payment.objects.select_related("patient")
         .order_by("-created_at")[:6]
     )
+    day_start = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
     today_appointments = (
         Appointment.objects.select_related("patient")
-        .filter(start__date=today)
+        .filter(start__gte=day_start, start__lt=day_end)
         .order_by("start")[:6]
     )
 
