@@ -175,7 +175,7 @@
   <section class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
     <div class="px-4 md:px-5 py-3 border-b border-gray-100 bg-gray-50/70 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <div class="inline-flex items-center justify-center rounded-full bg-red-100 text-red-700 w-7 h-7 text-xs font-bold">
+        <div class="inline-flex items-center justify-center min-w-[32px] h-7 px-2 rounded-full bg-red-100 text-red-700 text-xs font-semibold tabular-nums">
           {{ total_patients }}
         </div>
         <div>
@@ -257,9 +257,9 @@
 
               <td class="px-4 md:px-5 py-3 text-right">
                 <span
-                  class="inline-flex items-center justify-end min-w-[90px] px-2 py-1 rounded-full text-xs font-semibold
+                  class="inline-flex items-center justify-center min-w-[100px] px-3 py-1 rounded-full text-xs font-semibold tabular-nums whitespace-nowrap
                          {% if p.debt > 0 %}
-                           bg-red-50 text-red-600 border border-red-100
+                           bg-red-50 text-red-700 border border-red-200
                          {% else %}
                            bg-emerald-50 text-emerald-700 border border-emerald-100
                          {% endif %}"
