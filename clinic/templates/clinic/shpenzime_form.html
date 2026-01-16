@@ -1,34 +1,66 @@
 {% extends "clinic/base.html" %}
 {% block title %}Shto Shpenzim{% endblock %}
 {% block content %}
-    <h2 class="text-lg font-semibold mb-4">Shto shpenzim</h2>
-    <form method="post" class="bg-white border rounded-lg p-5 space-y-4">
+    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-xl font-semibold text-gray-900">Shto shpenzim</h1>
+            <p class="text-sm text-gray-500">Regjistro një shpenzim të ri për klinikën.</p>
+        </div>
+        <a href="{% url 'shpenzime_list' %}"
+           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+            <i class="ph ph-arrow-left text-base"></i>
+            Kthehu tek lista
+        </a>
+    </div>
+
+    <form method="post" class="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm w-full max-w-3xl">
         {% csrf_token %}
-        <div>
-            <label class="block text-sm text-gray-600 mb-1">Shpenzimi</label>
-            <input name="shpenzimi" class="border rounded w-full p-2" required>
+        <div class="space-y-5">
+            <div>
+                <label class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Shpenzimi</label>
+                <input name="shpenzimi"
+                       class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200"
+                       placeholder="p.sh. Qira mujore"
+                       required>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Data</label>
+                    <input type="date"
+                           name="muaji"
+                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Vlera (€)</label>
+                    <input type="number"
+                           name="vlera"
+                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200">
+                </div>
+            </div>
+            <div>
+                <label class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                    <input type="checkbox" name="paguar" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                    <span>Paguar</span>
+                </label>
+                <p class="mt-1 text-xs text-gray-400">Shëno nëse shpenzimi është paguar.</p>
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Përshkrimi</label>
+                <textarea name="pershkrimi"
+                          rows="3"
+                          class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200"
+                          placeholder="Detaje shtesë (opsionale)"></textarea>
+            </div>
         </div>
-        <div>
-            <label class="block text-sm text-gray-600 mb-1">Data</label>
-            <input type="date" name="muaji" class="border rounded w-full p-2">
-        </div>
-        <div>
-            <label class="block text-sm text-gray-600 mb-1">Vlera (€)</label>
-            <input type="number" name="vlera" class="border rounded w-full p-2">
-        </div>
-        <div>
-            <label class="inline-flex items-center gap-2">
-                <input type="checkbox" name="paguar" class="rounded">
-                <span class="text-sm">Paguar</span>
-            </label>
-        </div>
-        <div>
-            <label class="block text-sm text-gray-600 mb-1">Përshkrimi</label>
-            <textarea name="pershkrimi" rows="2" class="border rounded w-full p-2"></textarea>
-        </div>
-        <div class="flex items-center gap-3">
-            <button class="px-4 py-2 bg-emerald-600 text-white rounded">Ruaj</button>
-            <a href="{% url 'shpenzime_list' %}" class="px-4 py-2 border rounded">Anulo</a>
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+            <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700">
+                <i class="ph ph-check-circle text-base"></i>
+                Ruaj
+            </button>
+            <a href="{% url 'shpenzime_list' %}"
+               class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50">
+                Anulo
+            </a>
         </div>
     </form>
 {% endblock %}
