@@ -2,9 +2,9 @@
   .fc {
     --fc-border-color: #e5e7eb;
     --fc-today-bg-color: #f8fafc;
-    --fc-button-bg-color: #10b981;
-    --fc-button-hover-bg-color: #059669;
-    --fc-button-active-bg-color: #047857;
+    --fc-button-bg-color: var(--brand-600, #1f82a4);
+    --fc-button-hover-bg-color: var(--brand-700, #196d88);
+    --fc-button-active-bg-color: var(--brand-800, #165a72);
     --fc-button-text-color: #fff;
   }
   .fc-toolbar-title {
@@ -18,7 +18,7 @@
     font-size: 0.85rem;
     padding: 2px 6px;
   }
-  .fc-view-timeGridDay .fc-event.scheduled { background-color: #10b981 !important; color: #fff !important; }
+  .fc-view-timeGridDay .fc-event.scheduled { background-color: var(--brand-600, #1f82a4) !important; color: #fff !important; }
   .fc-view-timeGridDay .fc-event.completed { background-color: #2563eb !important; color: #fff !important; }
   .fc-view-timeGridDay .fc-event.cancelled { background-color: #ef4444 !important; color: #fff !important; }
   .fc-view-listWeek .fc-event {

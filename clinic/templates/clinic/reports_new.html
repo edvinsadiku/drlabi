@@ -11,7 +11,7 @@
 
   <!-- HEADER + KPI + PRINT (stili si Raporti i Borxheve) -->
   <div class="relative print:hidden">
-    <!-- Butoni Print lart djathtas -->
+ok    <!-- Butoni Print lart djathtas -->
     <div class="absolute right-3 top-3 z-10">
       <button
         onclick="window.print()"
@@ -45,7 +45,7 @@
       <!-- KPI në të djathtë -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto text-sm">
         <!-- Faturuar -->
-        <div class="bg-white/85 border border-emerald-100 rounded-xl px-3.5 py-3 flex flex-col justify-between shadow-[0_6px_16px_rgba(16,185,129,0.08)]">
+        <div class="bg-white/85 border border-emerald-100 rounded-xl px-3.5 py-3 flex flex-col justify-between shadow-[0_6px_16px_rgba(37,150,190,0.08)]">
           <div class="flex items-center justify-between mb-1">
             <span class="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
               Faturuar (Totali)
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Paguar -->
-        <div class="bg-white/85 border border-emerald-100 rounded-xl px-3.5 py-3 flex flex-col justify-between shadow-[0_6px_16px_rgba(16,185,129,0.12)]">
+        <div class="bg-white/85 border border-emerald-100 rounded-xl px-3.5 py-3 flex flex-col justify-between shadow-[0_6px_16px_rgba(37,150,190,0.12)]">
           <div class="flex items-center justify-between mb-1">
             <span class="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
               Paguar (Cash-in)
@@ -101,8 +101,43 @@
     </div>
   </div>
 
+  <!-- QUICK PRESETS -->
+  <div class="flex flex-wrap items-center gap-2 text-xs md:text-sm print:hidden">
+    <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+      Shpejt
+    </span>
+    <button
+      type="button"
+      data-report-preset="today"
+      class="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
+    >
+      Sot
+    </button>
+    <button
+      type="button"
+      data-report-preset="week"
+      class="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
+    >
+      Kete jave
+    </button>
+    <button
+      type="button"
+      data-report-preset="month"
+      class="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
+    >
+      Kete muaj
+    </button>
+    <button
+      type="button"
+      data-report-preset="year"
+      class="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
+    >
+      Kete vit
+    </button>
+  </div>
+
   <!-- FILTRAT / PERIUDHA (të gjithë në një vijë në desktop) -->
-  <form method="get"
+  <form id="reports-filters" method="get"
         class="bg-white border border-slate-100 rounded-2xl p-4 md:p-5 mb-4 grid grid-cols-1 md:grid-cols-6 gap-3 md:gap-4 items-end shadow-sm print:hidden">
 
     <!-- Mode -->
@@ -421,6 +456,79 @@ flatpickr("#day-picker", {
   dateFormat: "Y-m-d",
   allowInput: true
 });
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function getIsoWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${pad2(weekNo)}`;
+}
+
+function initReportEnhancements() {
+  const form = document.getElementById("reports-filters");
+  if (form) {
+    const modeSelect = form.querySelector('select[name="mode"]');
+    const dayInput = form.querySelector('input[name="day"]');
+    const weekInput = form.querySelector('input[name="week"]');
+    const monthInput = form.querySelector('input[name="month"]');
+    const yearSelect = form.querySelector('select[name="year"]');
+
+    document.querySelectorAll("[data-report-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!modeSelect) {
+          return;
+        }
+        const preset = button.dataset.reportPreset;
+        const now = new Date();
+
+        if (preset === "today") {
+          modeSelect.value = "day";
+          onModeChange("day");
+          const value = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+          if (dayInput) {
+            dayInput.value = value;
+          }
+        } else if (preset === "week") {
+          modeSelect.value = "week";
+          onModeChange("week");
+          if (weekInput) {
+            weekInput.value = getIsoWeek(now);
+          }
+        } else if (preset === "month") {
+          modeSelect.value = "month";
+          onModeChange("month");
+          if (monthInput) {
+            monthInput.value = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+          }
+        } else if (preset === "year") {
+          modeSelect.value = "year";
+          onModeChange("year");
+          if (yearSelect) {
+            yearSelect.value = String(now.getFullYear());
+          }
+        }
+
+        if (typeof form.requestSubmit === "function") {
+          form.requestSubmit();
+        } else {
+          form.submit();
+        }
+      });
+    });
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initReportEnhancements);
+} else {
+  initReportEnhancements();
+}
 </script>
 
 {% endblock %}

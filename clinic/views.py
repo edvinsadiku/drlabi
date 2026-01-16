@@ -10,7 +10,7 @@ from django.db import models, transaction
 from django.db.models import (Case, Count, DateTimeField, DecimalField,
                               ExpressionWrapper, F, Max, OuterRef, Q, Subquery,
                               Sum, Value, When)
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, TruncMonth, Cast, ExtractMonth, ExtractYear
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.timezone import now
@@ -47,13 +47,181 @@ def redirect_tab(patient_id, tab):
 
 @login_required
 def home(request):
-    return patient_list(request)
+    return dashboard(request)
+
+
+@login_required
+def dashboard(request):
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+
+    total_patients = Patient.objects.count()
+    new_patients_month = Patient.objects.filter(
+        created_at__date__gte=month_start,
+        created_at__date__lte=today,
+    ).count()
+
+    DECIMAL = DecimalField(max_digits=18, decimal_places=2)
+    ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
+
+    def shift_month(d, offset):
+        year = d.year + (d.month - 1 + offset) // 12
+        month = (d.month - 1 + offset) % 12 + 1
+        return date(year, month, 1)
+
+    months = [shift_month(month_start, offset) for offset in range(-5, 1)]
+    period_start = months[0]
+
+    payments_by_month = (
+        Payment.objects.annotate(
+            effective_date=Coalesce("created_at", "date", output_field=DateTimeField()),
+        )
+        .annotate(effective_day=Cast("effective_date", models.DateField()))
+        .filter(
+            effective_day__gte=period_start,
+            effective_day__lte=today,
+        )
+        .values(
+            year=ExtractYear("effective_day"),
+            month=ExtractMonth("effective_day"),
+        )
+        .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
+        .order_by("year", "month")
+    )
+
+    totals_by_key = {}
+    for row in payments_by_month:
+        year = row.get("year")
+        month = row.get("month")
+        if year and month:
+            key = f"{year:04d}-{month:02d}"
+            totals_by_key[key] = row["total"] or Decimal("0.00")
+
+    max_total = max(totals_by_key.values(), default=Decimal("0.00"))
+    payments_series = []
+    for m in months:
+        key = m.strftime("%Y-%m")
+        total = totals_by_key.get(key, Decimal("0.00"))
+        pct = float(total / max_total) * 100 if max_total > 0 else 0.0
+        payments_series.append(
+            {
+                "label": m.strftime("%m/%Y"),
+                "total": total,
+                "pct": round(pct, 0),
+            }
+        )
+
+    month_paid = totals_by_key.get(month_start.strftime("%Y-%m"), Decimal("0.00"))
+
+    histories_no_agreement = (
+        CareHistory.objects.filter(
+            agreement__isnull=True,
+            included_in_agreement=False,
+            patient=OuterRef("pk"),
+        )
+        .values("patient")
+        .annotate(total=Sum("amount"))
+        .values("total")
+    )
+    histories_no_agreement_paid = (
+        Payment.objects.filter(
+            history__agreement__isnull=True,
+            history__included_in_agreement=False,
+            history__patient=OuterRef("pk"),
+        )
+        .values("history__patient")
+        .annotate(total=Sum("amount"))
+        .values("total")
+    )
+    agreements_total = (
+        Agreement.objects.filter(patient=OuterRef("pk"))
+        .values("patient")
+        .annotate(total=Sum("total_amount"))
+        .values("total")
+    )
+    agreements_paid = (
+        Payment.objects.filter(agreement__patient=OuterRef("pk"))
+        .values("agreement__patient")
+        .annotate(total=Sum("amount"))
+        .values("total")
+    )
+
+    debt_qs = (
+        Patient.objects.annotate(
+            ch_billed=Coalesce(Subquery(histories_no_agreement, output_field=DECIMAL), ZERO),
+            ch_paid=Coalesce(Subquery(histories_no_agreement_paid, output_field=DECIMAL), ZERO),
+            agr_billed=Coalesce(Subquery(agreements_total, output_field=DECIMAL), ZERO),
+            agr_paid=Coalesce(Subquery(agreements_paid, output_field=DECIMAL), ZERO),
+        )
+        .annotate(
+            total_billed=F("ch_billed") + F("agr_billed"),
+            total_paid=F("ch_paid") + F("agr_paid"),
+        )
+        .annotate(
+            debt_raw=F("total_billed") - F("total_paid"),
+        )
+        .annotate(
+            debt=Case(
+                When(debt_raw__gt=0, then=F("debt_raw")),
+                default=ZERO,
+                output_field=DECIMAL,
+            ),
+        )
+    )
+
+    total_debt = debt_qs.aggregate(
+        total=Coalesce(Sum("debt", output_field=DECIMAL), ZERO)
+    )["total"] or Decimal("0.00")
+    patients_with_debt = debt_qs.filter(debt__gt=0).count()
+    top_debts = (
+        debt_qs.filter(debt__gt=0)
+        .order_by(F("debt").desc(nulls_last=True), "emri_mbiemri")
+        .values("id", "emri_mbiemri", "debt")[:6]
+    )
+
+    recent_payments = (
+        Payment.objects.select_related("patient")
+        .order_by("-created_at")[:6]
+    )
+    today_appointments = (
+        Appointment.objects.select_related("patient")
+        .filter(start__date=today)
+        .order_by("start")[:6]
+    )
+
+    return render(
+        request,
+        "clinic/dashboard.html",
+        {
+            "today": today,
+            "total_patients": total_patients,
+            "new_patients_month": new_patients_month,
+            "month_paid": month_paid,
+            "total_debt": total_debt,
+            "patients_with_debt": patients_with_debt,
+            "payments_series": payments_series,
+            "recent_payments": recent_payments,
+            "top_debts": top_debts,
+            "today_appointments": today_appointments,
+        },
+    )
 
 
 @login_required
 def patient_list(request):
     q = (request.GET.get("q") or "").strip()
     has_debt = request.GET.get("debt") == "1"
+    order = (request.GET.get("order") or "recent").lower()
+    allowed_orders = {
+        "recent",
+        "recent_oldest",
+        "name_asc",
+        "name_desc",
+        "registered_newest",
+        "registered_oldest",
+    }
+    if order not in allowed_orders:
+        order = "recent"
 
     qs = Patient.objects.all()
 
@@ -87,7 +255,18 @@ def patient_list(request):
         city=Coalesce(F("adresa"), Value("")),
     )
 
-    qs = qs.order_by(F("last_history").desc(nulls_last=True), F("id").desc())
+    if order == "recent_oldest":
+        qs = qs.order_by(F("last_history").asc(nulls_last=True), F("id").asc())
+    elif order == "name_asc":
+        qs = qs.order_by(F("emri_mbiemri").asc(nulls_last=True), F("id").asc())
+    elif order == "name_desc":
+        qs = qs.order_by(F("emri_mbiemri").desc(nulls_last=True), F("id").desc())
+    elif order == "registered_newest":
+        qs = qs.order_by(F("register_date").desc(nulls_last=True), F("id").desc())
+    elif order == "registered_oldest":
+        qs = qs.order_by(F("register_date").asc(nulls_last=True), F("id").asc())
+    else:
+        qs = qs.order_by(F("last_history").desc(nulls_last=True), F("id").desc())
 
     # 🔄 Paginimi
     paginator = Paginator(qs, 20)
@@ -107,6 +286,7 @@ def patient_list(request):
             "page_numbers": page_numbers,
             "q": q,
             "has_debt": has_debt,
+            "order": order,
             "total_patients": paginator.count,
         },
     )

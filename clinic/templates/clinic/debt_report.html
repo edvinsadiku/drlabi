@@ -26,7 +26,7 @@
 
     <div class="grid grid-cols-2 gap-3 md:grid-cols-3 text-sm w-full md:w-auto">
       <!-- Card 1: Pacientë me borxh -->
-      <div class="bg-white/80 border border-emerald-100 rounded-xl px-3.5 py-3 flex flex-col justify-between shadow-[0_6px_16px_rgba(16,185,129,0.08)]">
+      <div class="bg-white/80 border border-emerald-100 rounded-xl px-3.5 py-3 flex flex-col justify-between shadow-[0_6px_16px_rgba(37,150,190,0.08)]">
         <div class="flex items-center justify-between mb-1">
           <span class="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
             Pacientë me borxh
@@ -95,7 +95,7 @@
 
   <!-- FILTRAT -->
   <section class="bg-white border border-gray-100 rounded-2xl shadow-sm">
-    <form method="get" class="p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 text-sm">
+    <form id="debt-filters" method="get" class="p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 text-sm">
       <div class="space-y-1.5">
         <label class="block text-[11px] font-semibold text-gray-600 tracking-wide uppercase">
           Kërko pacientin
@@ -163,28 +163,10 @@
         </select>
       </div>
 
-      <div class="sm:col-span-2 lg:col-span-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 pt-2 border-t border-dashed border-gray-100 mt-2">
+      <div class="sm:col-span-2 lg:col-span-4 pt-2 border-t border-dashed border-gray-100 mt-2">
         <p class="text-[11px] text-gray-400">
-          Përdor filtrat për të fokusuar listën vetëm në borxhet që të interesojnë.
+          Përdor filtrat për të fokusuar listën vetëm në borxhet që të interesojnë. Filtrat aplikohen automatikisht.
         </p>
-        <div class="flex justify-end gap-2">
-          <a
-            href="{% url 'debt_report' %}"
-            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200
-                   text-gray-700 text-xs md:text-sm bg-white hover:bg-gray-50 transition"
-          >
-            <span class="text-sm">↺</span>
-            <span>Reseto filtrat</span>
-          </a>
-          <button
-            type="submit"
-            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white
-                   text-xs md:text-sm hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition"
-          >
-            <span class="text-sm">✓</span>
-            <span>Apliko filtrat</span>
-          </button>
-        </div>
       </div>
     </form>
   </section>
@@ -329,4 +311,45 @@
   </section>
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const form = document.getElementById("debt-filters");
+  if (!form) {
+    return;
+  }
+
+  let debounceId = null;
+  const submitForm = () => {
+    if (debounceId) {
+      clearTimeout(debounceId);
+      debounceId = null;
+    }
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+    } else {
+      form.submit();
+    }
+  };
+
+  const submitWithDelay = () => {
+    clearTimeout(debounceId);
+    debounceId = setTimeout(submitForm, 400);
+  };
+
+  const qInput = form.querySelector('input[name="q"]');
+  if (qInput) {
+    qInput.addEventListener("input", submitWithDelay);
+  }
+
+  const minDebtInput = form.querySelector('input[name="min_debt"]');
+  if (minDebtInput) {
+    minDebtInput.addEventListener("input", submitWithDelay);
+  }
+
+  form.querySelectorAll("select").forEach((el) => {
+    el.addEventListener("change", submitForm);
+  });
+});
+</script>
 {% endblock %}

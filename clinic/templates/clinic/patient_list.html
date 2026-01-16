@@ -27,28 +27,61 @@
             </a>
         </div>
     </div>
-    <!-- SEARCH -->
-    <div class="mt-6 md:flex md:items-center md:justify-between">
-        <div class="relative flex items-center w-full md:w-80">
-            <span class="absolute">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke-width="1.5"
-                     stroke="currentColor"
-                     class="w-5 h-5 mx-3 text-gray-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                </svg>
-            </span>
-            <form method="get" class="w-full" id="searchForm">
+    <!-- SEARCH + FILTERS -->
+    <div class="mt-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end" id="searchForm">
+            <div class="relative flex items-center w-full md:col-span-5">
+                <span class="absolute">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="1.5"
+                         stroke="currentColor"
+                         class="w-5 h-5 mx-3 text-gray-400">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                </span>
                 <input type="text"
                        name="q"
                        value="{{ q }}"
                        id="searchInput"
                        placeholder="Kërko pacient..."
                        class="block w-full py-2 pl-11 pr-4 text-gray-700 bg-white border rounded-lg border-gray-200 focus:border-emerald-500 focus:ring focus:ring-emerald-300 focus:ring-opacity-40">
-            </form>
-        </div>
+            </div>
+
+            <div class="md:col-span-4">
+                <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                    Renditja
+                </label>
+                <select
+                    name="order"
+                    class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-emerald-500 focus:ring focus:ring-emerald-300 focus:ring-opacity-40"
+                >
+                    <option value="recent" {% if order == "recent" %}selected{% endif %}>Aktiviteti i fundit (më i ri)</option>
+                    <option value="recent_oldest" {% if order == "recent_oldest" %}selected{% endif %}>Aktiviteti i fundit (më i vjetër)</option>
+                    <option value="name_asc" {% if order == "name_asc" %}selected{% endif %}>Emri A-Z</option>
+                    <option value="name_desc" {% if order == "name_desc" %}selected{% endif %}>Emri Z-A</option>
+                    <option value="registered_newest" {% if order == "registered_newest" %}selected{% endif %}>Regjistruar (më i ri)</option>
+                    <option value="registered_oldest" {% if order == "registered_oldest" %}selected{% endif %}>Regjistruar (më i vjetër)</option>
+                </select>
+            </div>
+
+            <div class="md:col-span-3">
+                <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                    Borxhi
+                </label>
+                <label class="inline-flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700">
+                    <input
+                        type="checkbox"
+                        name="debt"
+                        value="1"
+                        class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        {% if has_debt %}checked{% endif %}
+                    >
+                    <span>Vetëm me borxh</span>
+                </label>
+            </div>
+        </form>
     </div>
     <!-- TABLE -->
     <div class="flex flex-col mt-6">
@@ -159,72 +192,100 @@
         </div>
     </div>
     <!-- PAGINATION -->
-    {% if page_obj.paginator.num_pages > 1 %}
-        <div class="mt-6 flex items-center justify-between">
-            <div class="text-sm text-gray-500">
-                Faqe <span class="font-medium text-gray-700">{{ page_obj.number }}</span> nga
-                <span class="font-medium text-gray-700">{{ page_obj.paginator.num_pages }}</span>
+    <div id="patientPagination">
+        {% if page_obj.paginator.num_pages > 1 %}
+            <div class="mt-6 flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                    Faqe <span class="font-medium text-gray-700">{{ page_obj.number }}</span> nga
+                    <span class="font-medium text-gray-700">{{ page_obj.paginator.num_pages }}</span>
+                </div>
+                <div class="flex items-center gap-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if has_debt %}&debt=1{% endif %}&order={{ order }}"
+                           class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">‹ Mbrapa</a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if has_debt %}&debt=1{% endif %}&order={{ order }}"
+                           class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">Para ›</a>
+                    {% endif %}
+                </div>
             </div>
-            <div class="flex items-center gap-x-2">
-                {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
-                       class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">‹ Mbrapa</a>
-                {% endif %}
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
-                       class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">Para ›</a>
-                {% endif %}
-            </div>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
     <!-- Auto-search script -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   const input = document.getElementById("searchInput");
   const tableContainer = document.querySelector("table").parentElement; 
+  const filtersForm = document.getElementById("searchForm");
   let timeout = null;
+
+  const buildQuery = () => {
+    if (!filtersForm) {
+      const q = input ? input.value.trim() : "";
+      return q ? `q=${encodeURIComponent(q)}` : "";
+    }
+    return new URLSearchParams(new FormData(filtersForm)).toString();
+  };
+
+  const fetchPatients = () => {
+    const query = buildQuery();
+    const url = query ? `?${query}` : window.location.pathname;
+    fetch(url, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+      .then(async response => {
+        const text = await response.text();
+
+        // Kontrollo nëse përgjigjja është JSON apo HTML
+        try {
+          const data = JSON.parse(text);
+          if (data.success && data.patient) {
+            console.log("Pacienti gjetur:", data.patient);
+            // nëse do, mund t’i mbushësh automatikisht në modal:
+            // document.getElementById("f_emri").value = data.patient.emri_mbiemri;
+            return;
+          }
+        } catch (e) {
+          // nuk është JSON → vazhdo me HTML
+        }
+
+        // nëse nuk është JSON, trajtoje si HTML (update tabelën)
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+        const newTable = doc.querySelector("table");
+        const oldTable = document.querySelector("table");
+        const newCount = doc.querySelector("span.px-3"); 
+        const oldCount = document.querySelector("span.px-3");
+        const newPagination = doc.querySelector("#patientPagination");
+        const oldPagination = document.querySelector("#patientPagination");
+
+        if (newTable && oldTable) {
+          oldTable.innerHTML = newTable.innerHTML;
+        }
+        if (newCount && oldCount) {
+          oldCount.innerHTML = newCount.innerHTML;
+        }
+        if (newPagination && oldPagination) {
+          oldPagination.innerHTML = newPagination.innerHTML;
+        }
+      })
+      .catch(err => console.error("Gabim në kërkim:", err));
+  };
 
   input.addEventListener("input", function() {
     clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      const q = input.value.trim();
-      fetch(`?q=${encodeURIComponent(q)}`, {
-        headers: { "X-Requested-With": "XMLHttpRequest" }
-      })
-        .then(async response => {
-          const text = await response.text();
-
-          // Kontrollo nëse përgjigjja është JSON apo HTML
-          try {
-            const data = JSON.parse(text);
-            if (data.success && data.patient) {
-              console.log("Pacienti gjetur:", data.patient);
-              // nëse do, mund t’i mbushësh automatikisht në modal:
-              // document.getElementById("f_emri").value = data.patient.emri_mbiemri;
-              return;
-            }
-          } catch (e) {
-            // nuk është JSON → vazhdo me HTML
-          }
-
-          // nëse nuk është JSON, trajtoje si HTML (update tabelën)
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(text, "text/html");
-          const newTable = doc.querySelector("table");
-          const oldTable = document.querySelector("table");
-          const newCount = doc.querySelector("span.px-3"); 
-          const oldCount = document.querySelector("span.px-3");
-
-          if (newTable && oldTable) {
-            oldTable.innerHTML = newTable.innerHTML;
-          }
-          if (newCount && oldCount) {
-            oldCount.innerHTML = newCount.innerHTML;
-          }
-        })
-        .catch(err => console.error("Gabim në kërkim:", err));
-    }, 400);
+    timeout = setTimeout(fetchPatients, 400);
   });
+
+  if (filtersForm) {
+    filtersForm.querySelectorAll("select, input[type='checkbox']").forEach((el) => {
+      el.addEventListener("change", () => {
+        clearTimeout(timeout);
+        fetchPatients();
+      });
+    });
+  }
 
   document.addEventListener("click", function(e) {
     if (e.target.tagName === "A" && e.target.closest(".pagination-link")) {
@@ -239,12 +300,17 @@ document.addEventListener("DOMContentLoaded", function() {
           const oldTable = document.querySelector("table");
           const newCount = doc.querySelector("span.px-3");
           const oldCount = document.querySelector("span.px-3");
+          const newPagination = doc.querySelector("#patientPagination");
+          const oldPagination = document.querySelector("#patientPagination");
 
           if (newTable && oldTable) {
             oldTable.innerHTML = newTable.innerHTML;
           }
           if (newCount && oldCount) {
             oldCount.innerHTML = newCount.innerHTML;
+          }
+          if (newPagination && oldPagination) {
+            oldPagination.innerHTML = newPagination.innerHTML;
           }
         })
         .catch(err => console.error("Gabim në pagination:", err));
@@ -362,6 +428,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Elements common
   const input = document.getElementById("searchInput");
   const tableContainer = document.querySelector("table").parentElement;
+  const filtersForm = document.getElementById("searchForm");
   const modal = document.getElementById("patientModal");
   const card = document.getElementById("patientCard");
   const form = document.getElementById("patientForm");
@@ -520,58 +587,83 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  function buildQuery() {
+    if (!filtersForm) {
+      const q = input ? input.value.trim() : "";
+      return q ? `q=${encodeURIComponent(q)}` : "";
+    }
+    return new URLSearchParams(new FormData(filtersForm)).toString();
+  }
+
+  async function fetchPatients() {
+    const query = buildQuery();
+    const url = query ? `?${query}` : window.location.pathname;
+    try {
+      const res = await fetch(url, {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      });
+
+      // Try to parse JSON (some endpoints may return patient JSON)
+      const text = await res.text();
+
+      // If text is JSON (server returned patient object), handle accordingly
+      try {
+        const data = JSON.parse(text);
+        if (data && data.success && data.patient) {
+          // If you want: open modal automatically when AJAX search returns a single patient
+          // For now we just log and fill the form (but don't auto-open modal)
+          console.log("AJAX search found patient:", data.patient);
+          // optional: open modal automatically:
+          // form.dataset.url = `/patients/edit/${data.patient.id}/`;
+          // fillFormWithPatient(data.patient);
+          // openPatientModal();
+          return;
+        }
+      } catch (err) {
+        // not JSON -> treat as HTML table
+      }
+
+      // Parse HTML and update table + count
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "text/html");
+      const newTable = doc.querySelector("table");
+      const oldTable = document.querySelector("table");
+      const newCount = doc.querySelector("span.px-3");
+      const oldCount = document.querySelector("span.px-3");
+      const newPagination = doc.querySelector("#patientPagination");
+      const oldPagination = document.querySelector("#patientPagination");
+
+      if (newTable && oldTable) {
+        oldTable.innerHTML = newTable.innerHTML;
+      }
+      if (newCount && oldCount) {
+        oldCount.innerHTML = newCount.innerHTML;
+      }
+      if (newPagination && oldPagination) {
+        oldPagination.innerHTML = newPagination.innerHTML;
+      }
+
+      // No need to rebind because we use delegated click handler above
+
+    } catch (err) {
+      console.error("Gabim në kërkim:", err);
+    }
+  }
+
   // ---------- Live search (input event) ----------
   input.addEventListener("input", function() {
     clearTimeout(timeout);
-    timeout = setTimeout(async () => {
-      const q = input.value.trim();
-      try {
-        const res = await fetch(`?q=${encodeURIComponent(q)}`, {
-          headers: { "X-Requested-With": "XMLHttpRequest" }
-        });
-
-        // Try to parse JSON (some endpoints may return patient JSON)
-        const text = await res.text();
-
-        // If text is JSON (server returned patient object), handle accordingly
-        try {
-          const data = JSON.parse(text);
-          if (data && data.success && data.patient) {
-            // If you want: open modal automatically when AJAX search returns a single patient
-            // For now we just log and fill the form (but don't auto-open modal)
-            console.log("AJAX search found patient:", data.patient);
-            // optional: open modal automatically:
-            // form.dataset.url = `/patients/edit/${data.patient.id}/`;
-            // fillFormWithPatient(data.patient);
-            // openPatientModal();
-            return;
-          }
-        } catch (err) {
-          // not JSON -> treat as HTML table
-        }
-
-        // Parse HTML and update table + count
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, "text/html");
-        const newTable = doc.querySelector("table");
-        const oldTable = document.querySelector("table");
-        const newCount = doc.querySelector("span.px-3");
-        const oldCount = document.querySelector("span.px-3");
-
-        if (newTable && oldTable) {
-          oldTable.innerHTML = newTable.innerHTML;
-        }
-        if (newCount && oldCount) {
-          oldCount.innerHTML = newCount.innerHTML;
-        }
-
-        // No need to rebind because we use delegated click handler above
-
-      } catch (err) {
-        console.error("Gabim në kërkim:", err);
-      }
-    }, 400);
+    timeout = setTimeout(fetchPatients, 400);
   });
+
+  if (filtersForm) {
+    filtersForm.querySelectorAll("select, input[type='checkbox']").forEach((el) => {
+      el.addEventListener("change", () => {
+        clearTimeout(timeout);
+        fetchPatients();
+      });
+    });
+  }
 
   // ---------- Pagination links (delegated) ----------
   // If pagination links have class .pagination-link, handle them
@@ -591,8 +683,11 @@ document.addEventListener("DOMContentLoaded", () => {
           const oldTable = document.querySelector("table");
           const newCount = doc.querySelector("span.px-3");
           const oldCount = document.querySelector("span.px-3");
+          const newPagination = doc.querySelector("#patientPagination");
+          const oldPagination = document.querySelector("#patientPagination");
           if (newTable && oldTable) oldTable.innerHTML = newTable.innerHTML;
           if (newCount && oldCount) oldCount.innerHTML = newCount.innerHTML;
+          if (newPagination && oldPagination) oldPagination.innerHTML = newPagination.innerHTML;
           // delegated handlers still work
         })
         .catch(err => console.error("Gabim në pagination:", err));

@@ -42,10 +42,10 @@ tr:hover td {
 
 /* Etiketa pagesash */
 .bg-emerald-50 {
-  background-color: #ecfdf5;
+  background-color: var(--brand-50, #e9f4f8);
 }
 .text-emerald-600 {
-  color: #059669;
+  color: var(--brand-600, #1f82a4);
 }
 
 /* Buttonet e vogla */

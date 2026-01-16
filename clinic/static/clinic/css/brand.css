@@ -1,0 +1,88 @@
+:root {
+  --brand-50: #e9f4f8;
+  --brand-100: #d3eaf2;
+  --brand-200: #a7d5e5;
+  --brand-500: #2596be;
+  --brand-600: #1f82a4;
+  --brand-700: #196d88;
+  --brand-800: #165a72;
+  --brand-900: #134b5f;
+  --accent-50: #e6f6f6;
+  --accent-100: #cdefee;
+  --accent-200: #9cdddc;
+  --accent-500: #08a9a8;
+  --accent-600: #07908f;
+  --accent-700: #067676;
+  --accent-800: #056565;
+  --accent-900: #045454;
+}
+
+/* Primary (emerald -> brand) */
+.bg-emerald-50 { background-color: var(--brand-50) !important; }
+.bg-emerald-100 { background-color: var(--brand-100) !important; }
+.bg-emerald-200 { background-color: var(--brand-200) !important; }
+.bg-emerald-500 { background-color: var(--brand-500) !important; }
+.bg-emerald-600 { background-color: var(--brand-600) !important; }
+.bg-emerald-700 { background-color: var(--brand-700) !important; }
+.bg-emerald-800 { background-color: var(--brand-800) !important; }
+.bg-emerald-900 { background-color: var(--brand-900) !important; }
+
+.text-emerald-50 { color: var(--brand-50) !important; }
+.text-emerald-100 { color: var(--brand-100) !important; }
+.text-emerald-200 { color: var(--brand-200) !important; }
+.text-emerald-500 { color: var(--brand-500) !important; }
+.text-emerald-600 { color: var(--brand-600) !important; }
+.text-emerald-700 { color: var(--brand-700) !important; }
+.text-emerald-800 { color: var(--brand-800) !important; }
+.text-emerald-900 { color: var(--brand-900) !important; }
+
+.border-emerald-100 { border-color: var(--brand-100) !important; }
+.border-emerald-200 { border-color: var(--brand-200) !important; }
+.border-emerald-500 { border-color: var(--brand-500) !important; }
+.border-emerald-600 { border-color: var(--brand-600) !important; }
+
+.ring-emerald-200 { --tw-ring-color: var(--brand-200) !important; }
+.ring-emerald-500 { --tw-ring-color: var(--brand-500) !important; }
+.focus\:ring-emerald-200:focus { --tw-ring-color: var(--brand-200) !important; }
+.focus\:ring-emerald-500:focus { --tw-ring-color: var(--brand-500) !important; }
+.focus\:border-emerald-500:focus { border-color: var(--brand-500) !important; }
+.focus\:border-emerald-600:focus { border-color: var(--brand-600) !important; }
+
+.hover\:bg-emerald-50:hover { background-color: var(--brand-50) !important; }
+.hover\:bg-emerald-600:hover { background-color: var(--brand-600) !important; }
+.hover\:bg-emerald-700:hover { background-color: var(--brand-700) !important; }
+.hover\:text-emerald-600:hover { color: var(--brand-600) !important; }
+.hover\:text-emerald-700:hover { color: var(--brand-700) !important; }
+
+.shadow-emerald-200 { --tw-shadow-color: var(--brand-200) !important; }
+
+/* Opacity variants */
+.bg-emerald-50\/30 { background-color: rgba(233, 244, 248, 0.3) !important; }
+.bg-emerald-50\/40 { background-color: rgba(233, 244, 248, 0.4) !important; }
+.bg-emerald-50\/50 { background-color: rgba(233, 244, 248, 0.5) !important; }
+.hover\:bg-emerald-50\/40:hover { background-color: rgba(233, 244, 248, 0.4) !important; }
+.hover\:bg-emerald-50\/50:hover { background-color: rgba(233, 244, 248, 0.5) !important; }
+
+.text-emerald-800\/80 { color: rgba(22, 90, 114, 0.8) !important; }
+.text-emerald-900\/70 { color: rgba(19, 75, 95, 0.7) !important; }
+.text-emerald-900\/80 { color: rgba(19, 75, 95, 0.8) !important; }
+
+/* Gradients */
+.from-emerald-50 {
+  --tw-gradient-from: var(--brand-50) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgba(233, 244, 248, 0) var(--tw-gradient-to-position);
+}
+.via-emerald-100\/60 {
+  --tw-gradient-to: rgba(211, 234, 242, 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), rgba(211, 234, 242, 0.6) var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+.to-emerald-50 { --tw-gradient-to: var(--brand-50) var(--tw-gradient-to-position); }
+.from-emerald-600 {
+  --tw-gradient-from: var(--brand-600) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgba(31, 130, 164, 0) var(--tw-gradient-to-position);
+}
+.to-emerald-500 { --tw-gradient-to: var(--brand-500) var(--tw-gradient-to-position); }
+
+/* Secondary (sky -> accent) */
+.bg-sky-50 { background-color: var(--accent-50) !important; }
+.text-sky-600 { color: var(--accent-600) !important; }
