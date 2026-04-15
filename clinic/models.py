@@ -204,6 +204,7 @@ class Appointment(models.Model):
 
     class Meta:
         db_table = "appointments"
+        managed = False
         ordering = ["-start"]
 
     def __str__(self):
