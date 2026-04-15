@@ -220,6 +220,8 @@ class PatientDocument(models.Model):
         on_delete=models.CASCADE,
         db_column="patient_id",
         related_name="documents",
+        null=True,
+        blank=True,
     )
     file = models.FileField(upload_to="patient_documents/")
     uploaded_by = models.ForeignKey(
@@ -255,6 +257,8 @@ class Agreement(models.Model):
         related_name="agreements",
         db_constraint=False,
         db_column="patient_id",
+        null=True,
+        blank=True,
     )
     title = models.CharField(max_length=191, default="Marrëveshje trajtimi")
     total_amount = models.DecimalField(max_digits=18, decimal_places=2)
@@ -414,6 +418,7 @@ class Payment(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="payments",
+        
     )
     agreement = models.ForeignKey(
         Agreement,
@@ -460,6 +465,8 @@ class Prescription(models.Model):
         on_delete=models.CASCADE,
         related_name="prescriptions",
         db_column="patient_id",
+        null=True,
+        blank=True,
     )
     # Snapshot (opsionale por të dobishme për dokumente të printueshme)
     patient_name = models.CharField(max_length=191)
