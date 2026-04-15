@@ -1,10 +1,8 @@
-{% extends "clinic/base.html" %}
+{% extends is_modal|yesno:"clinic/modal_base.html,clinic/base.html" %}
 {% block title %}Marrëveshje e re – {{ patient.emri_mbiemri }}{% endblock %}
 {% block content %}
     <div class="mb-5 flex items-center justify-between">
         <h2 class="text-xl font-semibold tracking-tight">Krijo marrëveshje për: {{ patient.emri_mbiemri }}</h2>
-        <a href="{% url 'patient_detail' patient.id %}"
-           class="px-3 py-2 border rounded bg-white hover:bg-gray-50 text-sm">Kthehu</a>
     </div>
     <form method="post" class="bg-white border rounded-xl p-5 md:p-6 space-y-6">
         {% csrf_token %}

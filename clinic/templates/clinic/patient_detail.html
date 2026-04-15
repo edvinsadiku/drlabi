@@ -46,6 +46,12 @@
       <div><dt class="text-gray-500">Email</dt><dd class="font-medium text-gray-800 break-all">{{ patient.emaili }}</dd></div>
       <div class="sm:col-span-2"><dt class="text-gray-500">Adresa</dt><dd class="font-medium text-gray-800">{{ patient.adresa }}</dd></div>
       <div><dt class="text-gray-500">Numri i letërnjoftimit</dt><dd class="font-medium text-gray-800">{{ patient.leternjoftimi|default:"—" }}</dd></div>
+      <div class="sm:col-span-2">
+        <dt class="text-gray-500">Informata shtesë / shënime mjekësore</dt>
+        <dd class="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 font-medium text-gray-800 whitespace-pre-line">
+          {{ patient.informata_shtese|default:"—" }}
+        </dd>
+      </div>
     </dl>
   </article>
 

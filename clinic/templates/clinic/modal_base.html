@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Modal{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="{% static 'clinic/css/brand.css' %}">
+  <link rel="stylesheet" href="{% static 'clinic/css/add_history.css' %}">
+  <style>
+    body { font-family: Inter, sans-serif; background: #fff; }
+  </style>
+</head>
+<body class="bg-white text-slate-900">
+  <main class="p-4 md:p-5">
+    {% block content %}{% endblock %}
+  </main>
+  {% if needs_history_js %}
+    <script src="{% static 'clinic/js/add_history.js' %}" defer></script>
+  {% endif %}
+  <script src="{% static 'clinic/js/patient_detail.js' %}" defer></script>
+  <script src="https://unpkg.com/alpinejs" defer></script>
+</body>
+</html>

@@ -15,11 +15,13 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
 from .models import (Agreement, Appointment, CareHistory, Historia,
                      HistoryOrtodentics, PatienOrtodentics, Patient,
-                     PatientDocument, Payment, Shpenzimet,Prescription)
+                     PatientDocument, Payment, Shpenzimet, Prescription,
+                     DOCTOR_CHOICES)
 from datetime import datetime
 from django.db.models.functions import Coalesce, Greatest
 from django.http import Http404
@@ -306,6 +308,7 @@ except Exception:
 
 
 @login_required
+@xframe_options_sameorigin
 def patient_detail(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
 
@@ -428,29 +431,133 @@ def patient_detail(request, pk):
     # (opsionale) Recent prescriptions në context — tab-i gjithsesi i merr me AJAX
     prescriptions = patient.prescriptions.all().order_by("-prescription_date", "-id")[:50]
 
-    return render(
-        request,
-        "clinic/patient_detail.html",
-        {
-            "patient": patient,
-            "historias": historias,
-            "ortho_histories": ortho_histories,
-            "total_vlera": total_vlera,
-            "total_paguar": total_paguar,
-            "total_borgji": total_borgji,
-            "payments_new": payments_new_qs,
-            "total_paid_new": total_paid_new,
-            "total_billed_new": total_billed_new,
-            "debt_new": debt_new,
-            "total_agreements_balance": total_agreements_balance,
-            "agreements_new": agreements_qs,
-            "agreements_active": agreements_active,
-            "care_histories_all": care_histories_all,
-            "unpaid_histories": unpaid_histories,
-            "documents": documents,
-            "prescriptions": prescriptions,
-        },
-    )
+    def timeline_sort_value(value):
+        if isinstance(value, datetime):
+            if timezone.is_aware(value):
+                return timezone.localtime(value).replace(tzinfo=None)
+            return value
+        if isinstance(value, date):
+            return datetime.combine(value, time.min)
+        return datetime.min
+
+    def timeline_date_display(value):
+        if isinstance(value, datetime):
+            dt = timezone.localtime(value) if timezone.is_aware(value) else value
+            return dt.strftime("%d.%m.%Y %H:%M")
+        if isinstance(value, date):
+            return value.strftime("%d.%m.%Y")
+        return "-"
+
+    timeline_items = []
+    for h in care_histories_all[:30]:
+        timeline_items.append(
+            {
+                "kind": "Trajtim",
+                "tone": "emerald",
+                "date": h.date,
+                "sort_value": timeline_sort_value(h.date),
+                "title": h.diagnosis or "Trajtim pa diagnozë",
+                "subtitle": h.treatment or "",
+                "doctor": h.doctor or "",
+                "amount": h.amount,
+                "paid": h.paid_sum,
+                "debt": h.debt_sum,
+                "agreement": h.agreement.title if h.agreement_id else "",
+            }
+        )
+    for p in payments_new_qs[:30]:
+        payment_target = ""
+        if p.history_id and p.history:
+            payment_target = p.history.diagnosis or "Histori"
+        elif p.agreement_id and p.agreement:
+            payment_target = p.agreement.title or "Marrëveshje"
+        timeline_items.append(
+            {
+                "kind": "Pagesë",
+                "tone": "blue",
+                "date": p.created_at,
+                "sort_value": timeline_sort_value(p.created_at),
+                "title": f"Pagesë {p.amount}€",
+                "subtitle": payment_target,
+                "doctor": p.doctor or (p.history.doctor if p.history_id and p.history else "") or (p.agreement.doctor if p.agreement_id and p.agreement else ""),
+                "amount": p.amount,
+                "method": p.get_method_display() if hasattr(p, "get_method_display") else p.method,
+                "notes": p.notes or "",
+            }
+        )
+    for a in agreements_qs[:20]:
+        timeline_items.append(
+            {
+                "kind": "Marrëveshje",
+                "tone": "amber" if a.status == "active" else "slate",
+                "date": a.start_date,
+                "sort_value": timeline_sort_value(a.start_date),
+                "title": a.title,
+                "subtitle": a.notes or "",
+                "doctor": a.doctor or "",
+                "amount": a.total_amount,
+                "paid": a.paid_sum,
+                "debt": a.bal_sum,
+                "status": a.get_status_display() if hasattr(a, "get_status_display") else a.status,
+            }
+        )
+    for rx in prescriptions[:15]:
+        timeline_items.append(
+            {
+                "kind": "Recetë",
+                "tone": "violet",
+                "date": rx.prescription_date,
+                "sort_value": timeline_sort_value(rx.prescription_date),
+                "title": rx.diagnosis or "Recetë",
+                "subtitle": rx.therapy or "",
+                "doctor": rx.doctor or "",
+            }
+        )
+    for doc in documents[:10]:
+        timeline_items.append(
+            {
+                "kind": "Dokument",
+                "tone": "slate",
+                "date": doc.uploaded_at,
+                "sort_value": timeline_sort_value(doc.uploaded_at),
+                "title": doc.file.name.rsplit("/", 1)[-1] if doc.file else "Dokument",
+                "subtitle": "",
+                "doctor": "",
+            }
+        )
+    timeline_items.sort(key=lambda item: item["sort_value"], reverse=True)
+    for item in timeline_items:
+        item["date_display"] = timeline_date_display(item.get("date"))
+
+    context = {
+        "patient": patient,
+        "historias": historias,
+        "ortho_histories": ortho_histories,
+        "total_vlera": total_vlera,
+        "total_paguar": total_paguar,
+        "total_borgji": total_borgji,
+        "payments_new": payments_new_qs,
+        "total_paid_new": total_paid_new,
+        "total_billed_new": total_billed_new,
+        "debt_new": debt_new,
+        "total_agreements_balance": total_agreements_balance,
+        "agreements_new": agreements_qs,
+        "agreements_active": agreements_active,
+        "care_histories_all": care_histories_all,
+        "unpaid_histories": unpaid_histories,
+        "documents": documents,
+        "prescriptions": prescriptions,
+        "timeline_items": timeline_items[:50],
+        "recent_care_histories": care_histories_all[:6],
+        "recent_payments": payments_new_qs[:6],
+    }
+
+    if request.GET.get("workflow") == "modal":
+        panel = request.GET.get("panel") or "shto-pages"
+        context["modal_panel"] = panel
+        return render(request, "clinic/patient_modal_panel.html", context)
+
+    return render(request, "clinic/patient_detail_test.html", context)
 
 
 @login_required
@@ -582,6 +689,7 @@ def _parse_date_any(value):
 
 
 @login_required
+@xframe_options_sameorigin
 def add_history(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
 
@@ -628,6 +736,8 @@ def add_history(request, pk):
 
         if not included and amount_for_history == Decimal("0.00") and paguar > Decimal("0.00"):
             messages.error(request, "Nuk mund të regjistrohet pagesë kur vlera është 0.")
+            if request.GET.get("modal") == "1":
+                return redirect(f"{reverse('add_history', args=[patient.pk])}?modal=1")
             return redirect("add_history", pk=patient.pk)
 
         
@@ -658,6 +768,7 @@ def add_history(request, pk):
                     amount=paguar,
                     method=request.POST.get("method") or "cash",
                     agreement=agreement,
+                    doctor=doctor,
                     notes="Pagesë për marrëveshje (nga forma e historisë)",
                     created_by=request.user,
                     updated_by=request.user,
@@ -669,11 +780,18 @@ def add_history(request, pk):
                     amount=paguar,
                     method=request.POST.get("method") or "cash",
                     history=ch,
+                    doctor=doctor,
                     notes="Pagesë nga forma e historisë",
                     created_by=request.user,
                     updated_by=request.user,
                 )
 
+        if request.GET.get("modal") == "1":
+            return render(
+                request,
+                "clinic/modal_done.html",
+                {"message": "Trajtimi u ruajt me sukses."},
+            )
         return redirect_tab(patient.pk, "trajtimet")
 
     return render(
@@ -684,6 +802,8 @@ def add_history(request, pk):
             "today": now().date(),
             "agreements": patient.agreements.filter(status="active").order_by("-created_at"),
             "parent": parent_obj,
+            "is_modal": request.GET.get("modal") == "1",
+            "needs_history_js": True,
         },
     )
 
@@ -1212,11 +1332,14 @@ def appointments_delete(request, pk):
 
 @login_required
 @require_POST
+@xframe_options_sameorigin
 def add_payment(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
+    modal_post = request.POST.get("modal") == "1"
     amount = _to_decimal(request.POST.get("amount"))
     method = request.POST.get("method") or "cash"
     notes = request.POST.get("notes") or ""
+    doctor = (request.POST.get("doctor") or "").strip() or None
 
     
     history_ids = request.POST.getlist("history_ids") or request.POST.getlist(
@@ -1227,12 +1350,16 @@ def add_payment(request, pk):
     
     if not amount or amount <= 0:
         messages.error(request, "Shuma e pagesës nuk është e vlefshme.")
+        if modal_post:
+            return redirect(f"{reverse('patient_detail', args=[patient.pk])}?workflow=modal&panel=shto-pages")
         return redirect("patient_detail", pk=patient.pk)
 
     if agreement_id and history_ids:
         messages.error(
             request, "Zgjidh ose një marrëveshje ose disa histori — jo të dyja."
         )
+        if modal_post:
+            return redirect(f"{reverse('patient_detail', args=[patient.pk])}?workflow=modal&panel=shto-pages")
         return redirect("patient_detail", pk=patient.pk)
 
     
@@ -1240,23 +1367,37 @@ def add_payment(request, pk):
         agreement = get_object_or_404(
             Agreement, pk=int(agreement_id), patient=patient, status="active"
         )
+        if doctor not in dict(DOCTOR_CHOICES):
+            messages.error(request, "Zgjidh doktorin për këtë pagesë të marrëveshjes.")
+            if modal_post:
+                return redirect(f"{reverse('patient_detail', args=[patient.pk])}?workflow=modal&panel=shto-pages")
+            return redirect_tab(patient.pk, "shto-pages")
         Payment.objects.create(
             patient=patient,
             amount=amount,
             method=method,
             notes=notes,
             agreement=agreement,
+            doctor=doctor,
             created_by=request.user,
         )
         messages.success(
-            request, f"Pagesa {amount}€ u shtua për marrëveshjen “{agreement.title}”."
+            request, f"Pagesa {amount}€ u shtua për marrëveshjen “{agreement.title}” ({doctor})."
         )
+        if modal_post:
+            return render(
+                request,
+                "clinic/modal_done.html",
+                {"message": "Pagesa u ruajt me sukses."},
+            )
         return redirect_tab(patient.pk, "shto-pages")
 
 
     
     if not history_ids:
         messages.error(request, "Zgjidh të paktën një histori ose një marrëveshje.")
+        if modal_post:
+            return redirect(f"{reverse('patient_detail', args=[patient.pk])}?workflow=modal&panel=shto-pages")
         return redirect_tab(patient.pk, "shto-pages")
 
 
@@ -1273,6 +1414,8 @@ def add_payment(request, pk):
         messages.error(
             request, "Asnjë nga historitë e zgjedhura nuk është e vlefshme për pagesë."
         )
+        if modal_post:
+            return redirect(f"{reverse('patient_detail', args=[patient.pk])}?workflow=modal&panel=shto-pages")
         return redirect_tab(patient.pk, "shto-pages")
 
 
@@ -1309,6 +1452,7 @@ def add_payment(request, pk):
                     method=method,
                     notes=notes,
                     history=h,
+                    doctor=h.doctor,
                     created_by=request.user,
                 )
                 created_count += 1
@@ -1327,6 +1471,12 @@ def add_payment(request, pk):
             msg += " Detaje: " + "; ".join(breakdown)
         messages.success(request, msg)
 
+    if modal_post:
+        return render(
+            request,
+            "clinic/modal_done.html",
+            {"message": "Pagesa u ruajt me sukses."},
+        )
     return redirect_tab(patient.pk, "shto-pages")
 
 
@@ -1457,8 +1607,8 @@ def reports_new(request):
     DECIMAL = DecimalField(max_digits=18, decimal_places=2)
     ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
 
-    start_dt = datetime.combine(start_date, time.min)
-    end_dt = datetime.combine(end_date, time.max)
+    start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
+    end_dt = timezone.make_aware(datetime.combine(end_date, time.max))
 
     # -------- Payments në periudhë --------
     payments_for_histories = (
@@ -1480,12 +1630,12 @@ def reports_new(request):
 
     # -------- Pagesa sipas doktorit (vetëm periudha) --------
     payments_by_doctor_hist = (
-        payments_for_histories.values(doctor_name=F("history__doctor"))
+        payments_for_histories.values(doctor_name=Coalesce("doctor", "history__doctor"))
         .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
         .order_by("-total")
     )
     payments_by_doctor_aggr = (
-        payments_for_agreements.values(doctor_name=F("agreement__doctor"))
+        payments_for_agreements.values(doctor_name=Coalesce("doctor", "agreement__doctor"))
         .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
     )
 
@@ -1558,7 +1708,7 @@ def reports_new(request):
         p.debt_sum = debt_now
 
         p.date = p.created_at
-        p.doctor = getattr(h, "doctor", None)
+        p.doctor = p.doctor or getattr(h, "doctor", None)
 
         # ───────── Historia: TRAJTIM ose DIAGNOZË ─────────
         # CareHistory ka fields: treatment, diagnosis
@@ -1580,6 +1730,7 @@ def reports_new(request):
         p.amount_display = p.amount or Decimal("0.00")
         p.paid_sum = p.amount or Decimal("0.00")
         p.debt_sum = Decimal("0.00")
+        p.doctor = p.doctor or getattr(p.agreement, "doctor", None)
         histories_and_agreements.append(p)
 
     # KPI "Borxh": një herë për çdo histori (mos dyfisho kur ka disa pagesa)
@@ -1595,27 +1746,25 @@ def reports_new(request):
         reverse=(order == "desc"),
     )
 
-    return render(
-        request,
-        "clinic/reports_new.html",
-        {
-            "total_billed": total_billed,
-            "total_paid": total_paid,
-            "outstanding": outstanding,
-            "histories_and_agreements": histories_and_agreements,
-            "payments_by_doctor": payments_by_doctor_hist,
-            "payments_by_doctor_total": payments_by_doctor_total,
-            "start_date": start_date,
-            "end_date": end_date,
-            "mode": mode,
-            "picked_day": picked_day,
-            "picked_week": picked_week,
-            "picked_month": picked_month,
-            "picked_year": picked_year,
-            "years": range(2020, datetime.now().year + 2),
-            "order": order,
-        },
-    )
+    context = {
+        "total_billed": total_billed,
+        "total_paid": total_paid,
+        "outstanding": outstanding,
+        "histories_and_agreements": histories_and_agreements,
+        "payments_by_doctor": payments_by_doctor_hist,
+        "payments_by_doctor_total": payments_by_doctor_total,
+        "start_date": start_date,
+        "end_date": end_date,
+        "mode": mode,
+        "picked_day": picked_day,
+        "picked_week": picked_week,
+        "picked_month": picked_month,
+        "picked_year": picked_year,
+        "years": range(2020, datetime.now().year + 2),
+        "order": order,
+    }
+
+    return render(request, "clinic/reports_new.html", context)
 
 
 @login_required
@@ -1627,8 +1776,8 @@ def reports_new_export_excel(request):
     DECIMAL = DecimalField(max_digits=18, decimal_places=2)
     ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
 
-    start_dt = datetime.combine(start_date, time.min)
-    end_dt   = datetime.combine(end_date, time.max)
+    start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
+    end_dt   = timezone.make_aware(datetime.combine(end_date, time.max))
 
     payments_for_histories = (
         Payment.objects.filter(
@@ -1687,7 +1836,7 @@ def reports_new_export_excel(request):
             _naive_local(p.created_at),
             getattr(p.patient, "emri_mbiemri", "-"),
             f"Histori: {getattr(h, 'diagnosis', '-') or '-'}",
-            getattr(h, "doctor", None) or "-",
+            p.doctor or getattr(h, "doctor", None) or "-",
             method_display,
             float(history_amount),
             float(p.amount or Decimal("0.00")),
@@ -1700,7 +1849,7 @@ def reports_new_export_excel(request):
             _naive_local(p.created_at),
             getattr(p.patient, "emri_mbiemri", "-"),
             f"Marrëveshje: {getattr(p.agreement, 'title', '-') or '-'}",
-            getattr(p.agreement, "doctor", None) or "-",
+            p.doctor or getattr(p.agreement, "doctor", None) or "-",
             method_display,
             float(p.amount or Decimal("0.00")),
             float(p.amount or Decimal("0.00")),
@@ -1836,6 +1985,7 @@ from django.utils.timezone import now
 
 
 @login_required
+@xframe_options_sameorigin
 def agreement_create(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
 
@@ -1861,6 +2011,12 @@ def agreement_create(request, pk):
         messages.success(
             request, f"Marrëveshja për {patient.emri_mbiemri} u krijua me sukses."
         )
+        if request.GET.get("modal") == "1":
+            return render(
+                request,
+                "clinic/modal_done.html",
+                {"message": "Marrëveshja u krijua me sukses."},
+            )
         return redirect_tab(patient.pk, "marreveshjet")
 
 
@@ -1870,6 +2026,7 @@ def agreement_create(request, pk):
         {
             "patient": patient,
             "today": now().date(),  
+            "is_modal": request.GET.get("modal") == "1",
         },
     )
 
@@ -1969,6 +2126,7 @@ def checkout(request):
         amount = Decimal(request.POST.get("amount") or "0")
         method = request.POST.get("method") or "cash"
         notes = request.POST.get("notes") or ""
+        doctor = (request.POST.get("doctor") or "").strip() or None
 
         history_ids = request.POST.getlist("history_ids")
         agreement_id = request.POST.get("agreement_id")
@@ -1986,12 +2144,16 @@ def checkout(request):
         
         if agreement_id:
             agreement = get_object_or_404(Agreement, pk=agreement_id, patient=patient)
+            if doctor not in dict(DOCTOR_CHOICES):
+                messages.error(request, "Zgjidh doktorin për këtë pagesë të marrëveshjes.")
+                return redirect(f"/checkout/?patient={patient.id}")
             Payment.objects.create(
                 patient=patient,
                 amount=amount,
                 method=method,
                 notes=notes,
                 agreement=agreement,
+                doctor=doctor,
                 created_by=request.user,
             )
             messages.success(
@@ -2010,6 +2172,7 @@ def checkout(request):
                         method=method,
                         notes=notes,
                         history=h,
+                        doctor=h.doctor,
                         created_by=request.user,
                     )
             messages.success(
@@ -2157,6 +2320,7 @@ def add_or_edit_patient(request, pk=None):
     """
 
     patient = None
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if pk:
         patient = get_object_or_404(Patient, pk=pk)
 
@@ -2179,8 +2343,8 @@ def add_or_edit_patient(request, pk=None):
             except Exception:
                 patient.data_e_lindjes = ""
 
-    # 🟢 Kthe JSON kur bëhet kërkesë GET — për modalin ose autofill
-    if request.method == "GET" and pk:
+    # Kthe JSON kur bëhet kërkesë AJAX — për modalin ose autofill
+    if request.method == "GET" and pk and is_ajax:
         return JsonResponse({
             "success": True,
             "patient": {
@@ -2191,8 +2355,12 @@ def add_or_edit_patient(request, pk=None):
                 "emaili": patient.emaili or "",
                 "leternjoftimi": patient.leternjoftimi or "",
                 "adresa": patient.adresa or "",
+                "informata_shtese": patient.informata_shtese or "",
             }
         })
+
+    if request.method == "GET":
+        return render(request, "clinic/add_patient.html", {"patient": patient})
 
     # 🟡 Ruajtja (POST)
     if request.method == "POST":
@@ -2202,6 +2370,7 @@ def add_or_edit_patient(request, pk=None):
         emaili = request.POST.get("emaili", "").strip()
         leternjoftimi = request.POST.get("leternjoftimi", "").strip()
         adresa = request.POST.get("adresa", "").strip()
+        informata_shtese = request.POST.get("informata_shtese", "").strip()
 
         # Konverto datën në format uniform
         data_e_lindjes = None
@@ -2221,10 +2390,13 @@ def add_or_edit_patient(request, pk=None):
                 data_e_lindjes = data_raw
 
         if not emri_mbiemri:
-            return JsonResponse({
-                "success": False,
-                "message": "Ju lutem plotësoni emrin e pacientit."
-            })
+            if is_ajax:
+                return JsonResponse({
+                    "success": False,
+                    "message": "Ju lutem plotësoni emrin e pacientit."
+                })
+            messages.error(request, "Ju lutem plotësoni emrin e pacientit.")
+            return render(request, "clinic/add_patient.html", {"patient": patient})
 
         # Editim ose krijim
         if patient:
@@ -2234,8 +2406,12 @@ def add_or_edit_patient(request, pk=None):
             patient.emaili = emaili
             patient.leternjoftimi = leternjoftimi
             patient.adresa = adresa
+            patient.informata_shtese = informata_shtese
             patient.updated_at = now()
             patient.save()
+            if not is_ajax:
+                messages.success(request, f"Pacienti {patient.emri_mbiemri} u përditësua me sukses!")
+                return redirect("patient_detail", pk=patient.pk)
             return JsonResponse({
                 "success": True,
                 "message": f"Pacienti {patient.emri_mbiemri} u përditësua me sukses!"
@@ -2248,9 +2424,14 @@ def add_or_edit_patient(request, pk=None):
             emaili=emaili,
             leternjoftimi=leternjoftimi,
             adresa=adresa,
+            informata_shtese=informata_shtese,
             created_at=now(),
             updated_at=now(),
         )
+
+        if not is_ajax:
+            messages.success(request, f"Pacienti {patient.emri_mbiemri} u shtua me sukses!")
+            return redirect("patient_detail", pk=patient.id)
 
         return JsonResponse({
             "success": True,

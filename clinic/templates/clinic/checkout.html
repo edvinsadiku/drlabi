@@ -153,7 +153,7 @@
                                     {{ h.date }} – {{ h.diagnosis|default:"Histori pa titull" }}
                                 </span>
                                 <span class="text-[11px] text-slate-500">
-                                    Borxh: <strong>{{ h.debt_sum }} €</strong>
+                                    Doktori: <strong>{{ h.doctor|default:"-" }}</strong> · Borxh: <strong>{{ h.debt_sum }} €</strong>
                                 </span>
                             </div>
                         </label>
@@ -190,7 +190,7 @@
                                     {{ a.title }}
                                 </span>
                                 <span class="text-[11px] text-slate-500">
-                                    Borxh: <strong>{{ a.debt_sum }} €</strong>
+                                    Borxh: <strong>{{ a.debt_sum }} €</strong>{% if a.doctor %} · Marrëveshja: <strong>{{ a.doctor }}</strong>{% endif %}
                                 </span>
                             </div>
                         </label>
@@ -220,7 +220,7 @@
             Regjistro pagesën
         </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
             <!-- Shuma -->
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
@@ -238,6 +238,24 @@
                     placeholder="Shkruaj shumën..."
                     class="w-full rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-slate-800"
                 >
+            </div>
+
+            <!-- Doktori -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm6 8a6 6 0 0 0-12 0" />
+                    </svg>
+                    Pagesa për:
+                </label>
+                <select
+                    name="doctor"
+                    class="w-full rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition p-2.5 shadow-sm text-slate-800"
+                >
+                    <option value="">Zgjidh për marrëveshje</option>
+                    <option value="Dr. Labi">Dr. Labi</option>
+                    <option value="Dr. Linda">Dr. Linda</option>
+                </select>
             </div>
 
             <!-- Metoda -->
@@ -301,6 +319,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left font-semibold">Data</th>
                         <th class="px-4 py-3 text-left font-semibold">Metoda</th>
+                        <th class="px-4 py-3 text-left font-semibold">Doktori</th>
                         <th class="px-4 py-3 text-left font-semibold">Shënime</th>
                         <th class="px-4 py-3 text-right font-semibold">Shuma</th>
                     </tr>
@@ -314,6 +333,17 @@
                             <td class="px-4 py-2 text-slate-700">
                                 {{ p.method|title }}
                             </td>
+                            <td class="px-4 py-2 text-slate-700">
+                                {% if p.doctor %}
+                                    {{ p.doctor }}
+                                {% elif p.history and p.history.doctor %}
+                                    {{ p.history.doctor }}
+                                {% elif p.agreement and p.agreement.doctor %}
+                                    {{ p.agreement.doctor }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
                             <td class="px-4 py-2 text-slate-600">
                                 {{ p.notes|default:"-" }}
                             </td>
@@ -323,7 +353,7 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="4" class="px-4 py-6 text-center text-slate-400 text-sm">
+                            <td colspan="5" class="px-4 py-6 text-center text-slate-400 text-sm">
                                 S’ka pagesa për këtë pacient.
                             </td>
                         </tr>

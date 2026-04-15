@@ -1,0 +1,37 @@
+{% extends "clinic/modal_base.html" %}
+{% load static %}
+
+{% block title %}{{ patient.emri_mbiemri }}{% endblock %}
+
+{% block content %}
+<div
+  x-data="{ active: '{{ modal_panel|default:"shto-pages" }}' }"
+  x-init="$nextTick(() => {
+    document.querySelectorAll('form').forEach((form) => {
+      if (!form.querySelector('input[name=modal]')) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'modal';
+        input.value = '1';
+        form.appendChild(input);
+      }
+    });
+  })"
+>
+  {% if messages %}
+    <div class="mb-4 space-y-2">
+      {% for message in messages %}
+        <div class="rounded-md border px-3 py-2 text-sm {% if message.tags == 'error' %}border-red-200 bg-red-50 text-red-700{% else %}border-emerald-200 bg-emerald-50 text-emerald-700{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if modal_panel == "recetat" %}
+    {% include "clinic/patient/tabs/_recetat.html" %}
+  {% else %}
+    {% include "clinic/patient/tabs/_shto_pages.html" %}
+  {% endif %}
+</div>
+{% endblock %}

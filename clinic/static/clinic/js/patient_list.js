@@ -36,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
           form.querySelector("[name='emaili']").value = p.emaili || "";
           form.querySelector("[name='leternjoftimi']").value = p.leternjoftimi || "";
           form.querySelector("[name='adresa']").value = p.adresa || "";
+          const extra = form.querySelector("[name='informata_shtese']");
+          if (extra) extra.value = p.informata_shtese || "";
         }
         openPatientModal();
       } catch (err) {

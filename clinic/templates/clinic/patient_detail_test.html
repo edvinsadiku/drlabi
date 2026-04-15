@@ -1,0 +1,310 @@
+{% extends "clinic/base.html" %}
+{% load static %}
+
+{% block title %}{{ patient.emri_mbiemri }}{% endblock %}
+
+{% block content %}
+<style>
+  [x-cloak] { display: none !important; }
+</style>
+<div
+  class="space-y-5"
+  x-data="{
+    active: new URL(location).searchParams.get('tab') || 'trajtimet',
+    moreOpen: false,
+    modalOpen: false,
+    modalTitle: '',
+    modalUrl: '',
+    set(t){ this.active=t; this.moreOpen=false; const u=new URL(location); u.searchParams.set('workflow','test'); u.searchParams.set('tab',t); history.replaceState({},'',u); },
+    openModal(title, url){ this.modalTitle=title; this.modalUrl=url; this.modalOpen=true; document.body.classList.add('overflow-hidden'); },
+    closeModal(){ this.modalOpen=false; this.modalUrl=''; document.body.classList.remove('overflow-hidden'); }
+  }"
+  x-init="window.addEventListener('message', (event) => { if (event.origin === window.location.origin && event.data && event.data.type === 'patient-modal-done') { closeModal(); window.location.reload(); } })"
+>
+  <section class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+    <div class="px-5 py-4 border-l-4 {% if debt_new > 0 %}border-l-red-500{% else %}border-l-emerald-500{% endif %}">
+      <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span class="rounded-md bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 border border-emerald-100">Paneli i pacientit</span>
+            {% if debt_new > 0 %}
+              <span class="rounded-md bg-red-50 px-2.5 py-1 font-medium text-red-700 border border-red-100">Borxh {{ debt_new }}€</span>
+            {% endif %}
+          </div>
+
+          <h1 class="mt-3 text-2xl md:text-3xl font-semibold tracking-tight text-slate-950 truncate">
+            {{ patient.emri_mbiemri }}
+          </h1>
+          <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
+            <span class="inline-flex items-center gap-1.5"><i class="ph ph-phone text-slate-400"></i>{{ patient.telefoni|default:"Pa telefon" }}</span>
+            <span class="inline-flex items-center gap-1.5"><i class="ph ph-calendar text-slate-400"></i>{{ patient.data_e_lindjes|default:"Pa datë lindjeje" }}</span>
+            <span class="inline-flex items-center gap-1.5"><i class="ph ph-envelope text-slate-400"></i>{{ patient.emaili|default:"Pa email" }}</span>
+          </div>
+          {% if patient.informata_shtese %}
+            <div class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <div class="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-700">
+                <i class="ph ph-warning-circle"></i>
+                Informata shtesë
+              </div>
+              <div class="whitespace-pre-line">{{ patient.informata_shtese }}</div>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-sm min-w-full xl:min-w-[360px]">
+          <div class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <div class="text-[11px] uppercase font-semibold text-slate-400">Paguar</div>
+            <div class="font-semibold text-emerald-700">{{ total_paid_new }}€</div>
+          </div>
+          <div class="rounded-md border {% if debt_new > 0 %}border-red-200 bg-red-50{% else %}border-slate-200 bg-slate-50{% endif %} px-3 py-2">
+            <div class="text-[11px] uppercase font-semibold text-slate-400">Borxh</div>
+            <div class="font-semibold {% if debt_new > 0 %}text-red-600{% else %}text-slate-900{% endif %}">{{ debt_new }}€</div>
+          </div>
+          <div class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <div class="text-[11px] uppercase font-semibold text-slate-400">Marrëveshje</div>
+            <div class="font-semibold text-slate-900">{{ agreements_active|length }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+    <header class="px-5 py-3 border-b border-slate-200 bg-slate-50 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h2 class="font-semibold text-slate-950">Veprime klinike</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Regjistrim i shpejtë për trajtime, pagesa, receta dhe marrëveshje.</p>
+      </div>
+      <span class="text-xs text-slate-400">Format hapen në dritare pune.</span>
+    </header>
+    <div class="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+      <button type="button" @click="openModal('Shto trajtim', '{% url 'add_history' patient.id %}?modal=1')" class="group text-left rounded-lg border border-emerald-200 bg-emerald-50 p-4 hover:bg-emerald-100/70 hover:border-emerald-300 transition">
+        <div class="flex items-start justify-between gap-3">
+          <i class="ph ph-tooth text-3xl text-emerald-700"></i>
+          <span class="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-100">Kryesor</span>
+        </div>
+        <div class="mt-4 text-base font-semibold text-slate-950">Shto trajtim</div>
+        <div class="mt-1 text-sm text-slate-600">Diagnozë, trajtim, dhëmb, doktor dhe financa.</div>
+      </button>
+
+      <button type="button" @click="openModal('Shto pagesë', '{% url 'patient_detail' patient.id %}?workflow=modal&panel=shto-pages')" class="group text-left rounded-lg border border-sky-200 bg-sky-50 p-4 hover:bg-sky-100/70 hover:border-sky-300 transition">
+        <div class="flex items-start justify-between gap-3">
+          <i class="ph ph-credit-card text-3xl text-sky-700"></i>
+          {% if debt_new > 0 %}<span class="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-red-700 border border-red-100">{{ debt_new }}€ borxh</span>{% endif %}
+        </div>
+        <div class="mt-4 text-base font-semibold text-slate-950">Shto pagesë</div>
+        <div class="mt-1 text-sm text-slate-600">Arkëtim për histori ose marrëveshje aktive.</div>
+      </button>
+
+      <button type="button" @click="openModal('Shto recetë', '{% url 'patient_detail' patient.id %}?workflow=modal&panel=recetat')" class="group text-left rounded-lg border border-violet-200 bg-violet-50 p-4 hover:bg-violet-100/70 hover:border-violet-300 transition">
+        <div class="flex items-start justify-between gap-3">
+          <i class="ph ph-note-pencil text-3xl text-violet-700"></i>
+        </div>
+        <div class="mt-4 text-base font-semibold text-slate-950">Shto recetë</div>
+        <div class="mt-1 text-sm text-slate-600">Diagnozë, terapi, alergji dhe printim.</div>
+      </button>
+
+      <button type="button" @click="openModal('Shto marrëveshje', '{% url 'agreement_create' patient.id %}?modal=1')" class="group text-left rounded-lg border border-amber-200 bg-amber-50 p-4 hover:bg-amber-100/70 hover:border-amber-300 transition">
+        <div class="flex items-start justify-between gap-3">
+          <i class="ph ph-handshake text-3xl text-amber-700"></i>
+          <span class="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-amber-700 border border-amber-100">{{ agreements_active|length }} aktive</span>
+        </div>
+        <div class="mt-4 text-base font-semibold text-slate-950">Shto marrëveshje</div>
+        <div class="mt-1 text-sm text-slate-600">Plan trajtimi me pagesë të strukturuar.</div>
+      </button>
+    </div>
+  </section>
+
+  <section class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+    <main class="xl:col-span-2">
+      <section class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <header class="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div>
+            <h2 class="font-semibold text-slate-950">Timeline</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Rrjedha e fundit e trajtimeve, pagesave, marrëveshjeve dhe recetave.</p>
+          </div>
+          <span class="text-xs text-slate-400">{{ timeline_items|length }} aktivitete</span>
+        </header>
+
+        <div class="p-5">
+          <div class="space-y-0">
+            {% for item in timeline_items|slice:":5" %}
+              <article class="grid grid-cols-[72px_34px_minmax(0,1fr)] gap-3 py-3 first:pt-0 last:pb-0">
+                <time class="pt-2 text-right text-xs font-medium text-slate-400">{{ item.date_display }}</time>
+                <div class="relative">
+                  <span class="relative z-10 flex size-8 items-center justify-center rounded-md border bg-white
+                    {% if item.tone == 'emerald' %}border-emerald-100 text-emerald-700
+                    {% elif item.tone == 'blue' %}border-sky-100 text-sky-700
+                    {% elif item.tone == 'amber' %}border-amber-100 text-amber-700
+                    {% elif item.tone == 'violet' %}border-violet-100 text-violet-700
+                    {% else %}border-slate-200 text-slate-600{% endif %}">
+                    {% if item.kind == "Trajtim" %}<i class="ph ph-tooth"></i>
+                    {% elif item.kind == "Pagesë" %}<i class="ph ph-credit-card"></i>
+                    {% elif item.kind == "Marrëveshje" %}<i class="ph ph-handshake"></i>
+                    {% elif item.kind == "Recetë" %}<i class="ph ph-note-pencil"></i>
+                    {% else %}<i class="ph ph-paperclip"></i>{% endif %}
+                  </span>
+                  {% if not forloop.last %}
+                    <span class="absolute left-4 top-9 bottom-[-14px] w-px bg-slate-200"></span>
+                  {% endif %}
+                </div>
+                <div class="min-w-0 rounded-md border border-slate-200 bg-white p-3 hover:bg-slate-50 transition">
+                  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-semibold uppercase
+                          {% if item.tone == 'emerald' %}text-emerald-700
+                          {% elif item.tone == 'blue' %}text-sky-700
+                          {% elif item.tone == 'amber' %}text-amber-700
+                          {% elif item.tone == 'violet' %}text-violet-700
+                          {% else %}text-slate-500{% endif %}">
+                          {{ item.kind }}
+                        </span>
+                        {% if item.doctor %}<span class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{{ item.doctor }}</span>{% endif %}
+                      </div>
+                      <div class="mt-1 font-medium text-slate-950 break-words">{{ item.title }}</div>
+                      {% if item.subtitle %}
+                        <div class="mt-1 text-sm text-slate-500 break-words">{{ item.subtitle|truncatechars:150 }}</div>
+                      {% endif %}
+                    </div>
+                    {% if item.amount %}
+                      <div class="text-sm font-semibold text-slate-900 whitespace-nowrap">{{ item.amount }}€</div>
+                    {% endif %}
+                  </div>
+                  <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                    {% if item.method %}<span class="rounded bg-slate-50 px-2 py-1 text-slate-600 border border-slate-200">{{ item.method }}</span>{% endif %}
+                    {% if item.paid %}<span class="rounded bg-emerald-50 px-2 py-1 text-emerald-700 border border-emerald-100">Paguar {{ item.paid }}€</span>{% endif %}
+                    {% if item.debt %}<span class="rounded bg-red-50 px-2 py-1 text-red-700 border border-red-100">Mbetur {{ item.debt }}€</span>{% endif %}
+                  </div>
+                </div>
+              </article>
+            {% empty %}
+              <div class="py-8 text-center text-sm text-slate-400">Nuk ka aktivitet për këtë pacient.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="space-y-5">
+      <section class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <header class="px-5 py-3 border-b border-slate-200 bg-slate-50">
+          <h2 class="font-semibold text-slate-950">Gjendja</h2>
+        </header>
+        <div class="p-5 grid grid-cols-2 gap-3">
+          <div class="rounded-lg border border-slate-200 p-3">
+            <div class="text-xs uppercase font-semibold text-slate-400">Totali</div>
+            <div class="mt-2 text-xl font-semibold text-slate-950">{{ total_billed_new }}€</div>
+          </div>
+          <div class="rounded-lg border border-slate-200 p-3">
+            <div class="text-xs uppercase font-semibold text-slate-400">Paguar</div>
+            <div class="mt-2 text-xl font-semibold text-emerald-700">{{ total_paid_new }}€</div>
+          </div>
+          <div class="rounded-lg border {% if debt_new > 0 %}border-red-200 bg-red-50/50{% else %}border-slate-200{% endif %} p-3">
+            <div class="text-xs uppercase font-semibold text-slate-400">Borxh</div>
+            <div class="mt-2 text-xl font-semibold {% if debt_new > 0 %}text-red-600{% else %}text-slate-950{% endif %}">{{ debt_new }}€</div>
+          </div>
+          <div class="rounded-lg border border-slate-200 p-3">
+            <div class="text-xs uppercase font-semibold text-slate-400">Marrëveshje</div>
+            <div class="mt-2 text-xl font-semibold text-slate-950">{{ agreements_active|length }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <header class="px-5 py-3 border-b border-slate-200 bg-slate-50">
+          <h2 class="font-semibold text-slate-950">Marrëveshje aktive</h2>
+        </header>
+        <div class="divide-y divide-slate-100">
+          {% for ag in agreements_active %}
+            <div class="px-5 py-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-medium text-slate-950 truncate">{{ ag.title }}</div>
+                  <div class="mt-1 text-xs text-slate-500">{% if ag.doctor %}{{ ag.doctor }}{% else %}Pa doktor{% endif %}</div>
+                </div>
+                <span class="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 border border-amber-100">{{ ag.bal_sum }}€</span>
+              </div>
+              <div class="mt-2 text-xs text-slate-500">Totali {{ ag.total_amount }}€ · Paguar {{ ag.paid_sum }}€</div>
+            </div>
+          {% empty %}
+            <div class="px-5 py-6 text-sm text-slate-400">Nuk ka marrëveshje aktive.</div>
+          {% endfor %}
+        </div>
+      </section>
+    </aside>
+  </section>
+
+  <section id="patient-file" class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+    <header class="px-5 py-4 border-b border-slate-200 bg-slate-50">
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <h2 class="font-semibold text-slate-950">Dosja</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Hap vetëm pjesën që të duhet, jo gjithë dosjen njëherësh.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-sm">
+          <button type="button" @click="set('trajtimet')" :class="active==='trajtimet' ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'" class="h-9 px-3 rounded-md border font-medium">Trajtimet</button>
+          <button type="button" @click="set('pagesat')" :class="active==='pagesat' ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'" class="h-9 px-3 rounded-md border font-medium">Pagesat</button>
+          <button type="button" @click="set('marreveshjet')" :class="active==='marreveshjet' ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'" class="h-9 px-3 rounded-md border font-medium">Marrëveshjet</button>
+          <button type="button" @click="set('dokumente')" :class="active==='dokumente' ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'" class="h-9 px-3 rounded-md border font-medium">Dokumente</button>
+          <div class="relative">
+            <button type="button" @click="moreOpen=!moreOpen" class="h-9 px-3 rounded-md border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 inline-flex items-center gap-2">
+              Më shumë
+              <i class="ph ph-caret-down text-xs"></i>
+            </button>
+            <div x-show="moreOpen" x-cloak @click.outside="moreOpen=false" class="absolute right-0 z-20 mt-2 w-56 rounded-md border border-slate-200 bg-white shadow-lg p-1 text-sm">
+              <button type="button" @click="set('shto-pages')" class="block w-full text-left rounded px-3 py-2 hover:bg-slate-50">Shto pagesë</button>
+              <button type="button" @click="set('recetat')" class="block w-full text-left rounded px-3 py-2 hover:bg-slate-50">Recetat</button>
+              <button type="button" @click="set('arkiva-histori')" class="block w-full text-left rounded px-3 py-2 hover:bg-slate-50">Historitë (Arkiva)</button>
+              <button type="button" @click="set('arkiva-ortho')" class="block w-full text-left rounded px-3 py-2 hover:bg-slate-50">Ortodonci (Arkiva)</button>
+              <button type="button" @click="set('arkiva-financa')" class="block w-full text-left rounded px-3 py-2 hover:bg-slate-50">Përmbledhje financiare</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="p-4 md:p-5 bg-white">
+      {% include "clinic/patient/tabs/_trajtimet.html" %}
+      {% include "clinic/patient/tabs/_marreveshjet.html" %}
+      {% include "clinic/patient/tabs/_shto_pages.html" %}
+      {% include "clinic/patient/tabs/_pagesat.html" %}
+      {% include "clinic/patient/tabs/_dokumente.html" %}
+      {% include "clinic/patient/tabs/_arkiva_histori.html" %}
+      {% include "clinic/patient/tabs/_arkiva_ortho.html" %}
+      {% include "clinic/patient/tabs/_arkiva_financa.html" %}
+      {% include "clinic/patient/tabs/_recetat.html" %}
+    </div>
+  </section>
+
+  <div
+    x-show="modalOpen"
+    x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 md:p-6"
+    @keydown.escape.window="closeModal()"
+  >
+    <div class="absolute inset-0" @click="closeModal()"></div>
+    <section class="relative z-10 flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
+      <header class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+        <div>
+          <h2 class="font-semibold text-slate-950" x-text="modalTitle"></h2>
+          <p class="text-xs text-slate-500">{{ patient.emri_mbiemri }}</p>
+        </div>
+        <button type="button" @click="closeModal()" class="inline-flex size-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </header>
+      <iframe
+        x-show="modalUrl"
+        :src="modalUrl"
+        class="h-[78vh] w-full bg-white"
+        title="Veprim pacienti"
+      ></iframe>
+    </section>
+  </div>
+</div>
+
+{% include "clinic/patient/tabs/_care_history_modal.html" %}
+<script src="{% static 'clinic/js/patient_detail.js' %}" defer></script>
+<script src="https://unpkg.com/alpinejs" defer></script>
+{% endblock %}

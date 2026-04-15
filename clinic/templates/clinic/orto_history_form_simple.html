@@ -5,17 +5,10 @@
 <link rel="stylesheet" href="{% static 'clinic/css/orto_history_form_simple.css' %}">
 
     <div class="max-w-4xl mx-auto">
-                <div class="toolbar">
+        <div class="toolbar">
             <h2 class="text-xl font-semibold">
                 Shto ORTO histori për: <span class="text-medicalBlue">{{ patient.emri_mbiemri }}</span>
             </h2>
-            <a href="{% url 'orto_patient_detail' patient.id %}"
-               class="btn-outline-medical">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                Kthehu
-            </a>
         </div>
                 <form method="post" class="medical-card p-6 md:p-8">
             {% csrf_token %}

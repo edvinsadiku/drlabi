@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-slate-900">
+  <div class="min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-sm text-center">
+      <div class="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+        ✓
+      </div>
+      <h1 class="text-lg font-semibold">{{ message|default:"U ruajt me sukses." }}</h1>
+      <p class="mt-2 text-sm text-slate-500">Dritarja do të mbyllet automatikisht.</p>
+    </div>
+  </div>
+  <script>
+    setTimeout(() => {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({type: "patient-modal-done"}, window.location.origin);
+      }
+    }, 450);
+  </script>
+</body>
+</html>

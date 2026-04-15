@@ -17,7 +17,7 @@ class CustomUserAdmin(UserAdmin):
 @admin.register(models.Patient)
 class PatientAdmin(admin.ModelAdmin):
     list_display = ("id", "emri_mbiemri", "telefoni", "emaili", "created_at")
-    search_fields = ("emri_mbiemri", "telefoni", "emaili")
+    search_fields = ("emri_mbiemri", "telefoni", "emaili", "informata_shtese")
     list_filter = ("created_at",)
     ordering = ("-created_at",)
 
@@ -105,9 +105,9 @@ class CareHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(models.Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("id", "patient", "amount", "method", "date", "agreement", "history")
-    list_filter = ("method", "date")
-    search_fields = ("notes",)
+    list_display = ("id", "patient", "amount", "method", "doctor", "date", "agreement", "history")
+    list_filter = ("method", "doctor", "date")
+    search_fields = ("notes", "doctor")
     ordering = ("-date",)
 
     class Meta:

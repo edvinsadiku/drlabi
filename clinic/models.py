@@ -29,6 +29,7 @@ class Patient(models.Model):
     leternjoftimi = models.CharField(max_length=50, null=True, blank=True)
     telefoni = models.CharField(max_length=191, null=True, blank=True)
     emaili = models.CharField(max_length=191, null=True, blank=True)
+    informata_shtese = models.TextField(null=True, blank=True)
     pytja1 = models.CharField(max_length=191, null=True, blank=True)
     pytja2 = models.CharField(max_length=191, null=True, blank=True)
     pytja3 = models.CharField(max_length=191, null=True, blank=True)
@@ -395,6 +396,12 @@ class Payment(models.Model):
     method = models.CharField(max_length=20, choices=METHOD, default="cash")
     date = models.DateTimeField(default=now)
     notes = models.CharField(max_length=255, null=True, blank=True)
+    doctor = models.CharField(
+        max_length=191,
+        choices=[("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")],
+        null=True,
+        blank=True,
+    )
 
     history = models.ForeignKey(
         CareHistory,
