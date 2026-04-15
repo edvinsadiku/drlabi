@@ -314,6 +314,10 @@ class CareHistory(models.Model):
         related_name="care_histories",
         db_constraint=False,
         db_column="patient_id",
+        null=True,
+        blank=True,
+
+        
     )
     date = models.DateField(default=now)
     tooth = models.CharField(max_length=50, null=True, blank=True)
