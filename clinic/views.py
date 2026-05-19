@@ -52,6 +52,8 @@ from PIL import Image, ImageOps
 
 
 SOCIAL_DEFAULT_TEMPLATE = "b1"
+SOCIAL_UPLOAD_MAX_DIMENSION = 2200
+SOCIAL_UPLOAD_JPEG_QUALITY = 86
 SOCIAL_TEMPLATES = {
     "b1": {
         "key": "b1",
@@ -105,11 +107,11 @@ def _social_jobs(request):
     return jobs
 
 
-def _social_job_or_none(request, token):
+def _social_job_or_none(request, token, require_uploads=True):
     job = _social_jobs(request).get(token)
     if not isinstance(job, dict):
         return None
-    if not job.get("before") or not job.get("after"):
+    if require_uploads and (not job.get("before") or not job.get("after")):
         return None
     return job
 
@@ -131,13 +133,33 @@ def _save_social_upload(uploaded_file, token, label):
     if suffix not in SOCIAL_ALLOWED_EXTENSIONS:
         raise ValueError("Lejohen vetëm JPG, PNG ose WEBP.")
 
-    path = default_storage.save(f"social_uploads/{token}_{label}{suffix}", uploaded_file)
     try:
-        with default_storage.open(path, "rb") as fh:
-            Image.open(fh).verify()
+        image = Image.open(uploaded_file)
+        image = ImageOps.exif_transpose(image)
+        image.thumbnail(
+            (SOCIAL_UPLOAD_MAX_DIMENSION, SOCIAL_UPLOAD_MAX_DIMENSION),
+            Image.Resampling.LANCZOS,
+        )
+        if image.mode not in ("RGB", "L"):
+            image = image.convert("RGB")
+        elif image.mode == "L":
+            image = image.convert("RGB")
+
+        out = BytesIO()
+        image.save(
+            out,
+            format="JPEG",
+            quality=SOCIAL_UPLOAD_JPEG_QUALITY,
+            optimize=True,
+            progressive=True,
+        )
     except Exception as exc:
-        default_storage.delete(path)
         raise ValueError("Fotoja nuk mund të lexohet si imazh.") from exc
+
+    path = default_storage.save(
+        f"social_uploads/{token}_{label}.jpg",
+        ContentFile(out.getvalue()),
+    )
     return path
 
 
@@ -205,6 +227,14 @@ def _generate_social_post(job, controls, token, template_key=None):
     if default_storage.exists(output_path):
         default_storage.delete(output_path)
     return default_storage.save(output_path, ContentFile(out.getvalue()))
+
+
+def _delete_social_uploads(job):
+    for label in ("before", "after"):
+        path = job.get(label)
+        if path and default_storage.exists(path):
+            default_storage.delete(path)
+        job.pop(label, None)
 
 
 def redirect_tab(patient_id, tab):
@@ -338,6 +368,7 @@ def social_media_edit(request, token):
         jobs[token]["generated"] = generated[0]["path"] if generated else ""
         jobs[token]["generated_posts"] = generated
         jobs[token]["controls"] = controls_by_template
+        _delete_social_uploads(jobs[token])
         request.session["social_media_jobs"] = jobs
         request.session.modified = True
         return redirect("social_media_result", token=token)
@@ -353,7 +384,7 @@ def social_media_edit(request, token):
 
 @login_required
 def social_media_result(request, token):
-    job = _social_job_or_none(request, token)
+    job = _social_job_or_none(request, token, require_uploads=False)
     generated_posts = job.get("generated_posts") if job else None
     if not generated_posts and job and job.get("generated"):
         template = _social_template(job.get("template"))
