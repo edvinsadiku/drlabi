@@ -1,10 +1,17 @@
 import json
+from io import BytesIO
+from pathlib import Path
+from uuid import uuid4
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.staticfiles import finders
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
 from django.db import models, transaction
 from django.db.models import (Case, Count, DateTimeField, DecimalField,
@@ -41,6 +48,163 @@ from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
+from PIL import Image, ImageOps
+
+
+SOCIAL_DEFAULT_TEMPLATE = "b1"
+SOCIAL_TEMPLATES = {
+    "b1": {
+        "key": "b1",
+        "label": "Post B1",
+        "description": "Post katror për feed",
+        "static_path": "clinic/img/social/b1.png",
+        "width": 900,
+        "height": 900,
+        "slots": {
+            "before": {"x": 143, "y": 130, "w": 614, "h": 289},
+            "after": {"x": 143, "y": 442, "w": 614, "h": 288},
+        },
+    },
+    "story": {
+        "key": "story",
+        "label": "Story",
+        "description": "Story vertikal",
+        "static_path": "clinic/img/social/para-1-story.png",
+        "width": 1080,
+        "height": 1920,
+        "slots": {
+            "before": {"x": 63, "y": 472, "w": 954, "h": 450},
+            "after": {"x": 63, "y": 952, "w": 954, "h": 450},
+        },
+    },
+}
+SOCIAL_ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+def _social_template(template_key):
+    return SOCIAL_TEMPLATES.get(template_key) or SOCIAL_TEMPLATES[SOCIAL_DEFAULT_TEMPLATE]
+
+
+def _social_template_choices():
+    return [SOCIAL_TEMPLATES["b1"], SOCIAL_TEMPLATES["story"]]
+
+
+def _social_selected_templates(values):
+    selected = []
+    for value in values:
+        if value in SOCIAL_TEMPLATES and value not in selected:
+            selected.append(value)
+    return selected or [SOCIAL_DEFAULT_TEMPLATE]
+
+
+def _social_jobs(request):
+    jobs = request.session.get("social_media_jobs")
+    if not isinstance(jobs, dict):
+        jobs = {}
+        request.session["social_media_jobs"] = jobs
+    return jobs
+
+
+def _social_job_or_none(request, token):
+    job = _social_jobs(request).get(token)
+    if not isinstance(job, dict):
+        return None
+    if not job.get("before") or not job.get("after"):
+        return None
+    return job
+
+
+def _safe_float(value, default, minimum=None, maximum=None):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = default
+    if minimum is not None:
+        number = max(minimum, number)
+    if maximum is not None:
+        number = min(maximum, number)
+    return number
+
+
+def _save_social_upload(uploaded_file, token, label):
+    suffix = Path(uploaded_file.name).suffix.lower() or ".jpg"
+    if suffix not in SOCIAL_ALLOWED_EXTENSIONS:
+        raise ValueError("Lejohen vetëm JPG, PNG ose WEBP.")
+
+    path = default_storage.save(f"social_uploads/{token}_{label}{suffix}", uploaded_file)
+    try:
+        with default_storage.open(path, "rb") as fh:
+            Image.open(fh).verify()
+    except Exception as exc:
+        default_storage.delete(path)
+        raise ValueError("Fotoja nuk mund të lexohet si imazh.") from exc
+    return path
+
+
+def _paste_cover(base, source, slot, zoom, offset_x, offset_y):
+    slot_w = int(slot["w"])
+    slot_h = int(slot["h"])
+    zoom = max(1.0, float(zoom))
+
+    source = ImageOps.exif_transpose(source).convert("RGB")
+    scale = max(slot_w / source.width, slot_h / source.height) * zoom
+    resized_w = max(1, int(round(source.width * scale)))
+    resized_h = max(1, int(round(source.height * scale)))
+    source = source.resize((resized_w, resized_h), Image.Resampling.LANCZOS)
+
+    left = int(round((slot_w - resized_w) / 2 + offset_x))
+    top = int(round((slot_h - resized_h) / 2 + offset_y))
+
+    slot_canvas = Image.new("RGB", (slot_w, slot_h), "white")
+    slot_canvas.paste(source, (left, top))
+    base.paste(slot_canvas, (int(slot["x"]), int(slot["y"])))
+
+
+def _social_controls_from_post(post_data, template_key):
+    prefix = f"{template_key}_"
+    return {
+        "before_zoom": _safe_float(post_data.get(f"{prefix}before_zoom"), 1.0, 1.0, 3.0),
+        "before_x": _safe_float(post_data.get(f"{prefix}before_x"), 0.0, -300.0, 300.0),
+        "before_y": _safe_float(post_data.get(f"{prefix}before_y"), 0.0, -220.0, 220.0),
+        "after_zoom": _safe_float(post_data.get(f"{prefix}after_zoom"), 1.0, 1.0, 3.0),
+        "after_x": _safe_float(post_data.get(f"{prefix}after_x"), 0.0, -300.0, 300.0),
+        "after_y": _safe_float(post_data.get(f"{prefix}after_y"), 0.0, -220.0, 220.0),
+    }
+
+
+def _generate_social_post(job, controls, token, template_key=None):
+    template = _social_template(template_key or job.get("template"))
+    template_path = finders.find(template["static_path"])
+    if not template_path:
+        raise FileNotFoundError("Template nuk u gjet.")
+
+    base = Image.open(template_path).convert("RGB")
+    target_size = (int(template["width"]), int(template["height"]))
+    if base.size != target_size:
+        base = ImageOps.fit(
+            base,
+            target_size,
+            method=Image.Resampling.LANCZOS,
+        )
+
+    for label in ("before", "after"):
+        with default_storage.open(job[label], "rb") as fh:
+            source = Image.open(fh)
+            _paste_cover(
+                base,
+                source,
+                template["slots"][label],
+                controls[f"{label}_zoom"],
+                controls[f"{label}_x"],
+                controls[f"{label}_y"],
+            )
+
+    out = BytesIO()
+    base.save(out, format="PNG", optimize=True)
+    output_path = f"social_posts/{template['key']}_{token}.png"
+    if default_storage.exists(output_path):
+        default_storage.delete(output_path)
+    return default_storage.save(output_path, ContentFile(out.getvalue()))
 
 
 def redirect_tab(patient_id, tab):
@@ -50,6 +214,175 @@ def redirect_tab(patient_id, tab):
 @login_required
 def home(request):
     return dashboard(request)
+
+
+@login_required
+def social_media(request):
+    if request.method == "POST":
+        selected_templates = _social_selected_templates(request.POST.getlist("templates"))
+        before = request.FILES.get("before_photo")
+        after = request.FILES.get("after_photo")
+        if not before or not after:
+            messages.error(request, "Ngarko foton PARA dhe foton PAS.")
+            return redirect("social_media")
+
+        token = uuid4().hex
+        try:
+            before_path = _save_social_upload(before, token, "before")
+            after_path = _save_social_upload(after, token, "after")
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("social_media")
+
+        jobs = _social_jobs(request)
+        jobs[token] = {
+            "template": selected_templates[0],
+            "templates": selected_templates,
+            "before": before_path,
+            "after": after_path,
+            "created_at": timezone.now().isoformat(),
+        }
+        request.session["social_media_jobs"] = jobs
+        request.session.modified = True
+        return redirect("social_media_edit", token=token)
+
+    recent_posts = []
+    posts_dir = settings.MEDIA_ROOT / "social_posts"
+    if posts_dir.exists():
+        files = sorted(posts_dir.glob("*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
+        for path in files[:12]:
+            recent_posts.append(
+                {
+                    "name": path.name,
+                    "url": settings.MEDIA_URL + f"social_posts/{path.name}",
+                    "created": datetime.fromtimestamp(path.stat().st_mtime),
+                }
+            )
+
+    return render(
+        request,
+        "clinic/social_media.html",
+        {
+            "recent_posts": recent_posts,
+            "template_choices": _social_template_choices(),
+        },
+    )
+
+
+@login_required
+@require_POST
+def social_media_delete_post(request):
+    name = Path(request.POST.get("name") or "").name
+    if not name or Path(name).suffix.lower() != ".png":
+        messages.error(request, "Postimi nuk është i vlefshëm për fshirje.")
+        return redirect("social_media")
+
+    post_path = f"social_posts/{name}"
+    if default_storage.exists(post_path):
+        default_storage.delete(post_path)
+
+        jobs = _social_jobs(request)
+        for job in jobs.values():
+            if job.get("generated") == post_path:
+                job.pop("generated", None)
+            generated_posts = job.get("generated_posts")
+            if isinstance(generated_posts, list):
+                job["generated_posts"] = [
+                    item for item in generated_posts if item.get("path") != post_path
+                ]
+        request.session["social_media_jobs"] = jobs
+        request.session.modified = True
+        messages.success(request, "Postimi u fshi.")
+    else:
+        messages.error(request, "Postimi nuk u gjet.")
+
+    return redirect("social_media")
+
+
+@login_required
+def social_media_edit(request, token):
+    job = _social_job_or_none(request, token)
+    if not job:
+        messages.error(request, "Sesion i skaduar. Ngarko fotot përsëri.")
+        return redirect("social_media")
+    selected_templates = _social_selected_templates(job.get("templates") or [job.get("template")])
+    templates = []
+    for key in selected_templates:
+        template = dict(_social_template(key))
+        template["slot_script_id"] = f"social-slots-{key}"
+        templates.append(template)
+
+    if request.method == "POST":
+        generated = []
+        controls_by_template = {}
+        try:
+            for template_key in selected_templates:
+                controls = _social_controls_from_post(request.POST, template_key)
+                output_path = _generate_social_post(job, controls, token, template_key)
+                template = _social_template(template_key)
+                generated.append(
+                    {
+                        "template": template_key,
+                        "label": template["label"],
+                        "width": template["width"],
+                        "height": template["height"],
+                        "path": output_path,
+                    }
+                )
+                controls_by_template[template_key] = controls
+        except Exception:
+            messages.error(request, "Postimi nuk u gjenerua. Kontrollo fotot dhe provo përsëri.")
+            return redirect("social_media_edit", token=token)
+
+        jobs = _social_jobs(request)
+        jobs[token]["generated"] = generated[0]["path"] if generated else ""
+        jobs[token]["generated_posts"] = generated
+        jobs[token]["controls"] = controls_by_template
+        request.session["social_media_jobs"] = jobs
+        request.session.modified = True
+        return redirect("social_media_result", token=token)
+
+    context = {
+        "token": token,
+        "before_url": default_storage.url(job["before"]),
+        "after_url": default_storage.url(job["after"]),
+        "templates": templates,
+    }
+    return render(request, "clinic/social_media_edit.html", context)
+
+
+@login_required
+def social_media_result(request, token):
+    job = _social_job_or_none(request, token)
+    generated_posts = job.get("generated_posts") if job else None
+    if not generated_posts and job and job.get("generated"):
+        template = _social_template(job.get("template"))
+        generated_posts = [
+            {
+                "template": template["key"],
+                "label": template["label"],
+                "width": template["width"],
+                "height": template["height"],
+                "path": job["generated"],
+            }
+        ]
+    if not job or not generated_posts:
+        messages.error(request, "Postimi final nuk u gjet.")
+        return redirect("social_media")
+    posts = [
+        {
+            "url": default_storage.url(item["path"]),
+            "label": item["label"],
+            "width": item["width"],
+            "height": item["height"],
+        }
+        for item in generated_posts
+    ]
+    return render(
+        request,
+        "clinic/social_media_result.html",
+        {"posts": posts},
+    )
 
 
 @login_required

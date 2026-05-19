@@ -1,0 +1,116 @@
+{% extends "clinic/base.html" %}
+{% load static %}
+
+{% block title %}Edito postimin{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'clinic/css/social_media.css' %}">
+
+<form method="post" class="space-y-5">
+  {% csrf_token %}
+
+  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <header class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <h1 class="text-xl font-semibold text-slate-950">Resize dhe pozicionim</h1>
+        <p class="mt-1 text-sm text-slate-500">Rregullo crop-in veçmas për secilin format të zgjedhur.</p>
+      </div>
+      <a href="{% url 'social_media' %}" class="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+        <i class="ph ph-arrow-left"></i>
+        Mbrapa
+      </a>
+    </header>
+  </section>
+
+  {% for tpl in templates %}
+    <div
+      class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(320px,620px)_minmax(320px,1fr)]"
+      data-social-editor
+      data-template-key="{{ tpl.key }}"
+      data-template-url="{% static tpl.static_path %}"
+      data-before-url="{{ before_url }}"
+      data-after-url="{{ after_url }}"
+      data-slots-id="{{ tpl.slot_script_id }}"
+    >
+      {{ tpl.slots|json_script:tpl.slot_script_id }}
+
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <header class="border-b border-slate-200 bg-slate-50 px-5 py-3">
+          <h2 class="font-semibold text-slate-950">{{ tpl.label }} preview</h2>
+          <p class="mt-0.5 text-xs text-slate-500">{{ tpl.width }}x{{ tpl.height }}px</p>
+        </header>
+        <div class="bg-slate-100 p-4 md:p-6">
+          <canvas
+            width="{{ tpl.width }}"
+            height="{{ tpl.height }}"
+            class="social-canvas mx-auto block w-full rounded-md bg-white shadow-sm"
+            style="aspect-ratio: {{ tpl.width }} / {{ tpl.height }}; max-width: {% if tpl.height > tpl.width %}420px{% else %}620px{% endif %};"
+          ></canvas>
+        </div>
+      </section>
+
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <header class="border-b border-slate-200 bg-slate-50 px-5 py-3">
+          <h2 class="font-semibold text-slate-950">{{ tpl.label }}</h2>
+        </header>
+
+        <div class="divide-y divide-slate-100">
+          <section class="space-y-4 p-5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold uppercase text-slate-500">Foto PARA</h3>
+              <button type="button" data-reset="before" class="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                <i class="ph ph-arrow-counter-clockwise"></i>
+                Reset
+              </button>
+            </div>
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-slate-700">Zoom</span>
+              <input type="range" name="{{ tpl.key }}_before_zoom" min="1" max="3" step="0.01" value="1" data-control="before_zoom" class="w-full accent-emerald-600">
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-slate-700">Majtas / djathtas</span>
+              <input type="range" name="{{ tpl.key }}_before_x" min="-300" max="300" step="1" value="0" data-control="before_x" class="w-full accent-emerald-600">
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-slate-700">Lart / poshtë</span>
+              <input type="range" name="{{ tpl.key }}_before_y" min="-220" max="220" step="1" value="0" data-control="before_y" class="w-full accent-emerald-600">
+            </label>
+          </section>
+
+          <section class="space-y-4 p-5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold uppercase text-slate-500">Foto PAS</h3>
+              <button type="button" data-reset="after" class="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                <i class="ph ph-arrow-counter-clockwise"></i>
+                Reset
+              </button>
+            </div>
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-slate-700">Zoom</span>
+              <input type="range" name="{{ tpl.key }}_after_zoom" min="1" max="3" step="0.01" value="1" data-control="after_zoom" class="w-full accent-emerald-600">
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-slate-700">Majtas / djathtas</span>
+              <input type="range" name="{{ tpl.key }}_after_x" min="-300" max="300" step="1" value="0" data-control="after_x" class="w-full accent-emerald-600">
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-slate-700">Lart / poshtë</span>
+              <input type="range" name="{{ tpl.key }}_after_y" min="-220" max="220" step="1" value="0" data-control="after_y" class="w-full accent-emerald-600">
+            </label>
+          </section>
+        </div>
+      </section>
+    </div>
+  {% endfor %}
+
+  <footer class="sticky bottom-0 z-10 flex items-center justify-end gap-2 rounded-lg border border-slate-200 bg-white/95 px-5 py-4 shadow-sm backdrop-blur">
+    <a href="{% url 'social_media' %}" class="inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Anulo</a>
+    <button type="submit" class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700">
+      Gjenero
+      <i class="ph ph-check"></i>
+    </button>
+  </footer>
+</form>
+
+<script src="{% static 'clinic/js/social_media_editor.js' %}" defer></script>
+{% endblock %}

@@ -8,6 +8,10 @@ urlpatterns = [
     path("login/", auth_views.LoginView.as_view(template_name="clinic/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(next_page="login"), name="logout"),
     path("logout/", views.user_logout, name="logout"),
+    path("social/", views.social_media, name="social_media"),
+    path("social/delete-post/", views.social_media_delete_post, name="social_media_delete_post"),
+    path("social/<str:token>/edit/", views.social_media_edit, name="social_media_edit"),
+    path("social/<str:token>/result/", views.social_media_result, name="social_media_result"),
 
 
     # Pacientët normal

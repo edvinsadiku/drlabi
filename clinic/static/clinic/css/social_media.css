@@ -1,0 +1,8 @@
+.social-canvas {
+  height: auto;
+  image-rendering: auto;
+}
+
+input[type="range"] {
+  cursor: pointer;
+}
