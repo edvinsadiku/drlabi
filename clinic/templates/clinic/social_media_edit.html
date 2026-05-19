@@ -31,8 +31,10 @@
       data-before-url="{{ before_url }}"
       data-after-url="{{ after_url }}"
       data-slots-id="{{ tpl.slot_script_id }}"
+      data-frames-id="{{ tpl.frame_script_id }}"
     >
       {{ tpl.slots|json_script:tpl.slot_script_id }}
+      {{ tpl.frames|json_script:tpl.frame_script_id }}
 
       <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <header class="border-b border-slate-200 bg-slate-50 px-5 py-3">

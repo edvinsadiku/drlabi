@@ -66,6 +66,10 @@ SOCIAL_TEMPLATES = {
             "before": {"x": 143, "y": 130, "w": 614, "h": 289},
             "after": {"x": 143, "y": 442, "w": 614, "h": 288},
         },
+        "frames": {
+            "before": {"x": 135, "y": 123, "w": 630, "h": 303},
+            "after": {"x": 135, "y": 434, "w": 630, "h": 304},
+        },
     },
     "story": {
         "key": "story",
@@ -77,6 +81,10 @@ SOCIAL_TEMPLATES = {
         "slots": {
             "before": {"x": 63, "y": 472, "w": 954, "h": 450},
             "after": {"x": 63, "y": 952, "w": 954, "h": 450},
+        },
+        "frames": {
+            "before": {"x": 56, "y": 465, "w": 969, "h": 464},
+            "after": {"x": 56, "y": 945, "w": 969, "h": 464},
         },
     },
 }
@@ -182,6 +190,26 @@ def _paste_cover(base, source, slot, zoom, offset_x, offset_y):
     base.paste(slot_canvas, (int(slot["x"]), int(slot["y"])))
 
 
+def _restore_social_frame(base, slot, frame):
+    frame_x = int(frame["x"])
+    frame_y = int(frame["y"])
+    frame_right = frame_x + int(frame["w"])
+    frame_bottom = frame_y + int(frame["h"])
+    slot_x = int(slot["x"])
+    slot_y = int(slot["y"])
+    slot_right = slot_x + int(slot["w"])
+    slot_bottom = slot_y + int(slot["h"])
+
+    if slot_y > frame_y:
+        base.paste("white", (frame_x, frame_y, frame_right, slot_y))
+    if slot_bottom < frame_bottom:
+        base.paste("white", (frame_x, slot_bottom, frame_right, frame_bottom))
+    if slot_x > frame_x:
+        base.paste("white", (frame_x, frame_y, slot_x, frame_bottom))
+    if slot_right < frame_right:
+        base.paste("white", (slot_right, frame_y, frame_right, frame_bottom))
+
+
 def _social_controls_from_post(post_data, template_key):
     prefix = f"{template_key}_"
     return {
@@ -212,14 +240,18 @@ def _generate_social_post(job, controls, token, template_key=None):
     for label in ("before", "after"):
         with default_storage.open(job[label], "rb") as fh:
             source = Image.open(fh)
+            slot = template["slots"][label]
             _paste_cover(
                 base,
                 source,
-                template["slots"][label],
+                slot,
                 controls[f"{label}_zoom"],
                 controls[f"{label}_x"],
                 controls[f"{label}_y"],
             )
+            frame = template.get("frames", {}).get(label)
+            if frame:
+                _restore_social_frame(base, slot, frame)
 
     out = BytesIO()
     base.save(out, format="PNG", optimize=True)
@@ -340,6 +372,7 @@ def social_media_edit(request, token):
     for key in selected_templates:
         template = dict(_social_template(key))
         template["slot_script_id"] = f"social-slots-{key}"
+        template["frame_script_id"] = f"social-frames-{key}"
         templates.append(template)
 
     if request.method == "POST":

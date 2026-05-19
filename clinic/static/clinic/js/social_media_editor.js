@@ -28,6 +28,21 @@
     ctx.restore();
   }
 
+  function restoreFrame(ctx, slot, frame) {
+    var frameRight = frame.x + frame.w;
+    var frameBottom = frame.y + frame.h;
+    var slotRight = slot.x + slot.w;
+    var slotBottom = slot.y + slot.h;
+
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    if (slot.y > frame.y) ctx.fillRect(frame.x, frame.y, frame.w, slot.y - frame.y);
+    if (slotBottom < frameBottom) ctx.fillRect(frame.x, slotBottom, frame.w, frameBottom - slotBottom);
+    if (slot.x > frame.x) ctx.fillRect(frame.x, frame.y, slot.x - frame.x, frame.h);
+    if (slotRight < frameRight) ctx.fillRect(slotRight, frame.y, frameRight - slotRight, frame.h);
+    ctx.restore();
+  }
+
   function resetControls(root, prefix) {
     var defaults = {
       zoom: "1",
@@ -43,10 +58,12 @@
   function initEditor(root) {
     var canvas = root.querySelector("canvas");
     var slotsNode = document.getElementById(root.dataset.slotsId);
+    var framesNode = document.getElementById(root.dataset.framesId);
     if (!canvas || !slotsNode) return;
 
     var ctx = canvas.getContext("2d");
     var slots = JSON.parse(slotsNode.textContent);
+    var frames = framesNode ? JSON.parse(framesNode.textContent) : {};
     var images = {};
 
     function draw() {
@@ -65,6 +82,7 @@
         numericInput(root, "before_x"),
         numericInput(root, "before_y")
       );
+      if (frames.before) restoreFrame(ctx, slots.before, frames.before);
       drawCover(
         ctx,
         images.after,
@@ -73,6 +91,7 @@
         numericInput(root, "after_x"),
         numericInput(root, "after_y")
       );
+      if (frames.after) restoreFrame(ctx, slots.after, frames.after);
     }
 
     Promise.all([
