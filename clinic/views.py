@@ -1369,6 +1369,11 @@ def reports(request):
     if order not in {"asc", "desc"}:
         order = "desc"
 
+    doctor_choices = DOCTOR_CHOICES
+    doctor_filter = (request.GET.get("doctor") or "").strip()
+    if doctor_filter and doctor_filter not in dict(doctor_choices):
+        doctor_filter = ""
+
     today = now().date()
 
     if mode == "day":
@@ -1476,6 +1481,12 @@ def reports(request):
                     }
                 )
 
+    if doctor_filter:
+        items = [
+            r for r in items
+            if (getattr(r["obj"], "doctor", "") or "") == doctor_filter
+        ]
+
     reverse = order == "desc"
     items.sort(key=lambda r: (r["d"] or date.min, r["obj"].id or 0), reverse=reverse)
 
@@ -1492,6 +1503,8 @@ def reports(request):
         "total_vlera": total_vlera,
         "total_paguar": total_paguar,
         "total_borgji": total_borgji,
+        "doctor_choices": doctor_choices,
+        "doctor_filter": doctor_filter,
         "today": today,
         "years": years,
         "picked_day": request.GET.get("day") or today.strftime("%Y-%m-%d"),
@@ -1991,6 +2004,10 @@ from django.utils import timezone
 def reports_new(request):
     start_date, end_date = _period_range(request)
     order = (request.GET.get("order") or "desc").lower()
+    doctor_choices = DOCTOR_CHOICES
+    doctor_filter = (request.GET.get("doctor") or "").strip()
+    if doctor_filter and doctor_filter not in dict(doctor_choices):
+        doctor_filter = ""
 
     mode = (request.GET.get("mode") or "day").lower()
     picked_day = request.GET.get("day") or start_date.strftime("%Y-%m-%d")
@@ -2025,6 +2042,18 @@ def reports_new(request):
         .select_related("agreement", "patient", "agreement__patient")
     )
 
+    if doctor_filter:
+        payments_for_histories = payments_for_histories.filter(
+            Q(doctor=doctor_filter)
+            | Q(doctor__isnull=True, history__doctor=doctor_filter)
+            | Q(doctor="", history__doctor=doctor_filter)
+        )
+        payments_for_agreements = payments_for_agreements.filter(
+            Q(doctor=doctor_filter)
+            | Q(doctor__isnull=True, agreement__doctor=doctor_filter)
+            | Q(doctor="", agreement__doctor=doctor_filter)
+        )
+
     # -------- Pagesa sipas doktorit (vetëm periudha) --------
     payments_by_doctor_hist = (
         payments_for_histories.values(doctor_name=Coalesce("doctor", "history__doctor"))
@@ -2055,6 +2084,21 @@ def reports_new(request):
         vals["total"] = (
             vals["from_histories"] or Decimal("0.00")
         ) + (vals["from_agreements"] or Decimal("0.00"))
+
+    visible_doctor_choices = (
+        [(doctor_filter, dict(doctor_choices)[doctor_filter])]
+        if doctor_filter
+        else doctor_choices
+    )
+    for value, _label in visible_doctor_choices:
+        payments_by_doctor_total.setdefault(
+            value,
+            {
+                "from_histories": Decimal("0.00"),
+                "from_agreements": Decimal("0.00"),
+                "total": Decimal("0.00"),
+            },
+        )
 
     # -------- KPI Totals (CASH-IN) --------
     total_paid_histories = payments_for_histories.aggregate(
@@ -2159,6 +2203,8 @@ def reports_new(request):
         "picked_year": picked_year,
         "years": range(2020, datetime.now().year + 2),
         "order": order,
+        "doctor_choices": doctor_choices,
+        "doctor_filter": doctor_filter,
     }
 
     return render(request, "clinic/reports_new.html", context)
@@ -2169,6 +2215,10 @@ def reports_new_export_excel(request):
     # Filtrat si në UI
     start_date, end_date = _period_range(request)
     order = (request.GET.get("order") or "desc").lower()
+    doctor_choices = DOCTOR_CHOICES
+    doctor_filter = (request.GET.get("doctor") or "").strip()
+    if doctor_filter and doctor_filter not in dict(doctor_choices):
+        doctor_filter = ""
 
     DECIMAL = DecimalField(max_digits=18, decimal_places=2)
     ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
@@ -2190,6 +2240,18 @@ def reports_new_export_excel(request):
             agreement__isnull=False,
         ).select_related("agreement", "patient", "agreement__patient")
     )
+
+    if doctor_filter:
+        payments_for_histories = payments_for_histories.filter(
+            Q(doctor=doctor_filter)
+            | Q(doctor__isnull=True, history__doctor=doctor_filter)
+            | Q(doctor="", history__doctor=doctor_filter)
+        )
+        payments_for_agreements = payments_for_agreements.filter(
+            Q(doctor=doctor_filter)
+            | Q(doctor__isnull=True, agreement__doctor=doctor_filter)
+            | Q(doctor="", agreement__doctor=doctor_filter)
+        )
 
     # KPI: Paguar (cash-in)
     total_paid_histories = payments_for_histories.aggregate(
@@ -2342,6 +2404,7 @@ def reports_new_export_excel(request):
     # ==== Fleta KPI ====
     ws2 = wb.create_sheet(title="KPI")
     ws2.append(["Periudha", f"{start_date} → {end_date}"])
+    ws2.append(["Doktori", doctor_filter or "Të gjithë"])
     ws2.append(["Faturuar (Totali)", float(total_billed)])
     ws2.append(["Paguar (Cash-in)", float(total_paid)])
 
@@ -2362,9 +2425,10 @@ def reports_new_export_excel(request):
     ws2["A2"].font = Font(bold=True)
     ws2["A3"].font = Font(bold=True)
     ws2["A4"].font = Font(bold=True)
-    ws2["B2"].number_format = currency_fmt
+    ws2["A5"].font = Font(bold=True)
     ws2["B3"].number_format = currency_fmt
     ws2["B4"].number_format = currency_fmt
+    ws2["B5"].number_format = currency_fmt
     ws2.column_dimensions["A"].width = 22
     ws2.column_dimensions["B"].width = 24
 
@@ -2890,7 +2954,7 @@ def prescription_save(request, patient_id):
 
     valid_doctors = dict(DOCTOR_CHOICES)
     if doctor not in valid_doctors:
-        errors["doctor"] = "Zgjidh doktorin (p.sh. Dr. Labi ose Dr. Linda)."
+        errors["doctor"] = "Zgjidh doktorin (p.sh. Dr. Labi, Dr. Linda ose HD.Geka)."
 
     if errors:
         return JsonResponse({"ok": False, "errors": errors}, status=400)
@@ -2981,6 +3045,10 @@ def debt_report(request):
     doctor_filter = (request.GET.get("doctor") or "").strip()
     order = (request.GET.get("order") or "oldest").lower()
     min_debt_raw = (request.GET.get("min_debt") or "").replace(",", ".").strip()
+    doctor_choices = DOCTOR_CHOICES
+
+    if doctor_filter and doctor_filter not in dict(doctor_choices):
+        doctor_filter = ""
 
     try:
         min_debt = Decimal(min_debt_raw) if min_debt_raw else Decimal("0.00")
@@ -3185,6 +3253,6 @@ def debt_report(request):
         "min_debt_raw": min_debt_raw,
         "total_debt": totals["total_debt"] or Decimal("0.00"),
         "total_patients": totals["total_patients"] or 0,
-        "doctor_choices": DOCTOR_CHOICES,
+        "doctor_choices": doctor_choices,
     }
     return render(request, "clinic/debt_report.html", context)

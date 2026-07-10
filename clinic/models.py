@@ -7,6 +7,13 @@ from django.utils.timezone import now
 from django.utils import timezone
 
 
+DOCTOR_CHOICES = [
+    ("Dr. Labi", "Dr. Labi"),
+    ("Dr. Linda", "Dr. Linda"),
+    ("HD.Geka", "HD.Geka"),
+]
+
+
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
         ("admin", "Admin"),
@@ -192,7 +199,7 @@ class Appointment(models.Model):
         related_name="appointments",
     )
     doctor = models.CharField(
-        max_length=100, choices=[("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")]
+        max_length=100, choices=DOCTOR_CHOICES
     )
     title = models.CharField(max_length=191, help_text="Shërbimi ose arsyeja e vizitës")
     start = models.DateTimeField(default=now)
@@ -268,7 +275,7 @@ class Agreement(models.Model):
     end_date = models.DateField(null=True, blank=True)
     doctor = models.CharField(
         max_length=191,
-        choices=[("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")],
+        choices=DOCTOR_CHOICES,
         null=True,
         blank=True,
     )
@@ -407,7 +414,7 @@ class Payment(models.Model):
     notes = models.CharField(max_length=255, null=True, blank=True)
     doctor = models.CharField(
         max_length=191,
-        choices=[("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")],
+        choices=DOCTOR_CHOICES,
         null=True,
         blank=True,
     )
@@ -456,8 +463,6 @@ class Payment(models.Model):
         t = "histori" if self.history_id else "marrëveshje"
         return f"{self.patient.emri_mbiemri or 'Pacient'} – {self.amount}€ ({t})"
 
-
-DOCTOR_CHOICES = [("Dr. Labi", "Dr. Labi"), ("Dr. Linda", "Dr. Linda")]
 
 class Prescription(models.Model):
     patient = models.ForeignKey(
