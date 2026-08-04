@@ -1986,6 +1986,23 @@ def _obj_date(obj):
     return datetime.min
 
 
+def _care_history_label(history):
+    treatment = (getattr(history, "treatment", "") or "").strip()
+    diagnosis = (getattr(history, "diagnosis", "") or "").strip()
+
+    if treatment:
+        return treatment
+    if diagnosis:
+        return diagnosis
+    return "-"
+
+
+def _care_history_report_amount(history):
+    if getattr(history, "included_in_agreement", False):
+        return Decimal("0.00")
+    return history.amount or Decimal("0.00")
+
+
 
 from decimal import Decimal
 from datetime import datetime, time
@@ -2041,6 +2058,13 @@ def reports_new(request):
         )
         .select_related("agreement", "patient", "agreement__patient")
     )
+    histories_in_period = (
+        CareHistory.objects.filter(
+            date__gte=start_date,
+            date__lte=end_date,
+        )
+        .select_related("patient", "agreement")
+    )
 
     if doctor_filter:
         payments_for_histories = payments_for_histories.filter(
@@ -2053,6 +2077,7 @@ def reports_new(request):
             | Q(doctor__isnull=True, agreement__doctor=doctor_filter)
             | Q(doctor="", agreement__doctor=doctor_filter)
         )
+        histories_in_period = histories_in_period.filter(doctor=doctor_filter)
 
     # -------- Pagesa sipas doktorit (vetëm periudha) --------
     payments_by_doctor_hist = (
@@ -2109,16 +2134,23 @@ def reports_new(request):
     )["t"] or Decimal("0.00")
     total_paid = total_paid_histories + total_paid_agreements
 
-    # Faturuar (Totali) = Paguar (Cash-in) (SI MË PARË)
-    total_billed = total_paid
+    total_billed_histories = histories_in_period.filter(
+        agreement__isnull=True,
+        included_in_agreement=False,
+    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"] or Decimal(
+        "0.00"
+    )
+    total_billed = total_billed_histories + total_paid_agreements
 
     # -------- Tabela --------
     histories_and_agreements = []
 
-    # Map i paguar-deri-tani (all-time) për historitë që kanë pagesa në periudhë
-    history_ids = list(
+    # Map i paguar-deri-tani (all-time) për historitë që shfaqen në raport.
+    paid_history_ids = set(
         payments_for_histories.values_list("history_id", flat=True).distinct()
     )
+    period_history_ids = set(histories_in_period.values_list("id", flat=True))
+    history_ids = list(paid_history_ids | period_history_ids)
     paid_alltime_map = {}
     if history_ids:
         paid_alltime = (
@@ -2135,9 +2167,10 @@ def reports_new(request):
     # - Vlera = amount i historisë
     # - Paguar = VETËM kjo pagesë (që të përputhet me KPI)
     # - Borxh = aktual (amount - paguar deritanishëm all-time)
+    shown_history_ids = set()
     for p in payments_for_histories:
         h = p.history
-        history_amount = h.amount or Decimal("0.00")
+        history_amount = _care_history_report_amount(h)
         paid_to_date = paid_alltime_map.get(h.id, Decimal("0.00"))
         debt_now = history_amount - paid_to_date
         if debt_now < 0:
@@ -2150,20 +2183,29 @@ def reports_new(request):
 
         p.date = p.created_at
         p.doctor = p.doctor or getattr(h, "doctor", None)
-
-        # ───────── Historia: TRAJTIM ose DIAGNOZË ─────────
-        # CareHistory ka fields: treatment, diagnosis
-        treatment = (getattr(h, "treatment", "") or "").strip()
-        diagnosis = (getattr(h, "diagnosis", "") or "").strip()
-
-        if treatment:
-            p.history_diagnosis = treatment
-        elif diagnosis:
-            p.history_diagnosis = diagnosis
-        else:
-            p.history_diagnosis = "-"
+        p.history_diagnosis = _care_history_label(h)
 
         histories_and_agreements.append(p)
+        shown_history_ids.add(h.id)
+
+    # Historitë e periudhës pa pagesë në atë periudhë duhet të dalin në raport.
+    for h in histories_in_period:
+        if h.id in shown_history_ids:
+            continue
+
+        history_amount = _care_history_report_amount(h)
+        paid_to_date = paid_alltime_map.get(h.id, Decimal("0.00"))
+        debt_now = history_amount - paid_to_date
+        if debt_now < 0:
+            debt_now = Decimal("0.00")
+
+        h.obj_type = "care_history"
+        h.amount_display = history_amount
+        h.paid_sum = Decimal("0.00")
+        h.debt_sum = debt_now
+        h.doctor = h.doctor or None
+        h.history_diagnosis = _care_history_label(h)
+        histories_and_agreements.append(h)
 
     # Rreshta për pagesat e marrëveshjeve (pa borxh)
     for p in payments_for_agreements:
@@ -2179,6 +2221,8 @@ def reports_new(request):
     for row in histories_and_agreements:
         if getattr(row, "obj_type", "") == "payment_history":
             debt_by_history[row.history_id] = row.debt_sum
+        elif getattr(row, "obj_type", "") == "care_history":
+            debt_by_history[row.id] = row.debt_sum
     outstanding = sum(debt_by_history.values(), start=Decimal("0.00"))
 
     # Renditja
@@ -2240,6 +2284,13 @@ def reports_new_export_excel(request):
             agreement__isnull=False,
         ).select_related("agreement", "patient", "agreement__patient")
     )
+    histories_in_period = (
+        CareHistory.objects.filter(
+            date__gte=start_date,
+            date__lte=end_date,
+        )
+        .select_related("patient", "agreement")
+    )
 
     if doctor_filter:
         payments_for_histories = payments_for_histories.filter(
@@ -2252,6 +2303,7 @@ def reports_new_export_excel(request):
             | Q(doctor__isnull=True, agreement__doctor=doctor_filter)
             | Q(doctor="", agreement__doctor=doctor_filter)
         )
+        histories_in_period = histories_in_period.filter(doctor=doctor_filter)
 
     # KPI: Paguar (cash-in)
     total_paid_histories = payments_for_histories.aggregate(
@@ -2262,11 +2314,20 @@ def reports_new_export_excel(request):
     )["t"] or Decimal("0.00")
     total_paid = total_paid_histories + total_paid_agreements
 
-    # Faturuar (Totali) = Paguar (Cash-in) (SI MË PARË)
-    total_billed = total_paid
+    total_billed_histories = histories_in_period.filter(
+        agreement__isnull=True,
+        included_in_agreement=False,
+    ).aggregate(t=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))["t"] or Decimal(
+        "0.00"
+    )
+    total_billed = total_billed_histories + total_paid_agreements
 
-    # Map all-time i pagesave për historitë në periudhë
-    history_ids = list(payments_for_histories.values_list("history_id", flat=True).distinct())
+    # Map all-time i pagesave për historitë që shfaqen në raport
+    paid_history_ids = set(
+        payments_for_histories.values_list("history_id", flat=True).distinct()
+    )
+    period_history_ids = set(histories_in_period.values_list("id", flat=True))
+    history_ids = list(paid_history_ids | period_history_ids)
     paid_alltime_map = {}
     if history_ids:
         paid_alltime = (
@@ -2283,9 +2344,10 @@ def reports_new_export_excel(request):
 
     # Ndërto rreshtat (si në UI)
     rows = []
+    shown_history_ids = set()
     for p in payments_for_histories:
         h = p.history
-        history_amount = h.amount or Decimal("0.00")
+        history_amount = _care_history_report_amount(h)
         paid_to_date = paid_alltime_map.get(h.id, Decimal("0.00"))
         debt_now = history_amount - paid_to_date
         if debt_now < 0:
@@ -2294,11 +2356,33 @@ def reports_new_export_excel(request):
         rows.append([
             _naive_local(p.created_at),
             getattr(p.patient, "emri_mbiemri", "-"),
-            f"Histori: {getattr(h, 'diagnosis', '-') or '-'}",
+            f"Histori: {_care_history_label(h)}",
             p.doctor or getattr(h, "doctor", None) or "-",
             method_display,
             float(history_amount),
             float(p.amount or Decimal("0.00")),
+            float(debt_now),
+        ])
+        shown_history_ids.add(h.id)
+
+    for h in histories_in_period:
+        if h.id in shown_history_ids:
+            continue
+
+        history_amount = _care_history_report_amount(h)
+        paid_to_date = paid_alltime_map.get(h.id, Decimal("0.00"))
+        debt_now = history_amount - paid_to_date
+        if debt_now < 0:
+            debt_now = Decimal("0.00")
+
+        rows.append([
+            datetime.combine(h.date, time.min) if h.date else None,
+            getattr(h.patient, "emri_mbiemri", "-"),
+            f"Histori: {_care_history_label(h)}",
+            h.doctor or "-",
+            "-",
+            float(history_amount),
+            float(0),
             float(debt_now),
         ])
 
@@ -2315,7 +2399,7 @@ def reports_new_export_excel(request):
             float(0),
         ])
 
-    rows.sort(key=lambda r: r[0], reverse=(order == "desc"))
+    rows.sort(key=lambda r: r[0] or datetime.min, reverse=(order == "desc"))
 
     # ==== Excel profesional (borders, table, filters, totals) ====
     from openpyxl import Workbook
@@ -2412,7 +2496,14 @@ def reports_new_export_excel(request):
     debt_by_history = {}
     for p in payments_for_histories:
         h = p.history
-        history_amount = h.amount or Decimal("0.00")
+        history_amount = _care_history_report_amount(h)
+        paid_to_date = paid_alltime_map.get(h.id, Decimal("0.00"))
+        debt_now = history_amount - paid_to_date
+        if debt_now < 0:
+            debt_now = Decimal("0.00")
+        debt_by_history[h.id] = debt_now
+    for h in histories_in_period:
+        history_amount = _care_history_report_amount(h)
         paid_to_date = paid_alltime_map.get(h.id, Decimal("0.00"))
         debt_now = history_amount - paid_to_date
         if debt_now < 0:

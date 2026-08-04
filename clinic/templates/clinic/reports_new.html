@@ -391,6 +391,8 @@
                   {{ h.created_at|date:"Y-m-d H:i" }}
                 {% elif h.obj_type == "payment_history" %}
                   {{ h.date|date:"Y-m-d H:i" }}
+                {% elif h.obj_type == "care_history" %}
+                  {{ h.date|date:"Y-m-d" }}
                 {% endif %}
               </td>
               <td class="p-3 font-medium text-slate-900">
@@ -407,24 +409,29 @@
                     Histori
                   </span>
                   <span class="text-slate-700 text-sm">{{ h.history_diagnosis|default:"-" }}</span>
+                {% elif h.obj_type == "care_history" %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 text-slate-700 text-[11px] font-semibold mr-1">
+                    Histori
+                  </span>
+                  <span class="text-slate-700 text-sm">{{ h.history_diagnosis|default:"-" }}</span>
                 {% endif %}
               </td>
               <td class="p-3 text-slate-700">
                 {% if h.obj_type == "payment_agreement" %}
                   {{ h.doctor|default:"-" }}
-                {% elif h.obj_type == "payment_history" %}
+                {% elif h.obj_type == "payment_history" or h.obj_type == "care_history" %}
                   {{ h.doctor|default:"-" }}
                 {% endif %}
               </td>
               <td class="p-3 text-slate-700">
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-700">
-                  {{ h.get_method_display|default:h.method|default:"-" }}
+                  {% if h.obj_type == "care_history" %}-{% else %}{{ h.get_method_display|default:h.method|default:"-" }}{% endif %}
                 </span>
               </td>
               <td class="p-3 text-right text-slate-800">
                 {{ h.amount_display }}€
               </td>
-              <td class="p-3 text-right font-medium {% if h.obj_type == 'payment_agreement' or h.obj_type == 'payment_history' %}text-emerald-700{% endif %}">
+              <td class="p-3 text-right font-medium {% if h.obj_type == 'payment_agreement' or h.obj_type == 'payment_history' %}text-emerald-700{% else %}text-slate-500{% endif %}">
                 {{ h.paid_sum }}€
               </td>
               <td class="p-3 text-right {% if h.debt_sum > 0 %}text-red-600 font-semibold{% else %}text-slate-500{% endif %}">
