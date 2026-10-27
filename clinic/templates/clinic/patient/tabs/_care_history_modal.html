@@ -1,14 +1,14 @@
-<div id="careHistoryModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/20 backdrop-blur-[2px]">
-  <div id="careHistoryCard" class="bg-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] max-w-xl w-full mx-4 transform transition-all duration-150 ease-out scale-95 opacity-0 border border-gray-200">
-    <div class="flex justify-between items-center px-6 py-4 border-b bg-gray-50 rounded-t-3xl">
+<dialog id="careHistoryModal" class="care-history-dialog" aria-labelledby="care-history-title">
+  <div id="careHistoryCard" class="bg-white surface-panel shadow-[0_8px_40px_rgba(0,0,0,0.08)] max-w-xl w-full mx-4 transform transition-all duration-150 ease-out scale-95 opacity-0 border border-gray-200">
+    <div class="flex justify-between items-center px-6 py-4 border-b bg-gray-50 surface-top">
       <div class="flex items-center gap-2">
         <svg class="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 19h14M5 15h14"/></svg>
-        <h3 class="text-lg font-semibold text-gray-800">Detajet e trajtimit</h3>
+        <div><p id="chRelation" class="eyebrow"></p><h3 id="care-history-title" class="text-lg font-semibold text-gray-800">Detajet e trajtimit</h3></div>
       </div>
-      <button type="button" onclick="closeCareHistoryModal()" class="rounded-full p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">✕</button>
+      <button type="button" onclick="closeCareHistoryModal()" aria-label="Mbyll detajet" class="icon-button">✕</button>
     </div>
 
-    <div class="px-6 py-5 space-y-5 text-sm text-gray-800 bg-white rounded-b-3xl">
+    <div class="px-6 py-5 space-y-5 text-sm text-gray-800 bg-white">
       <div class="grid grid-cols-2 gap-4">
         <div><p class="text-xs text-gray-500">Data</p><p id="chDate" class="font-medium">—</p></div>
         <div><p class="text-xs text-gray-500">Dhëmbi</p><p id="chTooth" class="font-medium">—</p></div>
@@ -17,9 +17,9 @@
       </div>
 
       <div class="grid grid-cols-3 gap-3 pt-2">
-        <div class="text-center rounded-2xl border border-gray-200 bg-gray-50 p-3"><p class="text-[11px] text-gray-500">Çmimi</p><p id="chAmount" class="text-lg font-semibold text-gray-800">0.00€</p></div>
-        <div class="text-center rounded-2xl border border-gray-200 bg-gray-50 p-3"><p class="text-[11px] text-gray-500">Paguar</p><p id="chPaid" class="text-lg font-semibold text-emerald-600">0.00€</p></div>
-        <div class="text-center rounded-2xl border border-gray-200 bg-gray-50 p-3"><p class="text-[11px] text-gray-500">Borxh</p><p id="chDebt" class="text-lg font-semibold text-red-600">0.00€</p></div>
+        <div class="text-center surface-panel border border-gray-200 bg-gray-50 p-3"><p class="text-[11px] text-gray-500">Çmimi</p><p id="chAmount" class="text-lg font-semibold text-gray-800">0.00€</p></div>
+        <div class="text-center surface-panel border border-gray-200 bg-gray-50 p-3"><p class="text-[11px] text-gray-500">Paguar</p><p id="chPaid" class="text-lg font-semibold text-emerald-600">0.00€</p></div>
+        <div class="text-center surface-panel border border-gray-200 bg-gray-50 p-3"><p class="text-[11px] text-gray-500">Borxh</p><p id="chDebt" class="text-lg font-semibold text-red-600">0.00€</p></div>
       </div>
 
       <div class="grid grid-cols-2 gap-4 pt-2">
@@ -30,7 +30,7 @@
       </div>
 
       <div id="chAgreementWrap" class="hidden pt-2">
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+        <div class="surface-panel border border-emerald-200 bg-emerald-50 p-3">
           <p class="text-xs text-emerald-700">Marrëveshje</p>
           <p id="chAgreement" class="text-sm font-medium text-emerald-800">—</p>
           <p class="text-[11px] text-emerald-600 mt-1">E përfshirë në marrëveshje.</p>
@@ -38,9 +38,9 @@
       </div>
     </div>
 
-    <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-between rounded-b-3xl">
+    <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-between surface-bottom">
       <div id="chCreated" class="text-xs text-gray-500">—</div>
-      <button type="button" onclick="closeCareHistoryModal()" class="px-4 py-1.5 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 transition">Mbyll</button>
+      <button type="button" onclick="closeCareHistoryModal()" class="btn btn-primary">Mbyll</button>
     </div>
   </div>
-</div>
+</dialog>

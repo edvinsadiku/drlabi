@@ -1,32 +1,8 @@
 {% extends "clinic/base.html" %}
+{% load static %}
 {% block title %}Pacientët{% endblock %}
 {% block content %}
-    <!-- HEADER -->
-    <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-            <div class="flex items-center gap-x-3">
-                <h2 class="text-lg font-medium text-gray-800">Pacientët</h2>
-                <span class="px-3 py-1 text-xs text-emerald-600 bg-emerald-100 rounded-full">
-                    {{ page_obj.paginator.count }} total
-                </span>
-            </div>
-            <p class="mt-1 text-sm text-gray-500">Lista e pacientëve në sistem.</p>
-        </div>
-        <div class="flex items-center mt-4 gap-x-3">
-            <a href="{% url 'add_patient' %}"
-               class="flex items-center justify-center px-5 py-2 text-sm tracking-wide text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke-width="1.5"
-                     stroke="currentColor"
-                     class="w-5 h-5 mr-2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Shto pacient</span>
-            </a>
-        </div>
-    </div>
+    <header class="page-heading"><div><p class="eyebrow">KUJDESI FILLON ME PACIENTIN</p><h1>Pacientët tuaj<span style="color:var(--logo-teal)">.</span></h1><p><span id="patient-count">{{ page_obj.paginator.count }}</span> pacientë në këtë përzgjedhje · Gjej kartelën dhe vazhdo kujdesin.</p></div><div class="heading-actions"><a class="btn" href="{% url 'orto_patient_list' %}"><i aria-hidden="true" class="ph ph-tooth"></i> Ortodoncia</a><a data-add-patient class="btn btn-primary" href="{% url 'add_patient' %}"><i aria-hidden="true" class="ph ph-plus"></i> Regjistro pacient</a></div></header>
     <!-- SEARCH + FILTERS -->
     <div class="mt-6">
         <form method="get" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end" id="searchForm">
@@ -44,16 +20,16 @@
                 <input type="text"
                        name="q"
                        value="{{ q }}"
-                       id="searchInput"
+                       id="searchInput" aria-label="Kërko pacient"
                        placeholder="Kërko pacient..."
                        class="block w-full py-2 pl-11 pr-4 text-gray-700 bg-white border rounded-lg border-gray-200 focus:border-emerald-500 focus:ring focus:ring-emerald-300 focus:ring-opacity-40">
             </div>
 
             <div class="md:col-span-4">
-                <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <label for="patientOrder" class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
                     Renditja
                 </label>
-                <select
+                <select id="patientOrder"
                     name="order"
                     class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-emerald-500 focus:ring focus:ring-emerald-300 focus:ring-opacity-40"
                 >
@@ -70,7 +46,7 @@
                 <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
                     Borxhi
                 </label>
-                <label class="inline-flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700">
+                <label class="inline-flex items-center gap-2 w-full px-3 py-2.5 surface-control border border-gray-200 bg-gray-50 text-sm text-gray-700">
                     <input
                         type="checkbox"
                         name="debt"
@@ -84,19 +60,19 @@
         </form>
     </div>
     <!-- TABLE -->
-    <div class="flex flex-col mt-6">
-        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                <div class="overflow-hidden border border-gray-200 md:rounded-lg">
+    <div class="patient-directory glass-card mt-6">
+        <div class="overflow-x-auto">
+            <div class="inline-block min-w-full align-middle">
+                <div class="overflow-hidden surface-panel">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Pacienti</th>
-                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Telefoni</th>
-                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Qyteti</th>
-                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Historia e fundit</th>
-                                <th class="px-4 py-3 text-sm font-medium text-left text-gray-500">Regjistruar</th>
-                                <th class="px-4 py-3 text-sm font-medium text-right text-gray-500">Veprime</th>
+                                <th scope="col" class="px-4 py-3 text-sm font-medium text-left text-gray-500">Pacienti</th>
+                                <th scope="col" class="px-4 py-3 text-sm font-medium text-left text-gray-500">Telefoni</th>
+                                <th scope="col" class="px-4 py-3 text-sm font-medium text-left text-gray-500">Qyteti</th>
+                                <th scope="col" class="px-4 py-3 text-sm font-medium text-left text-gray-500">Historia e fundit</th>
+                                <th scope="col" class="px-4 py-3 text-sm font-medium text-left text-gray-500">Regjistruar</th>
+                                <th scope="col" class="px-4 py-3 text-sm font-medium text-right text-gray-500">Veprime</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
@@ -171,9 +147,9 @@
                                     <!-- Actions -->
                                     <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
                                         <a href="{% url 'patient_detail' p.id %}"
-                                           class="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50">Shiko</a>
+                                           class="btn">Shiko</a>
                                         <a href="{% url 'edit_patient' p.id %}"
-                                           class="px-3 py-1.5 text-sm rounded-md border border-emerald-600 text-emerald-600 hover:bg-emerald-50">Ndrysho</a>
+                                           class="btn">Ndrysho</a>
                                     </td>
                                 </tr>
                             {% empty %}
@@ -202,208 +178,65 @@
                 <div class="flex items-center gap-x-2">
                     {% if page_obj.has_previous %}
                         <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if has_debt %}&debt=1{% endif %}&order={{ order }}"
-                           class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">‹ Mbrapa</a>
+                           class="btn">‹ Mbrapa</a>
                     {% endif %}
                     {% if page_obj.has_next %}
                         <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if has_debt %}&debt=1{% endif %}&order={{ order }}"
-                           class="px-4 py-2 text-sm bg-white border rounded-md hover:bg-gray-100">Para ›</a>
+                           class="btn">Para ›</a>
                     {% endif %}
                 </div>
             </div>
         {% endif %}
     </div>
     <!-- Auto-search script -->
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  const input = document.getElementById("searchInput");
-  const tableContainer = document.querySelector("table").parentElement; 
-  const filtersForm = document.getElementById("searchForm");
-  let timeout = null;
 
-  const buildQuery = () => {
-    if (!filtersForm) {
-      const q = input ? input.value.trim() : "";
-      return q ? `q=${encodeURIComponent(q)}` : "";
-    }
-    return new URLSearchParams(new FormData(filtersForm)).toString();
-  };
-
-  const fetchPatients = () => {
-    const query = buildQuery();
-    const url = query ? `?${query}` : window.location.pathname;
-    fetch(url, {
-      headers: { "X-Requested-With": "XMLHttpRequest" }
-    })
-      .then(async response => {
-        const text = await response.text();
-
-        // Kontrollo nëse përgjigjja është JSON apo HTML
-        try {
-          const data = JSON.parse(text);
-          if (data.success && data.patient) {
-            console.log("Pacienti gjetur:", data.patient);
-            // nëse do, mund t’i mbushësh automatikisht në modal:
-            // document.getElementById("f_emri").value = data.patient.emri_mbiemri;
-            return;
-          }
-        } catch (e) {
-          // nuk është JSON → vazhdo me HTML
-        }
-
-        // nëse nuk është JSON, trajtoje si HTML (update tabelën)
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, "text/html");
-        const newTable = doc.querySelector("table");
-        const oldTable = document.querySelector("table");
-        const newCount = doc.querySelector("span.px-3"); 
-        const oldCount = document.querySelector("span.px-3");
-        const newPagination = doc.querySelector("#patientPagination");
-        const oldPagination = document.querySelector("#patientPagination");
-
-        if (newTable && oldTable) {
-          oldTable.innerHTML = newTable.innerHTML;
-        }
-        if (newCount && oldCount) {
-          oldCount.innerHTML = newCount.innerHTML;
-        }
-        if (newPagination && oldPagination) {
-          oldPagination.innerHTML = newPagination.innerHTML;
-        }
-      })
-      .catch(err => console.error("Gabim në kërkim:", err));
-  };
-
-  input.addEventListener("input", function() {
-    clearTimeout(timeout);
-    timeout = setTimeout(fetchPatients, 400);
-  });
-
-  if (filtersForm) {
-    filtersForm.querySelectorAll("select, input[type='checkbox']").forEach((el) => {
-      el.addEventListener("change", () => {
-        clearTimeout(timeout);
-        fetchPatients();
-      });
-    });
-  }
-
-  document.addEventListener("click", function(e) {
-    if (e.target.tagName === "A" && e.target.closest(".pagination-link")) {
-      e.preventDefault();
-      const url = e.target.href;
-      fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-        .then(response => response.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, "text/html");
-          const newTable = doc.querySelector("table");
-          const oldTable = document.querySelector("table");
-          const newCount = doc.querySelector("span.px-3");
-          const oldCount = document.querySelector("span.px-3");
-          const newPagination = doc.querySelector("#patientPagination");
-          const oldPagination = document.querySelector("#patientPagination");
-
-          if (newTable && oldTable) {
-            oldTable.innerHTML = newTable.innerHTML;
-          }
-          if (newCount && oldCount) {
-            oldCount.innerHTML = newCount.innerHTML;
-          }
-          if (newPagination && oldPagination) {
-            oldPagination.innerHTML = newPagination.innerHTML;
-          }
-        })
-        .catch(err => console.error("Gabim në pagination:", err));
-    }
-  });
-});
-function rebindEditButtons() {
-  document.querySelectorAll('a[href*="/edit/"]').forEach(btn => {
-    btn.addEventListener("click", async e => {
-      e.preventDefault();
-      const form = document.getElementById("patientForm");
-      const modal = document.getElementById("patientModal");
-      const card = document.getElementById("patientCard");
-      const title = document.getElementById("patientModalTitle");
-
-      const editUrl = btn.getAttribute("href");
-      form.dataset.url = editUrl;
-      title.textContent = "Ndrysho pacient";
-
-      try {
-        const res = await fetch(editUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } });
-        const data = await res.json();
-        if (data.success && data.patient) {
-          const p = data.patient;
-          form.querySelector("[name='emri_mbiemri']").value = p.emri_mbiemri || "";
-          form.querySelector("[name='data_e_lindjes']").value = p.data_e_lindjes || "";
-          form.querySelector("[name='telefoni']").value = p.telefoni || "";
-          form.querySelector("[name='emaili']").value = p.emaili || "";
-          form.querySelector("[name='leternjoftimi']").value = p.leternjoftimi || "";
-          form.querySelector("[name='adresa']").value = p.adresa || "";
-          const extra = form.querySelector("[name='informata_shtese']");
-          if (extra) extra.value = p.informata_shtese || "";
-        }
-        modal.classList.remove("hidden"); modal.classList.add("flex");
-        setTimeout(() => {
-          card.classList.remove("opacity-0", "scale-95");
-          card.classList.add("opacity-100", "scale-100");
-        }, 20);
-      } catch (err) {
-        console.error("Gabim gjatë marrjes së pacientit:", err);
-      }
-    });
-  });
-}
-
-</script>
 
 <!-- ========================= -->
 <!-- MODAL: ADD/EDIT PATIENT -->
 <!-- ========================= -->
-<div id="patientModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+<div id="patientModal" role="dialog" aria-modal="true" aria-labelledby="patientModalTitle" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/40 backdrop-blur-sm">
   <div id="patientCard"
-       class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 transform transition-all duration-150 ease-out scale-95 opacity-0 border border-gray-200">
+       class="bg-white surface-panel shadow-2xl max-w-2xl w-full mx-4 transform transition-all duration-150 ease-out scale-95 opacity-0 border border-gray-200">
     <div class="flex justify-between items-center px-6 py-4 border-b">
       <h3 id="patientModalTitle" class="text-lg font-semibold text-gray-800">Shto pacient</h3>
-      <button type="button" onclick="closePatientModal()" class="rounded-full p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition">✕</button>
+      <button type="button" onclick="closePatientModal()" class="icon-button" aria-label="Mbyll">✕</button>
     </div>
 
     <form id="patientForm" class="px-6 py-5 space-y-5" method="post">
       {% csrf_token %}
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm text-gray-600 mb-1 font-medium">Emri dhe mbiemri *</label>
+          <label for="f_emri" class="block text-sm text-gray-600 mb-1 font-medium">Emri dhe mbiemri *</label>
           <input type="text" name="emri_mbiemri" id="f_emri" required
                  class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
         </div>
         <div>
-          <label class="block text-sm text-gray-600 mb-1 font-medium">Data e lindjes</label>
+          <label for="f_datel" class="block text-sm text-gray-600 mb-1 font-medium">Data e lindjes</label>
           <input type="date" name="data_e_lindjes" id="f_datel"
                  class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
         </div>
         <div>
-          <label class="block text-sm text-gray-600 mb-1 font-medium">Telefoni</label>
+          <label for="f_tel" class="block text-sm text-gray-600 mb-1 font-medium">Telefoni</label>
           <input type="text" name="telefoni" id="f_tel"
                  class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
         </div>
         <div>
-          <label class="block text-sm text-gray-600 mb-1 font-medium">Email</label>
+          <label for="f_email" class="block text-sm text-gray-600 mb-1 font-medium">Email</label>
           <input type="email" name="emaili" id="f_email"
                  class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
         </div>
         <div>
-          <label class="block text-sm text-gray-600 mb-1 font-medium">Letërnjoftimi</label>
+          <label for="f_lj" class="block text-sm text-gray-600 mb-1 font-medium">Letërnjoftimi</label>
           <input type="text" name="leternjoftimi" id="f_lj"
                  class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
         </div>
         <div class="sm:col-span-2">
-          <label class="block text-sm text-gray-600 mb-1 font-medium">Adresa</label>
+          <label for="f_adresa" class="block text-sm text-gray-600 mb-1 font-medium">Adresa</label>
           <input type="text" name="adresa" id="f_adresa"
                  class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
         </div>
         <div class="sm:col-span-2">
-          <label class="block text-sm text-gray-600 mb-1 font-medium">Informata shtesë / shënime mjekësore</label>
+          <label for="f_informata_shtese" class="block text-sm text-gray-600 mb-1 font-medium">Informata shtesë / shënime mjekësore</label>
           <textarea name="informata_shtese" id="f_informata_shtese" rows="3"
                     class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     placeholder="p.sh. alergji, sëmundje, terapi kronike, medikamente..."></textarea>
@@ -414,8 +247,8 @@ function rebindEditButtons() {
     <div class="px-6 py-4 border-t flex items-center justify-between">
       <div id="patientModalHint" class="text-xs text-gray-500">Fushat me * janë të detyrueshme.</div>
       <div class="flex items-center gap-2">
-        <button type="button" onclick="closePatientModal()" class="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50 transition">Anulo</button>
-        <button type="button" id="btnSubmitPatient" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700">
+        <button type="button" onclick="closePatientModal()" class="btn">Anulo</button>
+        <button type="submit" form="patientForm" id="btnSubmitPatient" class="btn btn-primary">
           Ruaj
         </button>
       </div>
@@ -431,284 +264,7 @@ function rebindEditButtons() {
 <!-- ========================= -->
 <!-- JAVASCRIPT -->
 <!-- ========================= -->
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  // Elements common
-  const input = document.getElementById("searchInput");
-  const tableContainer = document.querySelector("table").parentElement;
-  const filtersForm = document.getElementById("searchForm");
-  const modal = document.getElementById("patientModal");
-  const card = document.getElementById("patientCard");
-  const form = document.getElementById("patientForm");
-  const btnSave = document.getElementById("btnSubmitPatient");
-  const title = document.getElementById("patientModalTitle");
-  const toastStack = document.getElementById("toastStack");
 
-  let timeout = null;
 
-  // ---------- Helper UI functions ----------
-  function openPatientModal() {
-    modal.classList.remove("hidden"); modal.classList.add("flex");
-    setTimeout(() => {
-      card.classList.remove("opacity-0", "scale-95");
-      card.classList.add("opacity-100", "scale-100");
-    }, 20);
-  }
-  function closePatientModal() {
-    card.classList.add("opacity-0", "scale-95");
-    card.classList.remove("opacity-100", "scale-100");
-    setTimeout(() => {
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-    }, 150);
-  }
-  window.closePatientModal = closePatientModal;
-
-  function showToast(msg, type = "success") {
-    const toast = document.createElement("div");
-    toast.className = `px-4 py-3 rounded-xl text-white shadow-lg text-sm transition-all ${
-      type === "success" ? "bg-emerald-600" : "bg-red-600"
-    }`;
-    toast.textContent = msg;
-    toastStack.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-  }
-
-  function formatDate(value) {
-    if (!value) return "";
-    if (value.includes(".")) {
-      const [d, m, y] = value.split(".");
-      return `${y}-${m}-${d}`;
-    }
-    return value;
-  }
-
-  function fillFormWithPatient(p) {
-    form.querySelector("[name='emri_mbiemri']").value = p.emri_mbiemri || "";
-    form.querySelector("[name='data_e_lindjes']").value = formatDate(p.data_e_lindjes) || "";
-    form.querySelector("[name='telefoni']").value = p.telefoni || "";
-    form.querySelector("[name='emaili']").value = p.emaili || "";
-    form.querySelector("[name='leternjoftimi']").value = p.leternjoftimi || "";
-    form.querySelector("[name='adresa']").value = p.adresa || "";
-    const extra = form.querySelector("[name='informata_shtese']");
-    if (extra) extra.value = p.informata_shtese || "";
-  }
-
-  // ---------- Add button (unchanged) ----------
-  const btnAdd = document.querySelector('a[href="{% url "add_patient" %}"]');
-  if (btnAdd) {
-    btnAdd.addEventListener("click", e => {
-      e.preventDefault();
-      form.reset();
-      form.dataset.url = "/patients/add/";
-      title.textContent = "Shto pacient";
-      openPatientModal();
-    });
-  }
-
-  // ---------- Delegated handler for "Ndrysho" links ----------
-  // This handles clicks on any <a href="/patients/edit/<id>/"> even after table update
-  document.addEventListener("click", async (e) => {
-    const el = e.target.closest('a[href*="/edit/"]');
-    if (!el) return;
-    e.preventDefault();
-
-    const editUrl = el.getAttribute("href");
-    // ensure form exists
-    if (!form) return;
-
-    form.dataset.url = editUrl;
-    title.textContent = "Ndrysho pacient";
-
-    try {
-      // IMPORTANT: include X-Requested-With header so Django returns JSON
-      const res = await fetch(editUrl, {
-        headers: { "X-Requested-With": "XMLHttpRequest" }
-      });
-
-      // If server returns JSON, parse it
-      const contentType = res.headers.get("content-type") || "";
-      if (contentType.includes("application/json") || contentType.includes("text/json")) {
-        const data = await res.json();
-        if (data.success && data.patient) {
-          fillFormWithPatient(data.patient);
-        } else {
-          showToast(data.message || "Pacienti nuk u gjend", "error");
-        }
-        openPatientModal();
-        return;
-      }
-
-      // Otherwise, server returned HTML (fallback) - parse and try to extract inputs
-      const text = await res.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(text, "text/html");
-      // try to find patient fields in returned HTML (if any)
-      const nameInput = doc.querySelector("input[name='emri_mbiemri']");
-      if (nameInput) {
-        // copy values
-        form.querySelector("[name='emri_mbiemri']").value = nameInput.value || "";
-        const dateInput = doc.querySelector("input[name='data_e_lindjes']");
-        if (dateInput) form.querySelector("[name='data_e_lindjes']").value = dateInput.value || "";
-        const tel = doc.querySelector("input[name='telefoni']");
-        if (tel) form.querySelector("[name='telefoni']").value = tel.value || "";
-        const email = doc.querySelector("input[name='emaili']");
-        if (email) form.querySelector("[name='emaili']").value = email.value || "";
-        const lj = doc.querySelector("input[name='leternjoftimi']");
-        if (lj) form.querySelector("[name='leternjoftimi']").value = lj.value || "";
-        const adr = doc.querySelector("input[name='adresa']");
-        if (adr) form.querySelector("[name='adresa']").value = adr.value || "";
-        const extra = doc.querySelector("textarea[name='informata_shtese']");
-        if (extra && form.querySelector("[name='informata_shtese']")) {
-          form.querySelector("[name='informata_shtese']").value = extra.value || "";
-        }
-      }
-      openPatientModal();
-    } catch (err) {
-      console.error("Gabim gjatë marrjes së të dhënave:", err);
-      showToast("Gabim gjatë marrjes së të dhënave", "error");
-    }
-  });
-
-  // ---------- Save handler (add/edit) ----------
-  btnSave.addEventListener("click", async () => {
-    const formData = new FormData(form);
-    const url = form.dataset.url;
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        body: formData,
-        headers: { "X-Requested-With": "XMLHttpRequest" }
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        showToast(data.message, "success");
-        closePatientModal();
-
-        if (data.redirect_url) {
-          // small delay so user sees toast
-          setTimeout(() => window.location.href = data.redirect_url, 600);
-        } else {
-          setTimeout(() => location.reload(), 600);
-        }
-      } else {
-        showToast(data.message || "Gabim gjatë ruajtjes", "error");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Gabim në lidhje me serverin", "error");
-    }
-  });
-
-  function buildQuery() {
-    if (!filtersForm) {
-      const q = input ? input.value.trim() : "";
-      return q ? `q=${encodeURIComponent(q)}` : "";
-    }
-    return new URLSearchParams(new FormData(filtersForm)).toString();
-  }
-
-  async function fetchPatients() {
-    const query = buildQuery();
-    const url = query ? `?${query}` : window.location.pathname;
-    try {
-      const res = await fetch(url, {
-        headers: { "X-Requested-With": "XMLHttpRequest" }
-      });
-
-      // Try to parse JSON (some endpoints may return patient JSON)
-      const text = await res.text();
-
-      // If text is JSON (server returned patient object), handle accordingly
-      try {
-        const data = JSON.parse(text);
-        if (data && data.success && data.patient) {
-          // If you want: open modal automatically when AJAX search returns a single patient
-          // For now we just log and fill the form (but don't auto-open modal)
-          console.log("AJAX search found patient:", data.patient);
-          // optional: open modal automatically:
-          // form.dataset.url = `/patients/edit/${data.patient.id}/`;
-          // fillFormWithPatient(data.patient);
-          // openPatientModal();
-          return;
-        }
-      } catch (err) {
-        // not JSON -> treat as HTML table
-      }
-
-      // Parse HTML and update table + count
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(text, "text/html");
-      const newTable = doc.querySelector("table");
-      const oldTable = document.querySelector("table");
-      const newCount = doc.querySelector("span.px-3");
-      const oldCount = document.querySelector("span.px-3");
-      const newPagination = doc.querySelector("#patientPagination");
-      const oldPagination = document.querySelector("#patientPagination");
-
-      if (newTable && oldTable) {
-        oldTable.innerHTML = newTable.innerHTML;
-      }
-      if (newCount && oldCount) {
-        oldCount.innerHTML = newCount.innerHTML;
-      }
-      if (newPagination && oldPagination) {
-        oldPagination.innerHTML = newPagination.innerHTML;
-      }
-
-      // No need to rebind because we use delegated click handler above
-
-    } catch (err) {
-      console.error("Gabim në kërkim:", err);
-    }
-  }
-
-  // ---------- Live search (input event) ----------
-  input.addEventListener("input", function() {
-    clearTimeout(timeout);
-    timeout = setTimeout(fetchPatients, 400);
-  });
-
-  if (filtersForm) {
-    filtersForm.querySelectorAll("select, input[type='checkbox']").forEach((el) => {
-      el.addEventListener("change", () => {
-        clearTimeout(timeout);
-        fetchPatients();
-      });
-    });
-  }
-
-  // ---------- Pagination links (delegated) ----------
-  // If pagination links have class .pagination-link, handle them
-  document.addEventListener("click", (e) => {
-    const link = e.target.closest("a");
-    if (!link) return;
-    // adjust this condition if your pagination links have special class or href pattern
-    const href = link.getAttribute("href") || "";
-    if (href.includes("?page=") || link.classList.contains("pagination-link")) {
-      e.preventDefault();
-      fetch(href, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-        .then(r => r.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, "text/html");
-          const newTable = doc.querySelector("table");
-          const oldTable = document.querySelector("table");
-          const newCount = doc.querySelector("span.px-3");
-          const oldCount = document.querySelector("span.px-3");
-          const newPagination = doc.querySelector("#patientPagination");
-          const oldPagination = document.querySelector("#patientPagination");
-          if (newTable && oldTable) oldTable.innerHTML = newTable.innerHTML;
-          if (newCount && oldCount) oldCount.innerHTML = newCount.innerHTML;
-          if (newPagination && oldPagination) oldPagination.innerHTML = newPagination.innerHTML;
-          // delegated handlers still work
-        })
-        .catch(err => console.error("Gabim në pagination:", err));
-    }
-  });
-
-});
-</script>
-
+<script src="{% static 'clinic/js/patient_list.js' %}" defer></script>
 {% endblock %}

@@ -1,0 +1,3 @@
+{% extends 'clinic/base.html' %}
+{% block title %}Fshi trajtimin e arkivuar{% endblock %}
+{% block content %}<div class="form-width"><header class="page-heading"><div><p class="eyebrow">ARKIVA</p><h1>Fshi trajtimin</h1></div></header><form method="post" class="module-card module-form">{% csrf_token %}<section class="form-section"><h2>{{ historia.diagnoza|default:'Trajtim i arkivuar' }}</h2><p>{{ historia.data }} · {{ historia.patient.emri_mbiemri }}</p><p class="module-caption">Trajtimi do të hiqet nga arkiva e pacientit.</p></section><footer class="form-footer"><a class="btn" href="{% url 'patient_detail' historia.patient_id %}?tab=arkiva-histori">Anulo</a><button class="btn btn-danger" type="submit">Fshi trajtimin</button></footer></form></div>{% endblock %}

@@ -14,7 +14,7 @@
   }
   .fc-event {
     border: none !important;
-    border-radius: 6px !important;
+    border-radius: var(--radius-control) !important;
     font-size: 0.85rem;
     padding: 2px 6px;
   }
@@ -25,7 +25,7 @@
     background-color: #fff !important;
     border: 1px solid #e5e7eb !important;
     color: #111827 !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-control) !important;
     transition: all 0.15s ease-in-out;
   }
   .fc-view-listWeek .fc-event:hover { background-color: #f9fafb !important; transform: scale(1.01); }
@@ -46,10 +46,6 @@
     #calendar {
       padding: 0.5rem !important;
     }
-    .fc-button {
-      font-size: 0.75rem !important;
-      padding: 0.35rem 0.6rem !important;
-    }
   }
 
   /* 📱 Modal adjustments for phones */
@@ -65,7 +61,7 @@
 
   @media (min-width: 640px) {
     #appointmentModal .modal-content {
-      border-radius: 1rem;
+      border-radius: var(--radius);
       max-width: 28rem;
       height: auto;
     }
@@ -75,3 +71,21 @@
   body.modal-open {
     overflow: hidden;
   }
+
+/* Match the readable tinted patient form; the form itself stays opaque. */
+#appointmentModal {
+  background: #153e4d38;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+#appointmentModal .modal-content {
+  background: linear-gradient(135deg, #f8fcfe, #eaf5f5);
+  border: 1px solid #ffffffed;
+  box-shadow: inset 0 1px 0 #fff, 0 20px 70px #173e4b26;
+}
+#appointmentForm label { color: #466571; font-size: 13px; }
+#appointmentForm :is(input, select, textarea) { background: #fff; }
+#patientSuggestions [role=option]:focus { background: #e1f2ef; outline-offset: -3px; }
+@media (prefers-reduced-transparency: reduce) {
+  #appointmentModal { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}

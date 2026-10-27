@@ -1,0 +1,310 @@
+/* Shared schematic teeth for the patient history map and treatment picker. */
+.dental-fdi-label {
+  color: #69838e;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  background: #eef4f6;
+  padding: 5px 9px;
+  border-radius: var(--radius-control);
+}
+.dental-chart-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cadde3 transparent;
+  padding: 5px 0;
+}
+.dental-chart {
+  min-width: 510px;
+  padding: 0 2px;
+}
+.dental-orientation {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #8ba1aa;
+  margin-bottom: 17px;
+}
+.dental-jaw-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0 14px;
+  color: #78919d;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+}
+.dental-chart .tooth-row {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: 3px;
+}
+.dental-chart .tooth-button,
+.dental-picker .tooth-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  min-width: 0;
+  position: relative;
+  --tooth-fill: #fff;
+  --tooth-stroke: #9eb5c1;
+  --tooth-detail: #d2dfe5;
+}
+.dental-chart .tooth-figure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 73px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  position: relative;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  flex-shrink: 0;
+}
+.dental-chart svg.dental-tooth {
+  height: 68px;
+  width: 100%;
+  max-width: 43px;
+  overflow: visible;
+  filter: drop-shadow(0 2px 1px #446b7712);
+}
+.dental-chart .lower svg.dental-tooth {
+  transform: rotate(180deg);
+}
+.dental-chart .lower .tooth-figure {
+  order: 2;
+}
+.dental-chart .lower .tooth-number {
+  order: 1;
+}
+.dental-chart .lower .tooth-record-dot {
+  order: 3;
+}
+.dental-chart .tooth-number,
+.dental-picker .tooth-label {
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 22px;
+  min-width: 23px;
+  text-align: center;
+  color: #758c97;
+  border-radius: var(--radius-control);
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+.dental-chart .tooth-record-dot {
+  height: 4px;
+  width: 4px;
+  border-radius: 50%;
+  background: transparent;
+}
+.dental-chart .tooth-button.has-records {
+  --tooth-fill: #e2f3ef;
+  --tooth-stroke: #65aaa3;
+  --tooth-detail: #a0cfc5;
+  background: none;
+  border: 0;
+}
+.dental-chart .tooth-button.has-records .tooth-number {
+  color: #087f8c;
+  background: #e1f1ee;
+}
+.dental-chart .tooth-button.has-records .tooth-record-dot {
+  background: #41a798;
+}
+.dental-chart .tooth-button:hover .tooth-figure,
+.dental-picker .tooth-wrapper:hover .tooth-figure {
+  background: #eaf4f9;
+  border-color: #c9e1eb;
+}
+.dental-midline {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: #becfd5;
+  padding: 16px 0;
+}
+.dental-midline span {
+  height: 1px;
+  background: #e2ecef;
+  flex: 1;
+}
+.dental-midline i {
+  font-size: 12px;
+}
+.dental-picker {
+  padding: 22px;
+  background: #f6fafb;
+  border: 1px solid #e3edf1;
+  border-radius: var(--radius);
+  margin-bottom: 24px;
+}
+.dental-picker-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 15px;
+}
+.dental-picker-heading h3 {
+  font-size: 15px;
+  font-weight: 550;
+  margin: 0 0 5px !important;
+}
+.dental-picker-heading p {
+  font-size: 11px;
+  color: #78919c;
+  margin: 0;
+}
+.picker-chart {
+  min-width: 650px;
+}
+.dental-picker .odontogram-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  overflow: visible;
+  padding: 0;
+}
+.dental-picker .odontogram-side {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 3px;
+  min-width: 0;
+}
+.dental-picker .midline {
+  width: 1px;
+  height: 65px;
+  border-left: 1px dashed #d0e0e6;
+  margin: auto;
+  background: none;
+}
+.dental-picker .tooth-wrapper {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.dental-picker .tooth-figure {
+  height: 82px;
+  background: white;
+  border: 1px solid #e4edf1;
+  box-shadow: 0 2px 4px #50758104;
+  border-radius: var(--radius-control);
+}
+.dental-picker svg.dental-tooth {
+  height: 70px;
+  max-width: 45px;
+}
+.dental-picker .tooth-check {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  height: 13px;
+  width: 13px;
+  line-height: 13px;
+  font-size: 9px;
+  background: #087f8c;
+  border-radius: 50%;
+  color: white;
+  opacity: 0;
+}
+.dental-picker .tooth-wrapper.active {
+  background: none;
+  --tooth-fill: #d4ede8;
+  --tooth-stroke: #248f87;
+  --tooth-detail: #88c6bc;
+}
+.dental-picker .tooth-wrapper.active .tooth-figure {
+  border-color: #2c9c99;
+  background: #f0f9f6;
+  box-shadow: 0 0 0 2px #00a99d13;
+}
+.dental-picker .tooth-wrapper.active .tooth-label {
+  background: #087f8c;
+  color: white;
+}
+.dental-picker .tooth-wrapper.active .tooth-check {
+  opacity: 1;
+}
+.dental-picker .lower .tooth-label {
+  order: 1;
+}
+.dental-selection {
+  margin-top: 17px;
+  padding-top: 16px;
+  border-top: 1px solid #dce9ee;
+}
+.dental-selection-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #6b8792;
+}
+.dental-selection-heading > span {
+  font-weight: 550;
+  color: #375f6d;
+}
+.dental-selection-heading > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dental-selection-heading button:disabled {
+  opacity: 0.4;
+}
+.selected-teeth {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+.selected-teeth:empty {
+  margin: 0;
+}
+.selected-teeth button {
+  border: 1px solid #c9e3de;
+  border-radius: var(--radius-control);
+  padding: 5px 9px;
+  min-width: 39px;
+  background: #e7f4ef;
+  font-size: 12px;
+  color: #207e78;
+}
+@media (max-width: 700px) {
+  .dental-picker {
+    padding: 14px;
+  }
+  .picker-chart {
+    min-width: 720px;
+  }
+  .dental-picker .tooth-figure {
+    height: 80px;
+  }
+  .dental-picker-heading p {
+    font-size: 10px;
+  }
+  .dental-selection-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dental-chart .tooth-number {
+    font-size: 10px;
+  }
+  .dental-chart {
+    padding-bottom: 8px;
+  }
+}

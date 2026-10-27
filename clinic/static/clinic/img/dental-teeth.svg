@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- Schematic FDI tooth types. Upper roots point up; lower teeth rotate in the UI. -->
+  <symbol id="incisor" viewBox="0 0 64 100">
+    <path d="M25 51C26 40 27 20 30 9Q32 3 35 10C39 24 39 41 40 52L45 66Q49 82 43 89Q32 94 21 89Q15 83 19 68Z" fill="var(--tooth-fill,#fff)" stroke="var(--tooth-stroke,#a3b6c0)" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M25 54Q32 58 40 54M23 83Q32 86 41 83" fill="none" stroke="var(--tooth-detail,#d5e1e6)" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M27 62Q24 72 25 78" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="3" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="canine" viewBox="0 0 64 100">
+    <path d="M24 55C25 38 28 15 32 6Q35 2 37 9C38 25 38 43 41 57Q49 68 46 79Q42 88 33 94Q21 88 18 79Q15 68 24 55Z" fill="var(--tooth-fill,#fff)" stroke="var(--tooth-stroke,#a3b6c0)" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M24 56Q32 61 41 57M32 65L33 86" fill="none" stroke="var(--tooth-detail,#d5e1e6)" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M25 64Q22 70 23 76" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="3" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="premolar" viewBox="0 0 64 100">
+    <path d="M18 57C19 43 16 25 21 10Q24 5 26 13L31 44Q32 48 34 43L40 14Q42 8 45 12C49 29 44 45 46 59Q54 71 49 84Q45 94 33 90Q21 95 16 85Q10 72 18 57Z" fill="var(--tooth-fill,#fff)" stroke="var(--tooth-stroke,#a3b6c0)" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M18 58Q32 64 46 59M21 76Q27 71 32 78Q38 72 44 77M32 78V85" fill="none" stroke="var(--tooth-detail,#d5e1e6)" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M21 65Q18 69 19 73" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="3" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="molar" viewBox="0 0 64 100">
+    <path d="M13 57C14 43 9 25 15 12Q18 6 21 13L29 44Q31 49 33 43L43 12Q46 6 49 13C55 28 49 44 51 57Q58 69 54 83Q52 94 40 90Q32 94 24 90Q12 94 10 82Q6 69 13 57Z" fill="var(--tooth-fill,#fff)" stroke="var(--tooth-stroke,#a3b6c0)" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M14 58Q32 64 50 58M16 75Q23 69 31 77Q40 69 48 75M31 77L32 86" fill="none" stroke="var(--tooth-detail,#d5e1e6)" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M17 65Q13 69 15 74" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="3" stroke-linecap="round"/>
+  </symbol>
+</svg>

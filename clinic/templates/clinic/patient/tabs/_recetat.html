@@ -1,211 +1,56 @@
-{# templates/clinic/patient/tabs/_recetat.html #}
-<div x-show="active==='recetat'" x-cloak class="mt-4">
-  <section
-    x-data="RecetaTab({
-      listUrl: '{% url "prescription_list_json" patient.id %}',
-      saveUrl: '{% url "prescription_save" patient.id %}',
-      printTpl: '{% url "prescription_print" 0 %}',
-      csrf: (function(){
-        const v='; '+document.cookie; const p=v.split('; csrftoken=');
-        if(p.length===2) return p.pop().split(';').shift();
-      })()
-    })"
-    x-init="init()"
-    class="bg-white rounded-xl border overflow-hidden">
-
-    <header class="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
-      <div class="flex items-center gap-2 text-gray-700">
-        <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 1.79-4 4v4h8v-4c0-2.21-1.79-4-4-4zM6 12H4m16 0h-2" /></svg>
-        <h3 class="font-semibold text-lg">Recetat</h3>
-      </div>
-      <div class="text-sm text-gray-500">Total: <span x-text="items.length"></span></div>
-    </header>
-
-    <div class="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Form -->
-      <form class="lg:col-span-1 space-y-4" @submit.prevent="save">
-
-        <!-- Diagnoza -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Diagnoza <span class="text-red-600">*</span></label>
-          <textarea x-model="form.diagnosis" rows="3" placeholder="Shkruaj diagnozën…"
-            class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm"></textarea>
-        </div>
-
-        <!-- Terapia -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Terapia <span class="text-red-600">*</span></label>
-          <textarea x-model="form.therapy" rows="4" placeholder="Shkruaj terapinë…"
-            class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm"></textarea>
-        </div>
-
-        <!-- Alergjia -->
-        <div>
-          <span class="block text-sm font-medium text-gray-700 mb-2">Alergjik?</span>
-          <fieldset class="flex items-center gap-6">
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" name="is_allergic_ui" value="yes" x-model="uiAllergy"
-                     class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500">
-              Po
-            </label>
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" name="is_allergic_ui" value="no" x-model="uiAllergy"
-                     class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500">
-              Jo
-            </label>
-          </fieldset>
-
-          <div class="mt-3" x-show="uiAllergy === 'yes'" x-transition.opacity>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Detaje të alergjisë (opsionale)</label>
-            <textarea x-model="form.allergy_notes" rows="2" placeholder="p.sh. Penicilina, anestetikë lokalë, lateks…"
-              class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm"></textarea>
-            <p class="mt-1 text-xs text-gray-500">Ky tekst ruhet te receta (nuk ruajmë boolean).</p>
-          </div>
-        </div>
-
-        <!-- Doktori -->
-        <fieldset>
-          <legend class="block text-sm font-medium text-gray-700 mb-2">Doktori <span class="text-red-600">*</span></legend>
-          <div class="flex items-center gap-6">
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" value="Dr. Labi" x-model="form.doctor"
-                     class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500">
-              Dr. Labi
-            </label>
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" value="Dr. Linda" x-model="form.doctor"
-                     class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500">
-              Dr. Linda
-            </label>
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" value="HD.Geka" x-model="form.doctor"
-                     class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500">
-              HD.Geka
-            </label>
-          </div>
-        </fieldset>
-
-        <!-- Butonat -->
-        <div class="flex items-center gap-3">
-          <button type="submit"
-            class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            Ruaj & Hap Print
-          </button>
-          <button type="button" @click="resetForm"
-            class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            Pastro
-          </button>
-        </div>
-
-        <template x-if="errors.length">
-          <ul class="mt-2 text-sm text-red-600 list-disc list-inside" x-cloak>
-            <li x-text="errors.join(' ')"></li>
-          </ul>
-        </template>
-      </form>
-
-      <!-- Lista -->
-      <div class="lg:col-span-2">
-        <div class="overflow-x-auto border rounded-lg">
-          <table class="min-w-full text-sm">
-            <thead class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide border-b">
-              <tr>
-                <th class="px-4 py-3 text-left">#</th>
-                <th class="px-4 py-3 text-left">Data</th>
-                <th class="px-4 py-3 text-left">Doktori</th>
-                <th class="px-4 py-3 text-left">Diagnoza</th>
-                <th class="px-4 py-3 text-right">Veprime</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 bg-white">
-              <template x-for="(p, idx) in items" :key="p.id">
-                <tr class="hover:bg-gray-50 transition">
-                  <td class="px-4 py-3 whitespace-nowrap" x-text="idx+1"></td>
-                  <td class="px-4 py-3 whitespace-nowrap" x-text="p.prescription_date"></td>
-                  <td class="px-4 py-3" x-text="p.doctor"></td>
-                  <td class="px-4 py-3" x-text="p.diagnosis_short"></td>
-                  <td class="px-4 py-3 text-right whitespace-nowrap">
-                    <a :href="urlPrint(p.id)"
-                       target="_blank" rel="noopener"
-                       @click.stop
-                       class="px-3 py-1.5 rounded-lg border hover:bg-gray-50 text-sm text-gray-700">
-                      Printo
-                    </a>
-                  </td>
-                </tr>
-              </template>
-              <tr x-show="!items.length">
-                <td colspan="5" class="px-4 py-6 text-center text-gray-400">S’ka receta.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p class="mt-2 text-xs text-gray-500">Shfaqen recetat më të fundit të pacientit.</p>
-      </div>
-    </div>
-  </section>
-
-  <script>
-    function RecetaTab({listUrl, saveUrl, printTpl, csrf}) {
-      return {
-        items: [],
-        errors: [],
-        form: { diagnosis: '', therapy: '', doctor: '', allergy_notes: '' },
-        uiAllergy: 'no',
-
-        init(){
-          this.load();
-          this.$watch('uiAllergy', (v) => { if (v !== 'yes') this.form.allergy_notes = ''; });
-        },
-
-        urlPrint(id){ return printTpl.replace('/0/', `/${id}/`); },
-
-        async load(){
-          try {
-            const r = await fetch(listUrl, {headers: {'Accept': 'application/json'}});
-            const data = await r.json();
-            this.items = Array.isArray(data.results) ? data.results : [];
-          } catch(e) { console.error(e); }
-        },
-
-        resetForm(){
-          this.form = { diagnosis:'', therapy:'', doctor:'', allergy_notes:'' };
-          this.uiAllergy = 'no';
-          this.errors = [];
-        },
-
-        validate(){
-          const errs = [];
-          if (!this.form.diagnosis.trim()) errs.push('Shkruaj "Diagnozën".');
-          if (!this.form.therapy.trim()) errs.push('Shkruaj "Terapinë".');
-          if (!this.form.doctor) errs.push('Zgjidh doktorin.');
-          this.errors = errs;
-          return !errs.length;
-        },
-
-        async save(){
-          if (!this.validate()) return;
-          if (this.uiAllergy !== 'yes') this.form.allergy_notes = '';
-
-          try {
-            const r = await fetch(saveUrl, {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
-              body: JSON.stringify(this.form)
-            });
-            const data = await r.json();
-            if (!r.ok || !data.ok) {
-              const msg = data && data.errors ? Object.values(data.errors).join(' ') : 'Gabim gjatë ruajtjes.';
-              this.errors = [msg]; return;
-            }
-            window.open(this.urlPrint(data.id), '_blank', 'noopener');
-            await this.load();
-            this.resetForm();
-          } catch(e) {
-            this.errors = ['Gabim rrjeti: ' + e.message];
-          }
-        }
-      }
+<section x-show="active==='recetat'" x-cloak x-data="RecetaTab({listUrl:'{% url 'prescription_list_json' patient.id %}',saveUrl:'{% url 'prescription_save' patient.id %}',printTpl:'{% url 'prescription_print' 0 %}'})">
+  {% if not embedded %}<header class="module-heading"><div><h2>Recetat</h2><p>Përshkrimi i terapisë dhe historiku i recetave.</p></div><span class="pill pill-neutral" x-text="items.length + ' receta'"></span></header>{% endif %}
+  <div class="module-success" x-show="savedId" x-cloak role="status">Receta u ruajt.</div>
+  <div class="prescription-layout">
+    <form class="module-card module-form" @submit.prevent="save">{% csrf_token %}
+      <header class="module-card-head"><h3>Recetë e re</h3><i class="ph ph-prescription" aria-hidden="true"></i></header>
+      <section class="form-section"><div class="field-grid">
+        <label class="field full">Diagnoza<textarea x-model="form.diagnosis" rows="2" required placeholder="Diagnoza e pacientit"></textarea></label>
+        <label class="field full">Terapia<textarea x-model="form.therapy" rows="4" required placeholder="Medikamenti, doza dhe kohëzgjatja"></textarea></label>
+        <fieldset class="full"><legend class="module-caption">Alergji të deklaruara</legend><div class="choice-row"><label><input type="radio" name="rx_allergy" value="no" x-model="uiAllergy"> Jo</label><label><input type="radio" name="rx_allergy" value="yes" x-model="uiAllergy"> Po</label></div></fieldset>
+        <label class="field full" x-show="uiAllergy==='yes'" x-cloak>Detajet e alergjisë<textarea x-model="form.allergy_notes" rows="2" placeholder="Alergjitë e deklaruara nga pacienti"></textarea></label>
+        <label class="field full">Doktori<select x-model="form.doctor" required><option value="">Zgjidh doktorin</option><option>Dr. Labi</option><option>Dr. Linda</option><option>HD.Geka</option></select></label>
+      </div><p class="module-error" x-show="errors.length" x-cloak role="alert" x-text="errors.join(' ')"></p></section>
+      <footer class="form-footer"><button class="btn" type="button" @click="resetForm" :disabled="saving">Pastro</button><button class="btn btn-primary" type="submit" :disabled="saving"><i class="ph ph-check" aria-hidden="true"></i><span x-text="saving ? 'Duke ruajtur…' : 'Ruaj recetën'"></span></button></footer>
+    </form>
+    <div><header class="module-heading"><h2>Historiku i recetave</h2></header><p class="module-caption" x-show="loading" role="status">Duke ngarkuar recetat…</p><div class="module-error" x-show="loadError" x-cloak role="alert"><span x-text="loadError"></span> <button type="button" class="btn btn-subtle" @click="load">Provo përsëri</button></div><div class="prescription-list">
+      <template x-for="p in items" :key="p.id"><article class="module-card prescription-item"><div class="agreement-top"><span class="eyebrow" x-text="'RECETA #' + p.id"></span><span class="module-caption" x-text="p.prescription_date"></span></div><h3 x-text="p.diagnosis_short"></h3><span class="status-chip pending" x-show="p.has_allergy_notes">Alergji të shënuara</span><footer><span x-text="p.doctor"></span><a class="btn btn-subtle" :href="urlPrint(p.id)" target="_blank" rel="noopener"><i class="ph ph-printer" aria-hidden="true"></i> Printo</a></footer></article></template>
+      <div class="module-card empty-state" x-show="loaded && !items.length && !loading && !loadError" x-cloak><i class="ph ph-prescription" aria-hidden="true"></i><p>Nuk ka receta të regjistruara.</p></div>
+    </div></div>
+  </div>
+</section>
+<script>
+function RecetaTab({listUrl,saveUrl,printTpl}) {
+  return {
+    items:[],errors:[],loading:false,loaded:false,loadError:'',saving:false,savedId:null,
+    form:{diagnosis:'',therapy:'',doctor:'',allergy_notes:''},uiAllergy:'no',
+    init(){
+      if(this.active==='recetat') this.load();
+      this.$watch('active', value => { if(value==='recetat' && !this.loaded && !this.loading) this.load(); });
+      this.$watch('uiAllergy', value => { if(value!=='yes') this.form.allergy_notes=''; });
+    },
+    urlPrint(id){return printTpl.replace('/0/',`/${id}/`);},
+    async load(){
+      if(this.loading) return;
+      this.loading=true;this.loadError='';
+      try { const response=await fetch(listUrl,{headers:{Accept:'application/json'}}); if(!response.ok) throw new Error();const data=await response.json();this.items=Array.isArray(data.results)?data.results:[];this.loaded=true; }
+      catch {this.loadError='Recetat nuk u ngarkuan.';}
+      finally {this.loading=false;}
+    },
+    resetForm(){this.form={diagnosis:'',therapy:'',doctor:'',allergy_notes:''};this.uiAllergy='no';this.errors=[];},
+    async save(){
+      if(this.saving) return;
+      this.errors=[];
+      if(!this.form.diagnosis.trim() || !this.form.therapy.trim() || !this.form.doctor){this.errors=['Plotësoni diagnozën, terapinë dhe doktorin.'];return;}
+      this.saving=true;
+      try {
+        const response=await fetch(saveUrl,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':this.$root.querySelector('[name=csrfmiddlewaretoken]').value},body:JSON.stringify(this.form)});
+        const data=await response.json();
+        if(!response.ok || !data.ok){this.errors=[data.errors?Object.values(data.errors).join(' '):'Receta nuk u ruajt.'];return;}
+        this.savedId=data.id;this.resetForm();await this.load();
+      } catch {this.errors=['Lidhja dështoi. Kontrolloni historikun përpara se ta provoni përsëri.'];}
+      finally {this.saving=false;}
     }
-  </script>
-</div>
+  };
+}
+</script>

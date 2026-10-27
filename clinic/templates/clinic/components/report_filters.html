@@ -1,0 +1,18 @@
+{% if request.user.is_superuser %}
+<div class="report-presets"><button class="btn" type="button" data-report-preset="today">Sot</button><button class="btn" type="button" data-report-preset="week">Këtë javë</button><button class="btn" type="button" data-report-preset="month">Këtë muaj</button><button class="btn" type="button" data-report-preset="year">Këtë vit</button></div>
+{% endif %}
+<form id="reports-filters" method="get" class="module-filters">
+  {% if request.user.is_superuser %}
+  <div><label for="report-mode">Periudha</label><select id="report-mode" name="mode" onchange="onModeChange(this.value)"><option value="day" {% if mode == 'day' %}selected{% endif %}>Ditore</option><option value="week" {% if mode == 'week' %}selected{% endif %}>Javore</option><option value="month" {% if mode == 'month' %}selected{% endif %}>Mujore</option><option value="year" {% if mode == 'year' %}selected{% endif %}>Vjetore</option></select></div>
+  <div id="fld_day" class="{% if mode != 'day' %}hidden{% endif %}"><label for="report-day">Data</label><input id="report-day" type="date" name="day" value="{{ picked_day }}"></div>
+  <div id="fld_week" class="{% if mode != 'week' %}hidden{% endif %}"><label for="report-week">Java</label><input id="report-week" type="week" name="week" value="{{ picked_week }}"></div>
+  <div id="fld_month" class="{% if mode != 'month' %}hidden{% endif %}"><label for="report-month">Muaji</label><input id="report-month" type="month" name="month" value="{{ picked_month }}"></div>
+  <div id="fld_year" class="{% if mode != 'year' %}hidden{% endif %}"><label for="report-year">Viti</label><select id="report-year" name="year">{% for y in years %}<option value="{{ y }}" {% if picked_year|stringformat:'s' == y|stringformat:'s' %}selected{% endif %}>{{ y }}</option>{% endfor %}</select></div>
+  {% else %}
+  <input type="hidden" name="mode" value="day">
+  <div><label for="report-day">Dita e raportit</label><select id="report-day" name="day"><option value="{{ today|date:'Y-m-d' }}" {% if start_date == today %}selected{% endif %}>Sot · {{ today|date:'d.m.Y' }}</option><option value="{{ yesterday|date:'Y-m-d' }}" {% if start_date == yesterday %}selected{% endif %}>Dje · {{ yesterday|date:'d.m.Y' }}</option></select></div>
+  {% endif %}
+  <div><label for="report-doctor">Doktori</label><select id="report-doctor" name="doctor"><option value="">Të gjithë doktorët</option>{% for value,label in doctor_choices %}<option value="{{ value }}" {% if value == doctor_filter %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <div><label for="report-order">Renditja</label><select id="report-order" name="order"><option value="desc" {% if order == 'desc' %}selected{% endif %}>Më të rejat</option><option value="asc" {% if order == 'asc' %}selected{% endif %}>Më të vjetrat</option></select></div>
+  <button class="btn btn-primary" type="submit"><i class="ph ph-funnel" aria-hidden="true"></i> Apliko</button>
+</form>

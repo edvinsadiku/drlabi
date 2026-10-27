@@ -1,200 +1,34 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="sq">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{% block title %}Dr.Labi{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="{% static 'clinic/css/brand.css' %}">
-    {% load static %}
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
-</head>
-<body class="bg-gray-50 text-gray-900">
+<!DOCTYPE html><html lang="sq"><head>
+<script>try{if(localStorage.getItem("clinic.sidebar.collapsed")==="1")document.documentElement.classList.add("sidebar-collapsed")}catch(e){}</script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Dr. Labi{% endblock %} · Dental Clinic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;450;500;550;600;650;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'clinic/css/utilities.css' %}"><link rel="stylesheet" href="{% static 'clinic/vendor/phosphor/style.css' %}">
+<link rel="stylesheet" href="{% static 'clinic/css/brand.css' %}"><link rel="stylesheet" href="{% static 'clinic/css/workspace.css' %}">
+<link rel="stylesheet" href="{% static 'clinic/css/dental_chart.css' %}">
+<link rel="stylesheet" href="{% static 'clinic/css/modules.css' %}">
+{% block extra_head %}{% endblock %}
+<link rel="stylesheet" href="{% static 'clinic/css/glass.css' %}">
+</head><body class="clinic-app">
+<a class="skip-link" href="#main-content">Kalo te përmbajtja</a>
 {% with name=request.resolver_match.url_name %}
-<div class="min-h-screen flex">
-    <aside id="sidebar"
-       class="fixed inset-y-0 left-0 z-40 w-72 bg-white border-r shadow-sm transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:flex md:flex-col">
-        <div class="flex items-center justify-center px-5 py-3 border-b">
-            <a href="{% url 'home' %}" class="flex items-center gap-3">
-                <img src="{% static 'assets/img/logo.svg' %}" alt="Clinic Logo" class="h-12 w-auto">
-            </a>
-        </div>
-
-        <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-3 text-[13px]">
-            <div>
-                <div class="px-3 mb-1 text-[11px] font-semibold text-gray-400 uppercase">Dashboard</div>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="{% url 'dashboard' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'dashboard' or name == 'home' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-gauge text-base"></i>
-                            Përmbledhje
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div>
-                <div class="px-3 mb-1 text-[11px] font-semibold text-gray-400 uppercase">Pacientët</div>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="{% url 'patient_list' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'patient_list' or name == 'patient_detail' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-users text-base"></i>
-                            Të gjithë pacientët
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'orto_patient_list' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'orto_patient_list' or name == 'orto_patient_detail' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-tooth text-base"></i>
-                            Pacientët Orto
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div>
-                <div class="px-3 mb-1 text-[11px] font-semibold text-gray-400 uppercase">Orari & Takimet</div>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="{% url 'appointments_calendar' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'appointments_calendar' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-calendar-check text-base"></i>
-                            Kalendari Termineve
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div>
-                <div class="px-3 mb-1 text-[11px] font-semibold text-gray-400 uppercase">Financa & Raporte</div>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="{% url 'checkout' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'checkout' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-credit-card text-base"></i>
-                            Pagesat
-                        </a>
-                    </li>
-
-                    <!-- ⭐ E SHTUAR: Lista e borxheve -->
-                    <li>
-                        <a href="{% url 'debt_report' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'debt_report' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-warning-circle text-base"></i>
-                            Lista e borxheve
-                        </a>
-                    </li>
-                    <!-- ⭐ /E SHTUAR -->
-
-                    <li>
-                        <a href="{% url 'reports_new' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'reports_new' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-chart-bar text-base"></i>
-                            Raportet
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'reports' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'reports' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-archive text-base"></i>
-                            Raportet (Arkiva)
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'shpenzime_list' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'shpenzime_list' or name == 'shpenzime_detail' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-receipt text-base"></i>
-                            Shpenzimet
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div>
-                <div class="px-3 mb-1 text-[11px] font-semibold text-gray-400 uppercase">Marketing</div>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="{% url 'social_media' %}"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition {% if name == 'social_media' or name == 'social_media_edit' or name == 'social_media_result' %} bg-gray-100 text-gray-900 font-medium {% else %} text-gray-600 hover:bg-gray-50 {% endif %}">
-                            <i class="ph ph-instagram-logo text-base"></i>
-                            Rrjetet sociale
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div>
-                {% if request.user.is_authenticated and request.user.role == "admin" %}
-                <div class="px-3 mb-1 text-[11px] font-semibold text-gray-400 uppercase">Sistemi</div>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="/admin/"
-                           class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition text-gray-600 hover:bg-gray-50">
-                            <i class="ph ph-shield-check text-base"></i>
-                            Admin
-                        </a>
-                    </li>
-                </ul>
-                {% endif %}
-            </div>
-        </nav>
-
-        <div class="px-5 py-3 border-t flex items-center justify-between text-[13px]">
-            {% if request.user.is_authenticated %}
-                <span class="text-gray-400 ml-1">· {{ request.user.get_full_name|default:request.user.username|capfirst }}</span>
-            {% endif %}
-            {% if request.user.is_authenticated %}
-            <div>
-                <ul class="space-y-1">
-                    <li>
-                        <form action="{% url 'logout' %}" method="post" class="m-0">
-                            {% csrf_token %}
-                            <button type="submit"
-                                    class="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[13px] text-gray-500 hover:bg-red-50 hover:text-red-600 transition">
-                                <i class="ph ph-sign-out text-base"></i>
-                                Dil
-                            </button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
-            {% endif %}
-        </div>
-    </aside>
-
-    <div id="overlay"
-         class="fixed inset-0 bg-black/40 z-30 hidden md:hidden"
-         onclick="toggleSidebar()"></div>
-
-    <div class="flex-1 min-w-0 md:ml-72">
-        <div class="md:hidden bg-white border-b h-14 flex items-center justify-between px-4 shadow-sm">
-            <button class="p-2" onclick="toggleSidebar()">
-                <i class="ph ph-list text-xl"></i>
-            </button>
-            <a href="{% url 'home' %}" class="font-semibold">Dr.Labi</a>
-            <div class="w-6 h-6"></div>
-        </div>
-
-        <main class="p-6">
-            {% block content %}{% endblock %}
-        </main>
-    </div>
-</div>
-
-{# *** U HOQ krejt MOBILE BOTTOM NAVIGATION *** #}
-
+<aside id="sidebar" class="app-sidebar" aria-label="Menuja kryesore">
+<div class="sidebar-heading"><a class="clinic-brand" href="{% url 'dashboard' %}" aria-label="Dr. Labi · Përmbledhja"><img src="{% static 'assets/img/logo.svg' %}" alt="Dr. Labi Dental Clinic"><i class="ph ph-tooth brand-mark" aria-hidden="true"></i></a></div>
+<nav><div class="nav-group"><p class="nav-label">HAPËSIRA E PUNËS</p><a href="{% url 'dashboard' %}" class="nav-link {% if name == 'dashboard' or name == 'home' %}is-active{% endif %}" {% if name == 'dashboard' or name == 'home' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='dashboard' only %}<span>Përmbledhja</span></a><a href="{% url 'patient_list' %}" class="nav-link {% if name == 'patient_list' or name == 'patient_detail' or name == 'add_patient' or name == 'edit_patient' or name == 'add_history' %}is-active{% endif %}" {% if name == 'patient_list' or name == 'patient_detail' or name == 'add_patient' or name == 'edit_patient' or name == 'add_history' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='patients' only %}<span>Pacientët</span></a><a href="{% url 'orto_patient_list' %}" class="nav-link {% if name == 'orto_patient_list' or name == 'orto_patient_detail' or name == 'add_orto_history' %}is-active{% endif %}" {% if name == 'orto_patient_list' or name == 'orto_patient_detail' or name == 'add_orto_history' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='orthodontics' only %}<span>Ortodoncia</span></a><a href="{% url 'appointments_calendar' %}" class="nav-link {% if name == 'appointments_calendar' %}is-active{% endif %}" {% if name == 'appointments_calendar' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='calendar' only %}<span>Terminet</span></a></div><div class="nav-group"><p class="nav-label">MENAXHIMI</p><a href="{% url 'checkout' %}" class="nav-link {% if name == 'checkout' %}is-active{% endif %}" {% if name == 'checkout' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='payments' only %}<span>Pagesat</span></a>{% if request.user.is_superuser %}<a href="{% url 'debt_report' %}" class="nav-link {% if name == 'debt_report' %}is-active{% endif %}" {% if name == 'debt_report' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='debts' only %}<span>Detyrimet</span></a>{% endif %}<a href="{% url 'reports_new' %}" class="nav-link {% if name == 'reports_new' %}is-active{% endif %}" {% if name == 'reports_new' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='reports' only %}<span>Raportet</span></a>{% if request.user.is_superuser %}<a href="{% url 'reports' %}" class="nav-link {% if name == 'reports' %}is-active{% endif %}" {% if name == 'reports' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='archive' only %}<span>Arkiva e raporteve</span></a>{% endif %}<a href="{% url 'shpenzime_list' %}" class="nav-link {% if name == 'shpenzime_list' or name == 'shpenzime_add' %}is-active{% endif %}" {% if name == 'shpenzime_list' or name == 'shpenzime_add' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='expenses' only %}<span>Shpenzimet</span></a><a href="{% url 'social_media' %}" class="nav-link {% if name == 'social_media' or name == 'social_media_edit' or name == 'social_media_result' %}is-active{% endif %}" {% if name == 'social_media' or name == 'social_media_edit' or name == 'social_media_result' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='social' only %}<span>Studio sociale</span></a></div>
+{% if request.user.is_authenticated and request.user.role == 'admin' %}<a href="/admin/" class="nav-link">{% include 'clinic/components/nav_icon.html' with name='settings' only %}<span>Administrimi</span></a>{% endif %}
+</nav>
+<div class="sidebar-bottom">
+<div class="account"><span class="avatar small">{{ request.user.get_full_name|default:request.user.username|first|upper }}</span><div><strong>{{ request.user.get_full_name|default:request.user.username|capfirst }}</strong><small>Ekipi Dr. Labi</small></div><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="icon-button" aria-label="Dil nga llogaria" title="Dil"><i aria-hidden="true" class="ph ph-sign-out"></i></button></form></div></div>
+</aside><button id="sidebar-collapse" class="icon-button" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Minimizo menunë" title="Minimizo menunë"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><div id="overlay" class="sidebar-overlay" hidden></div>
+<div class="app-shell"><button id="menu-toggle" class="icon-button mobile-menu" aria-label="Hap menunë" aria-expanded="false" aria-controls="sidebar"><i class="ph ph-list" aria-hidden="true"></i></button><main id="main-content" class="app-content" data-page="{{ name }}">
+{% if messages %}<div class="notice-stack" role="status">{% for message in messages %}<div class="notice {% if message.tags == 'error' %}notice-error{% endif %}">{{ message }}</div>{% endfor %}</div>{% endif %}
+{% block content %}{% endblock %}
+</main><footer class="app-footer"><span>Dr. Labi · Dental Clinic</span><span>Kujdesi fillon këtu.</span></footer></div>
 {% endwith %}
 <script src="{% static 'clinic/js/base.js' %}" defer></script>
-<script src="{% static 'clinic/js/add_history.js' %}" defer></script>
-<script src="{% static 'clinic/js/appointments_calendar.js' %}" defer></script>
-<script src="{% static 'clinic/js/reports_new.js' %}" defer></script>
-<script src="{% static 'clinic/js/reports.js' %}" defer></script>
-
-</body>
-</html>
+{% if request.resolver_match.url_name == 'add_history' or request.resolver_match.url_name == 'edit_history' or request.resolver_match.url_name == 'edit_care_history' %}<script src="{% static 'clinic/js/add_history.js' %}" defer></script>{% endif %}
+{% if request.resolver_match.url_name == 'appointments_calendar' %}<script src="{% static 'clinic/js/appointments_calendar.js' %}" defer></script>{% endif %}
+{% if request.resolver_match.url_name == 'reports_new' or request.resolver_match.url_name == 'reports' %}<script src="{% static 'clinic/js/reports_new.js' %}" defer></script>{% endif %}
+</body></html>

@@ -1,0 +1,28 @@
+<article class="treatment-card glass-card treatment-course" x-show="matches($el)" data-history-id="{{ h.id }}" data-teeth="{{ h.tooth|default:'' }}{% for sub in h.child_histories.all %},{{ sub.tooth|default:'' }}{% endfor %}" data-search="{{ h.diagnosis|default:'' }} {{ h.treatment|default:'' }} {{ h.doctor|default:'' }} {{ h.punim_protetikor|default:'' }}{% for sub in h.child_histories.all %} {{ sub.diagnosis|default:'' }} {{ sub.treatment|default:'' }} {{ sub.doctor|default:'' }}{% endfor %}">
+  <header class="course-heading"><div><p class="eyebrow">TRAJTIMI #{{ h.id }}</p><h3>{{ h.diagnosis|default:'Trajtim pa diagnozë të shënuar' }}</h3></div><span class="pill pill-neutral">Dhëmbët: {{ h.tooth|default:'—' }}</span></header>
+  {% if h.agreement %}<p class="course-agreement">Marrëveshja: {{ h.agreement.title }}</p>{% endif %}
+  <ol class="course-sessions" aria-label="Seancat e trajtimit {{ h.id }}">
+    <li class="course-session" data-session-id="{{ h.id }}">
+      <div class="session-number" aria-hidden="true">1</div>
+      <div class="session-body">
+        <div class="session-heading"><strong>Seanca 1 · Fillimi i trajtimit</strong><time>{{ h.date|date:'d.m.Y' }}</time></div>
+        <p class="session-doctor">{{ h.doctor|default:'Doktor i papërcaktuar' }}</p>
+        <p class="session-description">{{ h.treatment|default:h.punim_protetikor|default:'Pa përshkrim të trajtimit' }}</p>
+        <div class="session-footer"><div class="session-money">{% if h.included_in_agreement %}<span>Përfshirë në marrëveshje</span>{% else %}<span>Vlera <b>{{ h.amount|floatformat:2 }} €</b></span><span>Paguar <b>{{ h.paid_sum|floatformat:2 }} €</b></span><span>Mbetur <b>{{ h.debt_sum|floatformat:2 }} €</b></span>{% endif %}</div><button type="button" class="btn btn-subtle" onclick="openCareHistoryModal({{ h.id }})" aria-label="Detajet e seancës 1 të trajtimit {{ h.id }}">Detajet</button></div>
+      </div>
+    </li>
+    {% for sub in h.child_histories.all %}
+    <li class="course-session is-continuation" data-session-id="{{ sub.id }}">
+      <div class="session-number" aria-hidden="true">{{ forloop.counter|add:1 }}</div>
+      <div class="session-body">
+        <div class="session-heading"><strong>Seanca {{ forloop.counter|add:1 }} · Vazhdim</strong><time>{{ sub.date|date:'d.m.Y' }}</time></div>
+        <p class="session-doctor">{{ sub.doctor|default:'Doktor i papërcaktuar' }}{% if sub.tooth %} · Dhëmbët: {{ sub.tooth }}{% endif %}</p>
+        {% if sub.diagnosis and sub.diagnosis != sub.treatment %}<p class="session-diagnosis">{{ sub.diagnosis }}</p>{% endif %}
+        <p class="session-description">{{ sub.treatment|default:sub.punim_protetikor|default:'Pa përshkrim të trajtimit' }}</p>
+        <div class="session-footer"><div class="session-money">{% if sub.included_in_agreement %}<span>Përfshirë në marrëveshje</span>{% else %}<span>Vlera <b>{{ sub.amount|floatformat:2 }} €</b></span><span>Paguar <b>{{ sub.paid_sum|floatformat:2 }} €</b></span><span>Mbetur <b>{{ sub.debt_sum|floatformat:2 }} €</b></span>{% endif %}</div><button type="button" class="btn btn-subtle" onclick="openCareHistoryModal({{ sub.id }})" aria-label="Detajet e seancës {{ forloop.counter|add:1 }} të trajtimit {{ h.id }}">Detajet</button></div>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  <footer class="course-footer"><span>{% with count=h.child_histories.all|length %}{% if count %}{{ count|add:1 }} seanca · {{ count }} {% if count == 1 %}vazhdim{% else %}vazhdime{% endif %}{% else %}1 seancë · Pa vazhdime{% endif %}{% endwith %}</span><button class="btn btn-primary" @click="openModal('Vazhdim i trajtimit #{{ h.id }}', '{% url 'add_history' patient.id %}?parent={{ h.id }}&modal=1', 'trajtimet')"><i class="ph ph-plus" aria-hidden="true"></i> Vazhdo trajtimin</button></footer>
+</article>

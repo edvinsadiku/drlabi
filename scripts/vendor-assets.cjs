@@ -1,0 +1,13 @@
+const fs=require('node:fs');
+const path=require('node:path');
+const out='clinic/static/clinic/vendor';
+fs.mkdirSync(out,{recursive:true});
+fs.copyFileSync('node_modules/alpinejs/dist/cdn.min.js',path.join(out,'alpine.min.js'));
+fs.copyFileSync('node_modules/fullcalendar/index.global.min.js',path.join(out,'fullcalendar.min.js'));
+fs.copyFileSync('node_modules/fullcalendar/LICENSE.md',path.join(out,'fullcalendar-LICENSE.md'));
+fs.mkdirSync(path.join(out,'phosphor'),{recursive:true});
+fs.copyFileSync('node_modules/@phosphor-icons/web/src/regular/Phosphor.woff2',path.join(out,'phosphor/Phosphor.woff2'));
+const iconCSS=fs.readFileSync('node_modules/@phosphor-icons/web/src/regular/style.css','utf8').replace(/src:[\s\S]*?;/,'src: url("./Phosphor.woff2") format("woff2");');
+fs.writeFileSync(path.join(out,'phosphor/style.css'),iconCSS);
+fs.copyFileSync('node_modules/@phosphor-icons/web/LICENSE',path.join(out,'phosphor/LICENSE'));
+fs.copyFileSync('node_modules/tailwindcss/LICENSE',path.join(out,'tailwind-LICENSE'));

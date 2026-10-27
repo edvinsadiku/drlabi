@@ -1,10 +1,10 @@
 <div id="patientModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/40 backdrop-blur-sm">
   <div id="patientCard"
-       class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 transform transition-all duration-150 ease-out scale-95 opacity-0 border border-gray-200">
+       class="bg-white surface-panel shadow-2xl max-w-2xl w-full mx-4 transform transition-all duration-150 ease-out scale-95 opacity-0 border border-gray-200">
     <div class="flex justify-between items-center px-6 py-4 border-b">
       <h3 id="patientModalTitle" class="text-lg font-semibold text-gray-800">Shto pacient</h3>
       <button type="button" onclick="closePatientModal()"
-              class="rounded-full p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition">✕</button>
+              class="icon-button" aria-label="Mbyll">✕</button>
     </div>
 
     <form id="patientForm" class="px-6 py-5 space-y-5" method="post">
@@ -37,8 +37,8 @@
     <div class="px-6 py-4 border-t flex items-center justify-between">
       <div id="patientModalHint" class="text-xs text-gray-500">Fushat me * janë të detyrueshme.</div>
       <div class="flex items-center gap-2">
-        <button type="button" onclick="closePatientModal()" class="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50 transition">Anulo</button>
-        <button type="button" id="btnSubmitPatient" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700">Ruaj</button>
+        <button type="button" onclick="closePatientModal()" class="btn">Anulo</button>
+        <button type="button" id="btnSubmitPatient" class="btn btn-primary">Ruaj</button>
       </div>
     </div>
   </div>

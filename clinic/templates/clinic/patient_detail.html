@@ -1,107 +1,61 @@
-{% extends "clinic/base.html" %}
-{% load static %}
-{% load custom_filters %}
+{% extends "clinic/base.html" %}{% load static %}
 {% block title %}{{ patient.emri_mbiemri }}{% endblock %}
-
+{% block extra_head %}<link rel="stylesheet" href="{% static 'clinic/css/patient_workspace.css' %}">{% endblock %}
 {% block content %}
+<div class="patient-workspace" x-data="patientWorkspace" data-patient-id="{{ patient.id }}">
 
-<section class="rounded-2xl mb-8 overflow-hidden shadow-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
-  <div class="p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-    <div class="flex items-center gap-4">
-      <div class="size-14 rounded-full bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/20">
-        <svg xmlns="http://www.w3.org/2000/svg" class="size-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 1115 0v.375a.375.375 0 01-.375.375H4.875A.375.375 0 014.5 19.875V19.5z" />
-        </svg>
-      </div>
-      <div>
-        <h1 class="text-2xl md:text-3xl font-bold leading-tight">{{ patient.emri_mbiemri }}</h1>
-        <p class="text-sm text-white/90">Detajet e pacientit</p>
-      </div>
-    </div>
-    <div class="flex flex-wrap gap-3">
-      <a href="{% url 'add_history' patient.id %}" class="px-4 py-2 bg-white text-emerald-700 rounded-xl font-medium flex items-center gap-2 shadow hover:bg-gray-50 transition">
-        <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5c.414 0 .75.336.75.75V11.25H18a.75.75 0 010 1.5h-5.25V18a.75.75 0 01-1.5 0v-5.25H6a.75.75 0 010-1.5h5.25V5.75c0-.414.336-.75.75-.75z"/></svg>
-        Shto histori
-      </a>
-      <a href="{% url 'agreement_create' patient.id %}" class="px-4 py-2 rounded-xl font-medium border border-white/30 bg-white/10 hover:bg-white/20 transition">+ Marrëveshje</a>
+  <header class="page-heading"><div><p class="eyebrow">KUJDESI PËR PACIENTIN</p><h1>Kartela e pacientit<span class="title-dot">.</span></h1></div><div class="heading-actions"><a x-show="active!=='overview'" class="btn" href="{% url 'appointments_calendar' %}?patient={{ patient.id }}"><i aria-hidden="true" class="ph ph-calendar-plus"></i> Planifiko termin</a><button class="btn btn-primary" @click="openModal('Trajtim i ri', '{% url 'add_history' patient.id %}?modal=1', 'trajtimet')"><i aria-hidden="true" class="ph ph-plus"></i> Fillo trajtim</button></div></header>
+  <div class="patient-layout">
+    <aside class="patient-profile glass-card">
+      <div class="profile-cover"><span>KARTELA DENTARE</span><i aria-hidden="true" class="ph ph-tooth"></i></div>
+      <div class="profile-identity"><div class="avatar patient-avatar">{{ patient.emri_mbiemri|default:"?"|first|upper }}</div><h2>{{ patient.emri_mbiemri|default:"Pa emër" }}</h2><p>Pacient · #{{ patient.id }}</p></div>
+      <div class="profile-contact">{% if patient.telefoni %}<a href="tel:{{ patient.telefoni }}" class="btn"><i aria-hidden="true" class="ph ph-phone"></i> Telefono</a>{% endif %}<a href="{% url 'edit_patient' patient.id %}" class="icon-button" title="Ndrysho të dhënat" aria-label="Ndrysho të dhënat e pacientit"><i aria-hidden="true" class="ph ph-pencil-simple"></i></a></div>
+      <dl class="profile-details"><div><dt><i aria-hidden="true" class="ph ph-cake"></i> Datëlindja</dt><dd>{{ patient.data_e_lindjes|default:"Nuk është shënuar" }}</dd></div><div><dt><i aria-hidden="true" class="ph ph-phone"></i> Telefoni</dt><dd>{{ patient.telefoni|default:"Nuk është shënuar" }}</dd></div><div><dt><i aria-hidden="true" class="ph ph-envelope-simple"></i> Email</dt><dd>{% if patient.emaili %}<a href="mailto:{{ patient.emaili }}">{{ patient.emaili }}</a>{% else %}Nuk është shënuar{% endif %}</dd></div><div><dt><i aria-hidden="true" class="ph ph-map-pin"></i> Adresa</dt><dd>{{ patient.adresa|default:"Nuk është shënuar" }}</dd></div><div><dt><i aria-hidden="true" class="ph ph-identification-card"></i> Letërnjoftimi</dt><dd>{{ patient.leternjoftimi|default:"Nuk është shënuar" }}</dd></div></dl>
+      <div class="medical-note {% if patient.informata_shtese %}has-note{% endif %}"><h3><i aria-hidden="true" class="ph ph-first-aid-kit"></i> Shënime mjekësore</h3><p>{{ patient.informata_shtese|default:"Nuk ka shënime mjekësore të regjistruara."|linebreaksbr }}</p></div>
+      <div class="profile-bottom"><i aria-hidden="true" class="ph ph-folder-simple"></i> Regjistruar {{ patient.created_at|date:"d.m.Y"|default:"—" }}</div>
+    </aside>
+    <div class="patient-main">
+      <nav class="patient-tabs" aria-label="Seksionet e kartelës">
+        <button @click="set('overview')" :class="{'selected': active==='overview'}" :aria-current="active==='overview' ? 'page' : null"><i aria-hidden="true" class="ph ph-squares-four"></i> Përmbledhja</button>
+        <button @click="set('trajtimet')" :class="{'selected': active==='trajtimet'}" :aria-current="active==='trajtimet' ? 'page' : null">Trajtimet <span>{{ care_histories_all|length }}</span></button>
+        <button @click="set('marreveshjet')" :class="{'selected': active==='marreveshjet'}" :aria-current="active==='marreveshjet' ? 'page' : null">Marrëveshjet</button>
+        <button @click="set('pagesat')" :class="{'selected': active==='pagesat' || active==='shto-pages'}" :aria-current="active==='pagesat' ? 'page' : null">Financat</button>
+        <button @click="set('dokumente')" :class="{'selected': active==='dokumente'}" :aria-current="active==='dokumente' ? 'page' : null">Dokumentet</button>
+        <button @click="set('recetat')" :class="{'selected': active==='recetat'}" :aria-current="active==='recetat' ? 'page' : null">Recetat</button>
+        <button @click="set('arkiva-histori')" :class="{'selected': active.startsWith('arkiva')}" :aria-current="active.startsWith('arkiva') ? 'page' : null"><i aria-hidden="true" class="ph ph-archive"></i> Arkiva</button>
+      </nav>
+      <div x-show="success" x-cloak class="save-confirmation" role="status"><i class="ph ph-check-circle" aria-hidden="true"></i><span x-text="success"></span><button class="icon-button" @click="success=''" aria-label="Mbyll njoftimin"><i class="ph ph-x" aria-hidden="true"></i></button></div>
+      <section x-show="active==='overview'" class="overview-section">
+        <div class="patient-overview-grid">
+          <section class="glass-card card-padding tooth-card">
+            <header class="section-heading"><div><h2>Harta dentare</h2><p>Zgjidh dhëmbin për të parë historikun.</p></div><span class="dental-fdi-label">FDI · 32 dhëmbë</span></header>
+            <div class="dental-chart-scroll"><div class="dental-chart overview-chart">
+              <div class="dental-orientation"><span>Djathtas pacientit</span><span>Majtas pacientit</span></div>
+              <div class="dental-jaw-label"><span>Nofulla e sipërme</span></div>
+              <div class="tooth-row">{% for tooth in upper_teeth %}{% include 'clinic/patient/_tooth.html' %}{% endfor %}</div>
+              <div class="dental-midline"><span></span><i class="ph ph-plus" aria-hidden="true"></i><span></span></div>
+              <div class="tooth-row lower">{% for tooth in lower_teeth %}{% include 'clinic/patient/_tooth.html' %}{% endfor %}</div>
+              <div class="dental-jaw-label"><span>Nofulla e poshtme</span></div>
+            </div></div>
+            <div class="tooth-legend"><span><b></b> Me trajtime</span><span><b class="unmarked"></b> Pa regjistrime</span></div>
+            <p class="chart-caption">Pasqyrë e historikut të trajtimeve, jo e gjendjes aktuale klinike.</p>
+          </section>
+          <section class="glass-card card-padding patient-finance"><header class="section-heading"><h2>Bilanci i kujdesit</h2><i aria-hidden="true" class="ph ph-wallet"></i></header><p class="muted finance-label">Detyrimi i mbetur</p><div class="balance">{{ debt_new|floatformat:2 }}<span>€</span></div><div class="finance-line"><span>Gjithsej</span><strong>{{ total_billed_new|floatformat:2 }} €</strong></div><div class="finance-line"><span>Paguar</span><strong>{{ total_paid_new|floatformat:2 }} €</strong></div><div class="finance-actions"><button class="btn btn-primary" @click="openModal('Regjistro pagesën', '{% url 'patient_detail' patient.id %}?workflow=modal&panel=shto-pages', 'pagesat')">Regjistro pagesë <i aria-hidden="true" class="ph ph-arrow-up-right"></i></button><button class="btn btn-subtle" @click="set('pagesat')">Historiku i pagesave</button></div></section>
+          <section class="glass-card card-padding recent-activity"><header class="section-heading"><div><h2>Aktiviteti i fundit</h2><p>Historiku i kujdesit, në rend kronologjik.</p></div><button class="btn btn-subtle" @click="set('activity')">Shiko të gjitha <i aria-hidden="true" class="ph ph-arrow-up-right"></i></button></header>{% for item in timeline_items|slice:':4' %}<article class="activity-item"><span class="activity-icon {% if item.kind == 'Pagesë' %}teal{% endif %}"><i aria-hidden="true" class="ph {% if item.kind == 'Trajtim' %}ph-tooth{% elif item.kind == 'Pagesë' %}ph-wallet{% elif item.kind == 'Recetë' %}ph-prescription{% else %}ph-folder-simple{% endif %}"></i></span><div><div class="activity-meta">{{ item.kind }} <span>· {{ item.date_display }}</span></div><h3>{{ item.title }}</h3><p>{{ item.subtitle|truncatechars:85 }}</p>{% if item.doctor %}<small>{{ item.doctor }}</small>{% endif %}</div>{% if item.amount %}<strong class="activity-amount">{{ item.amount|floatformat:2 }} €</strong>{% endif %}</article>{% empty %}<div class="empty-state"><i aria-hidden="true" class="ph ph-heartbeat"></i><p>Kujdesi i këtij pacienti fillon këtu.</p></div>{% endfor %}</section>
+          <div class="overview-side-stack"><section class="glass-card card-padding next-appointment"><header class="section-heading"><h2>Vizita e ardhshme</h2><i aria-hidden="true" class="ph ph-calendar-blank"></i></header>{% if next_appointment %}<div class="appointment-date"><strong>{{ next_appointment.start|date:'d' }}</strong><span>{{ next_appointment.start|date:'M Y' }}<br>{{ next_appointment.start|date:'H:i' }}</span></div><h3>{{ next_appointment.title }}</h3><p>{{ next_appointment.doctor }}</p>{% else %}<p class="muted">Nuk ka termin të ardhshëm të planifikuar.</p>{% endif %}<a class="btn btn-subtle" href="{% url 'appointments_calendar' %}?patient={{ patient.id }}">Planifiko vizitën <i aria-hidden="true" class="ph ph-arrow-up-right"></i></a></section><section class="glass-card card-padding"><header class="section-heading"><h2>Marrëveshjet aktive</h2><span class="pill">{{ agreements_active|length }}</span></header>{% for ag in agreements_active|slice:':2' %}<button class="agreement-preview" @click="set('marreveshjet')"><strong>{{ ag.title }}</strong><span>{{ ag.bal_sum|floatformat:2 }} € të mbetura <i aria-hidden="true" class="ph ph-arrow-up-right"></i></span></button>{% empty %}<p class="muted">Nuk ka marrëveshje aktive.</p>{% endfor %}<button class="btn btn-subtle" @click="openModal('Marrëveshje e re', '{% url 'agreement_create' patient.id %}?modal=1', 'marreveshjet')"><i aria-hidden="true" class="ph ph-plus"></i> Krijo marrëveshje</button></section></div>
+        </div>
+      </section>
+      <div x-show="active==='activity'" x-cloak class="glass-card card-padding"><header class="section-heading"><div><h2>Historiku i aktivitetit</h2><p>Deri në 50 regjistrimet më të fundit. Historikun e plotë e gjen në seksionet përkatëse.</p></div><button class="btn btn-subtle" @click="set('overview')">Kthehu</button></header>{% for item in timeline_items %}<article class="activity-item"><span class="activity-icon"><i aria-hidden="true" class="ph ph-clock-counter-clockwise"></i></span><div><div class="activity-meta">{{ item.kind }} · {{ item.date_display }}</div><h3>{{ item.title }}</h3><p>{{ item.subtitle }}</p><small>{{ item.doctor }}</small></div>{% if item.amount %}<strong>{{ item.amount|floatformat:2 }} €</strong>{% endif %}</article>{% empty %}<p class="empty-state">Nuk ka aktivitet të regjistruar.</p>{% endfor %}</div>
+      <section x-show="active==='trajtimet'" x-cloak class="treatment-workspace"><header class="section-heading"><div><h2>Historiku i trajtimeve</h2><p>Diagnoza, seancat dhe vazhdimi i kujdesit.</p></div></header><div class="treatment-filter"><label><i aria-hidden="true" class="ph ph-magnifying-glass"></i><input id="treatment-search" type="search" x-model="query" aria-label="Kërko trajtimet" placeholder="Kërko diagnozë, trajtim ose doktor…"></label><button x-show="tooth" x-cloak class="pill" @click="tooth=''">Dhëmbi <span x-text="tooth"></span><i aria-hidden="true" class="ph ph-x"></i></button><button class="btn btn-subtle" @click="query=''; tooth=''">Pastro filtrat</button></div>
+      {% for h in care_histories_all %}{% include 'clinic/patient/_treatment_course.html' %}{% endfor %}<div class="glass-card empty-state" x-show="!visibleTreatments()" x-cloak><i aria-hidden="true" class="ph ph-tooth"></i><p>Nuk ka trajtime për këtë përzgjedhje.</p><button class="btn btn-subtle" @click="query=''; tooth=''">Shiko të gjitha trajtimet</button></div></section>
+      <div class="file-panels">
+      {% include 'clinic/patient/tabs/_marreveshjet.html' %}{% include 'clinic/patient/tabs/_pagesat.html' %}{% include 'clinic/patient/tabs/_shto_pages.html' %}{% include 'clinic/patient/tabs/_dokumente.html' %}{% include 'clinic/patient/tabs/_recetat.html' %}
+      <div x-show="active.startsWith('arkiva')" x-cloak class="archive-nav"><button class="btn" @click="set('arkiva-histori')" :class="{'btn-primary':active==='arkiva-histori'}">Trajtimet e vjetra</button><button class="btn" @click="set('arkiva-ortho')" :class="{'btn-primary':active==='arkiva-ortho'}">Ortodoncia</button><button class="btn" @click="set('arkiva-financa')" :class="{'btn-primary':active==='arkiva-financa'}">Financat e arkivës</button></div>
+      {% include 'clinic/patient/tabs/_arkiva_histori.html' %}{% include 'clinic/patient/tabs/_arkiva_ortho.html' %}{% include 'clinic/patient/tabs/_arkiva_financa.html' %}</div>
     </div>
   </div>
-</section>
-
-<section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-    <article class="lg:col-span-2 bg-white rounded-xl border p-6">
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="font-semibold text-lg text-gray-800 flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 1115 0v.375a.375.375 0 01-.375.375H4.875A.375.375 0 014.5 19.875V19.5z" />
-        </svg>
-        Të dhënat e pacientit
-      </h2>
-      <span class="px-3 py-1 text-xs rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">Aktiv</span>
-    </div>
-    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-sm">
-      <div><dt class="text-gray-500">Emri</dt><dd class="font-medium text-gray-800">{{ patient.emri_mbiemri }}</dd></div>
-      <div><dt class="text-gray-500">Data e lindjes</dt><dd class="font-medium text-gray-800">{{ patient.data_e_lindjes }}</dd></div>
-      <div><dt class="text-gray-500">Telefoni</dt><dd class="font-medium text-gray-800">{{ patient.telefoni }}</dd></div>
-      <div><dt class="text-gray-500">Email</dt><dd class="font-medium text-gray-800 break-all">{{ patient.emaili }}</dd></div>
-      <div class="sm:col-span-2"><dt class="text-gray-500">Adresa</dt><dd class="font-medium text-gray-800">{{ patient.adresa }}</dd></div>
-      <div><dt class="text-gray-500">Numri i letërnjoftimit</dt><dd class="font-medium text-gray-800">{{ patient.leternjoftimi|default:"—" }}</dd></div>
-      <div class="sm:col-span-2">
-        <dt class="text-gray-500">Informata shtesë / shënime mjekësore</dt>
-        <dd class="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 font-medium text-gray-800 whitespace-pre-line">
-          {{ patient.informata_shtese|default:"—" }}
-        </dd>
-      </div>
-    </dl>
-  </article>
-
-    <aside class="bg-white rounded-xl border p-6">
-    <h2 class="font-semibold text-lg text-gray-800 mb-6 flex items-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 1.79-4 4v4h8v-4c0-2.21-1.79-4-4-4zM6 12H4m16 0h-2" />
-      </svg>
-      Përmbledhje
-    </h2>
-    <div class="grid gap-4 text-sm">
-      <div class="rounded-lg border p-4 bg-gray-50"><p class="text-gray-500">Totali</p><p class="text-xl font-bold text-gray-800">{{ total_billed_new }}€</p></div>
-      <div class="rounded-lg border p-4 bg-gray-50"><p class="text-gray-500">Paguar</p><p class="text-xl font-bold text-emerald-600">{{ total_paid_new }}€</p></div>
-      <div class="rounded-lg border p-4 bg-gray-50 flex items-center justify-between">
-        <div>
-          <p class="text-gray-500">Borxh</p>
-          <p class="text-xl font-bold {% if debt_new > 0 %}text-red-600{% else %}text-gray-700{% endif %}">{{ debt_new }}€</p>
-        </div>
-        {% if debt_new > 0 %}
-          <span class="px-2 py-0.5 text-xs rounded-full bg-red-50 text-red-700 border border-red-200">Në detirim</span>
-        {% endif %}
-      </div>
-      <p class="text-xs text-gray-500">Marrëveshje aktive: <span class="font-medium">{{ agreements_active|length }}</span></p>
-    </div>
-  </aside>
-</section>
-
-<section
-  x-data="{
-    active: new URL(location).searchParams.get('tab') || 'trajtimet',
-    set(t){ this.active=t; const u=new URL(location); u.searchParams.set('tab',t); history.replaceState({},'',u); }
-  }"
-  class="mb-10">
-
-  {% include "clinic/patient/tabs/_nav.html" %}
-
-  {% include "clinic/patient/tabs/_trajtimet.html" %}
-  {% include "clinic/patient/tabs/_marreveshjet.html" %}
-  {% include "clinic/patient/tabs/_shto_pages.html" %}
-  {% include "clinic/patient/tabs/_pagesat.html" %}
-  {% include "clinic/patient/tabs/_dokumente.html" %}
-  {% include "clinic/patient/tabs/_arkiva_histori.html" %}
-  {% include "clinic/patient/tabs/_arkiva_ortho.html" %}
-  {% include "clinic/patient/tabs/_arkiva_financa.html" %}
-  {% include "clinic/patient/tabs/_recetat.html" %}
-
-</section>
-
-{% include "clinic/patient/tabs/_care_history_modal.html" %}
-<script src="{% static 'clinic/js/patient_detail.js' %}" defer></script>
-<script src="https://unpkg.com/alpinejs" defer></script>
-
+  <dialog x-ref="workflowDialog" class="workflow-drawer" @cancel.prevent="closeModal()" @click="if($event.target===$refs.workflowDialog) closeModal()" aria-labelledby="workflow-title"><div class="drawer-content"><header><div><p class="eyebrow">{{ patient.emri_mbiemri }} · #{{ patient.id }}</p><h2 id="workflow-title" x-text="modalTitle"></h2></div><button class="icon-button" @click="closeModal()" aria-label="Mbyll panelin"><i aria-hidden="true" class="ph ph-x"></i></button></header><p class="drawer-loading" x-show="loading" role="status">Duke hapur kartelën…</p><iframe x-ref="workflowFrame" :src="modalUrl || 'about:blank'" @load="loading=false" title="Formulari i pacientit"></iframe></div></dialog>
+</div>
+{% include 'clinic/patient/tabs/_care_history_modal.html' %}
+<script src="{% static 'clinic/js/patient_detail.js' %}" defer></script><script src="{% static 'clinic/js/patient_workspace.js' %}" defer></script><script src="{% static 'clinic/vendor/alpine.min.js' %}" defer></script>
 {% endblock %}

@@ -9,13 +9,13 @@
 <form method="post" class="space-y-5">
   {% csrf_token %}
 
-  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+  <section class="overflow-hidden surface-panel border border-slate-200 bg-white shadow-sm">
     <header class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
         <h1 class="text-xl font-semibold text-slate-950">Resize dhe pozicionim</h1>
         <p class="mt-1 text-sm text-slate-500">Rregullo crop-in veçmas për secilin format të zgjedhur.</p>
       </div>
-      <a href="{% url 'social_media' %}" class="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+      <a href="{% url 'social_media' %}" class="btn">
         <i class="ph ph-arrow-left"></i>
         Mbrapa
       </a>
@@ -36,7 +36,7 @@
       {{ tpl.slots|json_script:tpl.slot_script_id }}
       {{ tpl.frames|json_script:tpl.frame_script_id }}
 
-      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section class="overflow-hidden surface-panel border border-slate-200 bg-white shadow-sm">
         <header class="border-b border-slate-200 bg-slate-50 px-5 py-3">
           <h2 class="font-semibold text-slate-950">{{ tpl.label }} preview</h2>
           <p class="mt-0.5 text-xs text-slate-500">{{ tpl.width }}x{{ tpl.height }}px</p>
@@ -51,7 +51,7 @@
         </div>
       </section>
 
-      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section class="overflow-hidden surface-panel border border-slate-200 bg-white shadow-sm">
         <header class="border-b border-slate-200 bg-slate-50 px-5 py-3">
           <h2 class="font-semibold text-slate-950">{{ tpl.label }}</h2>
         </header>
@@ -60,7 +60,7 @@
           <section class="space-y-4 p-5">
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-semibold uppercase text-slate-500">Foto PARA</h3>
-              <button type="button" data-reset="before" class="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+              <button type="button" data-reset="before" class="btn">
                 <i class="ph ph-arrow-counter-clockwise"></i>
                 Reset
               </button>
@@ -82,7 +82,7 @@
           <section class="space-y-4 p-5">
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-semibold uppercase text-slate-500">Foto PAS</h3>
-              <button type="button" data-reset="after" class="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+              <button type="button" data-reset="after" class="btn">
                 <i class="ph ph-arrow-counter-clockwise"></i>
                 Reset
               </button>
@@ -105,9 +105,9 @@
     </div>
   {% endfor %}
 
-  <footer class="sticky bottom-0 z-10 flex items-center justify-end gap-2 rounded-lg border border-slate-200 bg-white/95 px-5 py-4 shadow-sm backdrop-blur">
-    <a href="{% url 'social_media' %}" class="inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Anulo</a>
-    <button type="submit" class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700">
+  <footer class="sticky bottom-0 z-10 flex items-center justify-end gap-2 surface-panel border border-slate-200 bg-white/95 px-5 py-4 shadow-sm backdrop-blur">
+    <a href="{% url 'social_media' %}" class="btn">Anulo</a>
+    <button type="submit" class="btn btn-primary">
       Gjenero
       <i class="ph ph-check"></i>
     </button>

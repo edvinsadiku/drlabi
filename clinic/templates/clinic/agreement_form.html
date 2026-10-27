@@ -1,78 +1,20 @@
 {% extends is_modal|yesno:"clinic/modal_base.html,clinic/base.html" %}
-{% block title %}Marrëveshje e re – {{ patient.emri_mbiemri }}{% endblock %}
+{% block title %}Marrëveshje e re · {{ patient.emri_mbiemri }}{% endblock %}
 {% block content %}
-    <div class="mb-5 flex items-center justify-between">
-        <h2 class="text-xl font-semibold tracking-tight">Krijo marrëveshje për: {{ patient.emri_mbiemri }}</h2>
-    </div>
-    <form method="post" class="bg-white border rounded-xl p-5 md:p-6 space-y-6">
-        {% csrf_token %}
-        <section class="space-y-3">
-            <h3 class="text-sm font-semibold text-gray-700">Detajet</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">Titulli *</label>
-                    <input type="text"
-                           name="title"
-                           required
-                           class="border rounded w-full p-2"
-                           placeholder="p.sh. Ortodonci 12 mujore">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">Shuma totale (€) *</label>
-                    <input type="number"
-                           step="0.01"
-                           name="total_amount"
-                           required
-                           class="border rounded w-full p-2"
-                           placeholder="1000.00">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">Data e fillimit</label>
-                    <input type="hidden" name="start_date" value="{{ today|date:'Y-m-d' }}">
-                    <input type="text"
-                           value="{{ today|date:'d.m.Y' }}"
-                           class="border rounded w-full p-2 bg-gray-100"
-                           readonly>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">Data e mbarimit</label>
-                    <input type="date" name="end_date" class="border rounded w-full p-2">
-                </div>
-                                <div>
-                    <label class="block text-xs text-gray-500 mb-1">Doktori *</label>
-                    <select name="doctor" required class="border rounded w-full p-2">
-                        <option value="" disabled selected>Zgjidh doktorin</option>
-                        <option value="Dr. Labi">Dr. Labi</option>
-                        <option value="Dr. Linda">Dr. Linda</option>
-                        <option value="HD.Geka">HD.Geka</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs text-gray-500 mb-1">Shënime</label>
-                    <textarea name="notes"
-                              rows="3"
-                              class="border rounded w-full p-2"
-                              placeholder="Opsionale"></textarea>
-                </div>
-            </div>
-        </section>
-        <section class="space-y-3">
-            <h3 class="text-sm font-semibold text-gray-700">Statusi</h3>
-            <div class="flex items-center gap-4 text-sm">
-                <label class="inline-flex items-center gap-2">
-                    <input type="radio" name="status" value="active" checked>
-                    Aktiv
-                </label>
-                <label class="inline-flex items-center gap-2">
-                    <input type="radio" name="status" value="closed">
-                    Mbyllur
-                </label>
-            </div>
-        </section>
-        <div class="flex items-center gap-3">
-            <button class="px-4 py-2 bg-emerald-600 text-white rounded">Ruaj marrëveshjen</button>
-            <a href="{% url 'patient_detail' patient.id %}"
-               class="px-4 py-2 border rounded bg-white hover:bg-gray-50">Anulo</a>
-        </div>
-    </form>
+<div class="form-width">
+  {% if not is_modal %}<header class="module-heading"><div><p class="eyebrow">{{ patient.emri_mbiemri }} · #{{ patient.id }}</p><h2>Marrëveshje e re</h2><p>Përcaktoni planin e trajtimit dhe kushtet financiare.</p></div></header>{% endif %}
+  {% if error %}<div class="module-error" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" class="module-card module-form">{% csrf_token %}
+    <section class="form-section"><h2>Plani i trajtimit</h2><div class="field-grid">
+      <label class="field full">Titulli i marrëveshjes<input name="title" value="{{ request.POST.title }}" maxlength="191" required placeholder="p.sh. Trajtim ortodontik"></label>
+      <label class="field">Vlera totale (€)<input name="total_amount" value="{{ request.POST.total_amount }}" type="number" step="0.01" min="0.01" required placeholder="0.00"></label>
+      <label class="field">Doktori<select name="doctor" required><option value="">Zgjidh doktorin</option>{% for value,label in doctor_choices %}<option value="{{ value }}" {% if request.POST.doctor == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label class="field">Data e fillimit<input value="{{ today|date:'d.m.Y' }}" readonly></label>
+      <label class="field">Data e përfundimit <span class="module-caption">· opsionale</span><input name="end_date" value="{{ request.POST.end_date }}" type="date" min="{{ today|date:'Y-m-d' }}"></label>
+      <label class="field full">Shënime<textarea name="notes" rows="4" placeholder="Kushtet e marrëveshjes dhe shënimet e trajtimit">{{ request.POST.notes }}</textarea></label>
+    </div></section>
+    <section class="form-section"><h2>Statusi</h2><div class="choice-row"><label><input type="radio" name="status" value="active" {% if request.POST.status != 'closed' %}checked{% endif %}> Aktive</label><label><input type="radio" name="status" value="closed" {% if request.POST.status == 'closed' %}checked{% endif %}> E mbyllur</label></div></section>
+    <footer class="form-footer">{% if is_modal %}<button type="button" data-close-workflow class="btn">Anulo</button>{% else %}<a href="{% url 'patient_detail' patient.id %}?tab=marreveshjet" class="btn">Anulo</a>{% endif %}<button type="submit" class="btn btn-primary">Ruaj marrëveshjen <i class="ph ph-check" aria-hidden="true"></i></button></footer>
+  </form>
+</div>
 {% endblock %}

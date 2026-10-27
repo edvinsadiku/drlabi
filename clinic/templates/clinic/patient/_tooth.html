@@ -1,0 +1,6 @@
+{% load static %}
+<button type="button" class="tooth-button {% if tooth.recorded %}has-records{% endif %}" @click="filterTooth('{{ tooth.number }}')" aria-label="Dhëmbi {{ tooth.number }}{% if tooth.recorded %}, ka trajtime{% else %}, pa regjistrime{% endif %}">
+  <span class="tooth-figure"><svg class="dental-tooth" viewBox="0 0 64 100" aria-hidden="true"><use href="{% static 'clinic/img/dental-teeth.svg' %}#{{ tooth.kind }}"></use></svg></span>
+  <span class="tooth-number">{{ tooth.number }}</span>
+  <span class="tooth-record-dot" aria-hidden="true"></span>
+</button>

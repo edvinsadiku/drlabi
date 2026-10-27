@@ -1,61 +1,7 @@
-{% extends "clinic/base.html" %}
-{% block title %}Shto Shpenzim{% endblock %}
+{% extends 'clinic/base.html' %}
+{% block title %}Shpenzim i ri{% endblock %}
 {% block content %}
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-xl font-semibold text-gray-900">Shto shpenzim</h1>
-            <p class="text-sm text-gray-500">Regjistro një shpenzim të ri për klinikën.</p>
-        </div>
-    </div>
-
-    <form method="post" class="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm w-full max-w-3xl">
-        {% csrf_token %}
-        <div class="space-y-5">
-            <div>
-                <label class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Shpenzimi</label>
-                <input name="shpenzimi"
-                       class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200"
-                       placeholder="p.sh. Qira mujore"
-                       required>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Data</label>
-                    <input type="date"
-                           name="muaji"
-                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Vlera (€)</label>
-                    <input type="number"
-                           name="vlera"
-                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200">
-                </div>
-            </div>
-            <div>
-                <label class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                    <input type="checkbox" name="paguar" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
-                    <span>Paguar</span>
-                </label>
-                <p class="mt-1 text-xs text-gray-400">Shëno nëse shpenzimi është paguar.</p>
-            </div>
-            <div>
-                <label class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Përshkrimi</label>
-                <textarea name="pershkrimi"
-                          rows="3"
-                          class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200"
-                          placeholder="Detaje shtesë (opsionale)"></textarea>
-            </div>
-        </div>
-        <div class="mt-6 flex flex-wrap items-center gap-3">
-            <button class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700">
-                <i class="ph ph-check-circle text-base"></i>
-                Ruaj
-            </button>
-            <a href="{% url 'shpenzime_list' %}"
-               class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50">
-                Anulo
-            </a>
-        </div>
-    </form>
+<div class="form-width"><header class="page-heading"><div><p class="eyebrow">SHPENZIMET</p><h1>Shpenzim i ri<span class="title-dot">.</span></h1><p>Regjistroni shpenzimin dhe gjendjen e pagesës.</p></div></header>
+{% if error %}<div class="module-error" role="alert">{{ error }}</div>{% endif %}
+<form method="post" class="module-card module-form">{% csrf_token %}<section class="form-section"><h2>Detajet e shpenzimit</h2><div class="field-grid"><label class="field full">Emërtimi<input name="shpenzimi" value="{{ request.POST.shpenzimi }}" maxlength="191" required placeholder="p.sh. Materiale dentare"></label><label class="field">Data<input type="date" name="muaji" value="{{ request.POST.muaji }}"></label><label class="field">Shuma (€)<input type="number" min="1" max="2147483647" step="1" name="vlera" value="{{ request.POST.vlera }}" required placeholder="0"></label><label class="field full">Përshkrimi<textarea name="pershkrimi" maxlength="191" rows="4" placeholder="Furnizuesi ose detaje të tjera">{{ request.POST.pershkrimi }}</textarea></label></div></section><section class="form-section"><h2>Gjendja e pagesës</h2><div class="choice-row"><label><input type="checkbox" name="paguar" {% if request.POST.paguar %}checked{% endif %}> Shpenzimi është paguar</label></div></section><footer class="form-footer"><a class="btn" href="{% url 'shpenzime_list' %}">Anulo</a><button type="submit" class="btn btn-primary">Ruaj shpenzimin <i class="ph ph-check" aria-hidden="true"></i></button></footer></form></div>
 {% endblock %}

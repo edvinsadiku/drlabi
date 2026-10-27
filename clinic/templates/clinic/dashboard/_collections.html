@@ -1,0 +1,4 @@
+<section id="dashboard-collections" class="module-card collections-panel" data-dashboard-panel="Arkëtimet mujore">
+  <header class="workspace-panel-heading"><h2><i class="ph ph-chart-bar" aria-hidden="true"></i> Arkëtimet mujore</h2><span class="module-caption">6 muaj</span></header>
+  <div class="revenue-bars">{% for item in payments_series %}<div class="revenue-column"><strong>{{ item.total|floatformat:0 }} €</strong><div class="bar" style="height:{{ item.pct }}%" title="{{ item.label }}: {{ item.total }} €"></div><span>{{ item.label }}</span></div>{% endfor %}</div>
+</section>

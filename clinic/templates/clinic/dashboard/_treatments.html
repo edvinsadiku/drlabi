@@ -1,0 +1,7 @@
+<section id="dashboard-treatments" class="module-card treatments-panel" data-dashboard-panel="Trajtimet" data-total="{{ treatment_count }}">
+  <header class="workspace-panel-heading"><h2><i class="ph ph-tooth" aria-hidden="true"></i> Trajtimet</h2><a class="icon-button" href="{% url 'patient_list' %}" aria-label="Hap pacientët" title="Hap pacientët"><i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></header>
+  <div class="workspace-list" data-dashboard-list>
+    {% for h in day_treatments %}<article class="day-row treatment-row" data-dashboard-row><div class="day-person"><strong>{% if h.patient_id %}<a href="{% url 'patient_detail' h.patient_id %}?tab=trajtimet">{{ h.patient.emri_mbiemri }}</a>{% else %}Pacient i papërcaktuar{% endif %}</strong><small>{{ h.diagnosis|default:h.treatment|default:'Pa përshkrim' }} · {{ h.doctor|default:'Doktor i papërcaktuar' }}</small></div>{% if h.patient_id %}<a class="icon-button" href="{% url 'patient_detail' h.patient_id %}?tab=trajtimet" aria-label="Hap trajtimet e {{ h.patient.emri_mbiemri }}"><i class="ph ph-arrow-up-right" aria-hidden="true"></i></a>{% endif %}</article>{% empty %}<div class="workspace-empty"><i class="ph ph-tooth" aria-hidden="true"></i><p>Nuk ka trajtime të regjistruara.</p></div>{% endfor %}
+  </div>
+  {% include 'clinic/dashboard/_pager.html' with count=treatment_count limit=6 noun='trajtime' label='Trajtimet' %}
+</section>

@@ -1,0 +1,5 @@
+<section id="dashboard-debts" class="module-card debts-panel" data-dashboard-panel="Detyrimet" data-total="{{ top_debts|length }}">
+  <header class="workspace-panel-heading"><h2><i class="ph ph-receipt" aria-hidden="true"></i> Detyrimet kryesore</h2><a class="icon-button" href="{% url 'debt_report' %}" aria-label="Shiko të gjitha detyrimet" title="Shiko detyrimet"><i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></header>
+  <div class="workspace-list" data-dashboard-list>{% for d in top_debts %}<a class="day-row" data-dashboard-row href="{% url 'patient_detail' d.id %}?tab=pagesat"><div class="day-person"><strong>{{ d.emri_mbiemri }}</strong><small>Kartela #{{ d.id }}</small></div><strong class="workspace-amount">{{ d.debt|floatformat:2 }} €</strong></a>{% empty %}<div class="workspace-empty"><i class="ph ph-check-circle" aria-hidden="true"></i><p>Nuk ka detyrime aktive.</p></div>{% endfor %}</div>
+  {% include 'clinic/dashboard/_pager.html' with count=top_debts|length limit=5 noun='pacientë' label='Detyrimet' %}
+</section>

@@ -5,15 +5,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Modal{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="{% static 'clinic/css/utilities.css' %}">
+  <link rel="stylesheet" href="{% static 'clinic/vendor/phosphor/style.css' %}">
   <link rel="stylesheet" href="{% static 'clinic/css/brand.css' %}">
   <link rel="stylesheet" href="{% static 'clinic/css/add_history.css' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;550;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'clinic/css/workspace.css' %}">
+  <link rel="stylesheet" href="{% static 'clinic/css/dental_chart.css' %}">
+<link rel="stylesheet" href="{% static 'clinic/css/modules.css' %}">
   <style>
-    body { font-family: Inter, sans-serif; background: #fff; }
+    body { font-family: 'Inter Tight', sans-serif; }
   </style>
+<link rel="stylesheet" href="{% static 'clinic/css/glass.css' %}">
 </head>
-<body class="bg-white text-slate-900">
+<body class="clinic-modal">
   <main class="p-4 md:p-5">
     {% block content %}{% endblock %}
   </main>
@@ -21,6 +26,14 @@
     <script src="{% static 'clinic/js/add_history.js' %}" defer></script>
   {% endif %}
   <script src="{% static 'clinic/js/patient_detail.js' %}" defer></script>
-  <script src="https://unpkg.com/alpinejs" defer></script>
+  <script src="{% static 'clinic/vendor/alpine.min.js' %}" defer></script>
+<script>
+  document.addEventListener('click', event => {
+    if (event.target.closest('[data-close-workflow]')) window.parent.postMessage({type:'patient-modal-close'}, window.location.origin);
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') window.parent.postMessage({type:'patient-modal-close'}, window.location.origin);
+  });
+  </script>
 </body>
 </html>

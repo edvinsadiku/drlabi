@@ -1,0 +1,9 @@
+<section id="dashboard-agenda" class="module-card agenda-panel" data-dashboard-panel="Terminet" data-total="{{ appointment_count }}">
+  <header class="workspace-panel-heading"><h2><i class="ph ph-calendar-blank" aria-hidden="true"></i> Terminet</h2><a class="icon-button" href="{% url 'appointments_calendar' %}" aria-label="Hap kalendarin" title="Hap kalendarin"><i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></header>
+  <div class="agenda-status"><span>{{ scheduled_count }} të planifikuara</span><span>{{ completed_count }} të përfunduara</span>{% if cancelled_count %}<span>{{ cancelled_count }} të anuluara</span>{% endif %}</div>
+  <div class="workspace-list" data-dashboard-list>
+    {% for appt in day_appointments %}{% include 'clinic/dashboard/_appointment.html' %}{% empty %}<div class="workspace-empty"><i class="ph ph-calendar-check" aria-hidden="true"></i><p>Nuk ka termine të planifikuara.</p></div>{% endfor %}
+    {% if next_appointment and next_appointment not in day_appointments %}{% include 'clinic/dashboard/_appointment.html' with appt=next_appointment %}{% endif %}
+  </div>
+  {% include 'clinic/dashboard/_pager.html' with count=appointment_count limit=8 noun='termine' label='Terminet' %}
+</section>

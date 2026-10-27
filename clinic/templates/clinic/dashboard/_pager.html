@@ -1,0 +1,4 @@
+<footer class="workspace-panel-footer">
+  <span class="dashboard-page-range" aria-live="polite">{% if count > limit %}{{ limit }} nga {{ count }} {{ noun }}{% else %}{{ count }} {{ noun }}{% endif %}</span>
+  <div class="dashboard-page-controls" hidden><button type="button" class="icon-button" data-page-prev aria-label="Faqja e mëparshme: {{ label }}"><i class="ph ph-caret-left" aria-hidden="true"></i></button><button type="button" class="icon-button" data-page-next aria-label="Faqja tjetër: {{ label }}"><i class="ph ph-caret-right" aria-hidden="true"></i></button></div>
+</footer>

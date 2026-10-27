@@ -1,60 +1,28 @@
-<div x-show="active==='pagesat'" x-cloak class="mt-4">
-  <section class="bg-white border rounded-xl overflow-hidden">
-    <header class="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
-      <div class="flex items-center gap-2 text-gray-700">
-        <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h6"/></svg>
-        <h3 class="font-semibold text-lg">Historia e Pagesave</h3>
-      </div>
-      <div class="flex flex-wrap items-center gap-2 text-sm">
-        <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">Totali i paguar: <strong>{{ total_paid_new }}€</strong></span>
-        <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">Borxhi aktiv: <strong>{{ total_agreements_balance }}€</strong></span>
-      </div>
-    </header>
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide border-b">
-          <tr>
-            <th class="px-4 py-3 text-left">#</th>
-            <th class="px-4 py-3 text-left">Data</th>
-            <th class="px-4 py-3 text-left">Shuma</th>
-            <th class="px-4 py-3 text-left">Metoda</th>
-            <th class="px-4 py-3 text-left">Për</th>
-            <th class="px-4 py-3 text-left">Doktori</th>
-            <th class="px-4 py-3 text-left">Nga</th>
-            <th class="px-4 py-3 text-left">Shënime</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 bg-white">
-          {% for p in payments_new %}
-          <tr class="hover:bg-gray-50 transition">
-            <td class="px-4 py-3 whitespace-nowrap text-gray-700">#{{ p.id }}</td>
-            <td class="px-4 py-3 whitespace-nowrap">{% if p.created_at %}{{ p.created_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</td>
-            <td class="px-4 py-3 whitespace-nowrap font-semibold text-emerald-600">{{ p.amount }}€</td>
-            <td class="px-4 py-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-gray-100 border text-gray-700 text-xs">{{ p.get_method_display|default:p.method }}</span></td>
-            <td class="px-4 py-3 whitespace-nowrap">
-              {% if p.history %}<span class="text-gray-700">Histori:</span> {{ p.history.diagnosis|default:"—" }}
-              {% elif p.agreement %}<span class="text-gray-700">Marrëveshje:</span> {{ p.agreement.title }}
-              {% else %}—{% endif %}
-            </td>
-            <td class="px-4 py-3 whitespace-nowrap text-gray-700">
-              {% if p.doctor %}
-                {{ p.doctor }}
-              {% elif p.history and p.history.doctor %}
-                {{ p.history.doctor }}
-              {% elif p.agreement and p.agreement.doctor %}
-                {{ p.agreement.doctor }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            <td class="px-4 py-3 whitespace-nowrap text-gray-600">{% if p.created_by %}{{ p.created_by.get_full_name|default:p.created_by.username }}{% else %}-{% endif %}</td>
-            <td class="px-4 py-3 text-gray-700">{{ p.notes|default:"" }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="8" class="px-4 py-6 text-center text-gray-400">S’ka pagesa.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+<div x-show="active==='pagesat'" x-cloak class="patient-payments" x-data="{ paymentQuery: '', paymentMethod: 'all', matchesPayment(el) { return (this.paymentMethod==='all' || el.dataset.method===this.paymentMethod || (this.paymentMethod==='transfer' &amp;&amp; el.dataset.method==='bank')) &amp;&amp; (!this.paymentQuery || el.dataset.search.toLocaleLowerCase().includes(this.paymentQuery.toLocaleLowerCase())); }, hasPayments() { return [...this.$root.querySelectorAll('.payment-entry')].some(el => this.matchesPayment(el)); } }">
+  <header class="payments-heading">
+    <div><h2>Financat e pacientit</h2><p>Bilanci dhe të gjitha pagesat, në një vend.</p></div>
+    <button type="button" class="btn btn-primary" @click="openModal('Regjistro pagesën', '{% url 'patient_detail' patient.id %}?workflow=modal&amp;panel=shto-pages', 'pagesat')"><i class="ph ph-plus" aria-hidden="true"></i> Regjistro pagesë</button>
+  </header>
+  <div class="payment-summary">
+    <article><span class="summary-icon"><i class="ph ph-receipt" aria-hidden="true"></i></span><div><p>Gjithsej e faturuar</p><strong>{{ total_billed_new|floatformat:2 }} <small>€</small></strong></div></article>
+    <article><span class="summary-icon paid"><i class="ph ph-check-circle" aria-hidden="true"></i></span><div><p>Gjithsej e paguar</p><strong>{{ total_paid_new|floatformat:2 }} <small>€</small></strong></div></article>
+    <article class="balance-summary"><span class="summary-icon"><i class="ph ph-wallet" aria-hidden="true"></i></span><div><p>Detyrimi i mbetur</p><strong>{{ debt_new|floatformat:2 }} <small>€</small></strong></div></article>
+  </div>
+  <section class="payment-ledger">
+    <header><div><h3>Transaksionet</h3><span>{{ payments_new|length }} pagesa të regjistruara</span></div><div class="payment-filters"><label class="payment-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="payment-search" type="search" x-model="paymentQuery" aria-label="Kërko në pagesa" placeholder="Kërko pagesë…"></label><select id="payment-method" x-model="paymentMethod" aria-label="Filtro sipas metodës së pagesës"><option value="all">Të gjitha metodat</option value="cash">Cash</option><option value="card">Kartelë</option><option value="transfer">Transfer</option><option value="other">Tjetër</option></select></div></header>
+    <div class="payment-column-labels" aria-hidden="true"><span>DATA / REFERENCA</span><span>PAGESA PËR</span><span>METODA</span><span>SHUMA</span></div>
+    {% for p in payments_new %}
+    {% firstof p.doctor p.history.doctor p.agreement.doctor "" as payment_doctor %}
+    <details class="payment-entry" x-show="matchesPayment($el)" data-method="{{ p.method }}" data-search="{{ p.id }} {{ p.created_at|date:'d.m.Y' }} {{ p.amount }} {{ p.history.diagnosis|default:'' }} {{ p.agreement.title|default:'' }} {{ payment_doctor }} {{ p.notes|default:'' }} {{ p.get_method_display }}">
+      <summary>
+        <div class="payment-date"><span class="payment-receipt-icon"><i class="ph ph-arrow-down-left" aria-hidden="true"></i></span><div><strong>{{ p.created_at|date:'d.m.Y'|default:'—' }}</strong><small>{{ p.created_at|date:'H:i' }} <span>· #{{ p.id }}</span></small></div></div>
+        <div class="payment-description"><strong>{% if p.history %}{{ p.history.diagnosis|default:'Trajtim dentar' }}{% elif p.agreement %}{{ p.agreement.title }}{% else %}Pagesë pacienti{% endif %}</strong><small>{% if p.history %}Trajtim{% elif p.agreement %}Marrëveshje{% else %}Arkëtim{% endif %}{% if p.doctor or p.history.doctor or p.agreement.doctor %} · {{ payment_doctor }}{% endif %}</small></div>
+        <span class="payment-method"><i class="ph {% if p.method == 'cash' %}ph-money{% elif p.method == 'card' %}ph-credit-card{% elif p.method == 'transfer' or p.method == 'bank' %}ph-bank{% else %}ph-wallet{% endif %}" aria-hidden="true"></i>{% if p.method == 'bank' %}Transfer{% else %}{{ p.get_method_display|default:p.method }}{% endif %}</span>
+        <div class="payment-amount"><strong>{{ p.amount|floatformat:2 }} <small>€</small></strong><i class="ph ph-caret-down" aria-hidden="true"></i></div>
+      </summary>
+      <div class="payment-extra"><div><span>Regjistruar nga</span><p>{% if p.created_by %}{{ p.created_by.get_full_name|default:p.created_by.username }}{% else %}—{% endif %}</p></div><div><span>Shënime</span><p>{{ p.notes|default:'Nuk ka shënime.' }}</p></div></div>
+    </details>
+    {% endfor %}
+    <div x-show="!hasPayments()" class="empty-state"><i class="ph ph-receipt" aria-hidden="true"></i><p>{% if payments_new %}Nuk u gjet asnjë pagesë me këto filtra.{% else %}Ende nuk ka pagesa të regjistruara.{% endif %}</p></div>
   </section>
 </div>

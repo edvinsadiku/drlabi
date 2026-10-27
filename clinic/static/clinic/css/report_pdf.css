@@ -1,0 +1,19 @@
+/* Local PDF renderer: normalize browser defaults and use stable paged layouts. */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; font-size: 9pt; line-height: 1.4; }
+h1, h2, p, dl, dt, dd { margin: 0; }
+a { color: #111; text-decoration: none; }
+.report-document-header { display: block; position: relative; min-height: 75pt; }
+.report-document-brand { display: block; }
+.report-document-title { position: absolute; top: 5pt; right: 0; }
+.report-document-meta { display: block; margin-top: 7pt; }
+.report-document-meta span:last-child { float: right; }
+.report-totals { display: table; table-layout: fixed; width: 100%; }
+.report-totals > div { display: table-cell; width: 33.333%; }
+.report-totals > div:last-child { text-align: right; }
+.report-totals > div:nth-child(2) { text-align: center; }
+.report-section-heading { display: block; position: relative; }
+.report-record-count { position: absolute; right: 0; top: 0; }
+.report-doctors { break-inside: avoid; }
+.report-table { border-collapse: collapse; }
+.report-table-scroll { overflow: visible; }

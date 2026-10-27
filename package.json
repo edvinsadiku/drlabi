@@ -1,0 +1,15 @@
+{
+  "name": "drlabi-workspace-assets",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.cjs -i assets/utilities.css -o clinic/static/clinic/css/utilities.css --minify",
+    "build:vendor": "node scripts/vendor-assets.cjs",
+    "build": "npm run build:css && npm run build:vendor"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17",
+    "alpinejs": "3.14.9",
+    "@phosphor-icons/web": "2.1.1",
+    "fullcalendar": "6.1.11"
+  }
+}

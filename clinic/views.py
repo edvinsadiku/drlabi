@@ -1,3 +1,4 @@
+import re
 import json
 from io import BytesIO
 from pathlib import Path
@@ -17,13 +18,16 @@ from django.db import models, transaction
 from django.db.models import (Case, Count, DateTimeField, DecimalField,
                               ExpressionWrapper, F, Max, OuterRef, Q, Subquery,
                               Sum, Value, When)
-from django.db.models.functions import Coalesce, TruncMonth, Cast, ExtractMonth, ExtractYear
+from django.db.models.functions import Coalesce, TruncMonth, Cast, ExtractMonth, ExtractYear, NullIf
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.timezone import now
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
+
+from .report_access import report_day, require_full_reports, day_navigation
 
 from .models import (Agreement, Appointment, CareHistory, Historia,
                      HistoryOrtodentics, PatienOrtodentics, Patient,
@@ -449,8 +453,48 @@ def social_media_result(request, token):
     )
 
 
+def _dashboard_work_context():
+    current = timezone.localtime()
+    today = current.date()
+    start = timezone.make_aware(datetime.combine(today, time.min))
+    end = timezone.make_aware(datetime.combine(today + timedelta(days=1), time.min))
+    appointments = Appointment.objects.filter(start__gte=start, start__lt=end)
+    histories = CareHistory.objects.filter(date=today)
+    payments = Payment.objects.filter(created_at__gte=start, created_at__lt=end)
+    payment_totals = payments.aggregate(total=Sum("amount"), count=Count("pk"))
+    counts = appointments.aggregate(
+        total=Count("pk"),
+        scheduled=Count("pk", filter=Q(status="scheduled")),
+        completed=Count("pk", filter=Q(status="completed")),
+        cancelled=Count("pk", filter=Q(status="cancelled")),
+    )
+    return {
+        "today": today,
+        "day_paid": payment_totals["total"] or Decimal("0.00"),
+        "day_payment_count": payment_totals["count"],
+        "day_payments": payments.select_related("patient").order_by("-created_at", "-pk")[:8],
+        "day_appointments": appointments.select_related("patient").order_by("start")[:8],
+        "appointment_count": counts["total"],
+        "scheduled_count": counts["scheduled"],
+        "completed_count": counts["completed"],
+        "cancelled_count": counts["cancelled"],
+        "next_appointment": appointments.filter(status="scheduled", start__gte=current)
+            .select_related("patient").order_by("start").first(),
+        "treatment_count": histories.count(),
+        "day_treatments": histories.select_related("patient").order_by("-created_at", "-pk")[:6],
+    }
+
+
 @login_required
+@never_cache
 def dashboard(request):
+    # Dashboard is an operational workspace, not a date-filtered report.
+    if "day" in request.GET or "mode" in request.GET:
+        return redirect("dashboard")
+    work_context = _dashboard_work_context()
+    if not request.user.is_superuser:
+        # Do not query or send clinic-wide historical totals to restricted users.
+        return render(request, "clinic/dashboard.html", work_context)
     now_local = timezone.localtime()
     today = now_local.date()
     month_start = today.replace(day=1)
@@ -581,32 +625,18 @@ def dashboard(request):
         .values("id", "emri_mbiemri", "debt")[:6]
     )
 
-    recent_payments = (
-        Payment.objects.select_related("patient")
-        .order_by("-created_at")[:6]
-    )
-    day_start = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
-    day_end = day_start + timedelta(days=1)
-    today_appointments = (
-        Appointment.objects.select_related("patient")
-        .filter(start__gte=day_start, start__lt=day_end)
-        .order_by("start")[:6]
-    )
-
     return render(
         request,
         "clinic/dashboard.html",
         {
-            "today": today,
+            **work_context,
             "total_patients": total_patients,
             "new_patients_month": new_patients_month,
             "month_paid": month_paid,
             "total_debt": total_debt,
             "patients_with_debt": patients_with_debt,
             "payments_series": payments_series,
-            "recent_payments": recent_payments,
             "top_debts": top_debts,
-            "today_appointments": today_appointments,
         },
     )
 
@@ -639,10 +669,19 @@ def patient_list(request):
 
     # 💰 Filtrimi i pacientëve me borxh
     if has_debt:
-        qs = qs.filter(
-            Q(care_histories__amount__gt=F("care_histories__payments__amount"))
-            | Q(agreements__total_amount__gt=F("agreements__payments__amount"))
-        ).distinct()
+        # Compare the chart's complete balance, not each individual instalment.
+        money = DecimalField(max_digits=18, decimal_places=2)
+        zero = Value(Decimal("0.00"), output_field=money)
+        billed_care = CareHistory.objects.filter(
+            patient=OuterRef("pk"), agreement__isnull=True, included_in_agreement=False,
+        ).order_by().values("patient").annotate(total=Sum("amount")).values("total")
+        billed_agreements = Agreement.objects.filter(patient=OuterRef("pk")).order_by().values("patient").annotate(total=Sum("total_amount")).values("total")
+        paid = Payment.objects.filter(patient=OuterRef("pk")).order_by().values("patient").annotate(total=Sum("amount")).values("total")
+        qs = qs.annotate(
+            directory_billed=Coalesce(Subquery(billed_care, output_field=money), zero)
+                + Coalesce(Subquery(billed_agreements, output_field=money), zero),
+            directory_paid=Coalesce(Subquery(paid, output_field=money), zero),
+        ).filter(directory_billed__gt=F("directory_paid"))
 
     # 📊 Statistikë dhe renditje
     qs = qs.annotate(
@@ -651,6 +690,7 @@ def patient_list(request):
         last_care=Max("care_histories__date"),
     ).annotate(
         last_history=Case(
+            When(last_care__isnull=True, then=F("last_historia")),
             When(last_historia__gt=F("last_care"), then=F("last_historia")),
             default=F("last_care"),
             output_field=DateTimeField(),
@@ -743,7 +783,7 @@ def patient_detail(request, pk):
         .prefetch_related(
             models.Prefetch(
                 "child_histories",
-                queryset=CareHistory.objects.annotate(
+                queryset=CareHistory.objects.filter(patient=patient).select_related("created_by").annotate(
                     paid_sum=Coalesce(Subquery(payments_subq), Value(Decimal("0.00"))),
                     debt_sum=ExpressionWrapper(
                         Coalesce(F("amount"), Value(Decimal("0.00"))) -
@@ -795,6 +835,7 @@ def patient_detail(request, pk):
 
     agreements_qs = (
         Agreement.objects.filter(patient=patient)
+        .select_related("created_by")
         .annotate(paid_sum=Coalesce(Sum("payments__amount"), ZERO, output_field=DECIMAL))
         .annotate(
             bal_sum=ExpressionWrapper(
@@ -804,10 +845,9 @@ def patient_detail(request, pk):
         .order_by("-id")
     )
 
-    agreements_active = agreements_qs.filter(status="active")
-    agreements_total_amount = agreements_qs.aggregate(
-        s=Coalesce(Sum("total_amount"), ZERO, output_field=DECIMAL)
-    )["s"]
+    agreements_qs = list(agreements_qs)
+    agreements_active = [agreement for agreement in agreements_qs if agreement.status == "active"]
+    agreements_total_amount = sum((a.total_amount for a in agreements_qs), Decimal("0.00"))
 
     total_agreements_balance = sum((a.bal_sum for a in agreements_active), Decimal("0.00"))
     if total_agreements_balance < 0:
@@ -827,6 +867,19 @@ def patient_detail(request, pk):
 
     # (opsionale) Recent prescriptions në context — tab-i gjithsesi i merr me AJAX
     prescriptions = patient.prescriptions.all().order_by("-prescription_date", "-id")[:50]
+
+    # Each collection is rendered in several tabs; reuse one evaluated result.
+    care_histories_all = list(care_histories_all)
+    payments_new_qs = list(payments_new_qs)
+    documents = list(documents)
+    prescriptions = list(prescriptions)
+    histories_by_agreement = {}
+    for history in care_histories_all:
+        for item in [history, *history.child_histories.all()]:
+            if item.agreement_id:
+                histories_by_agreement.setdefault(item.agreement_id, []).append(item)
+    for agreement in agreements_qs:
+        agreement.workspace_histories = histories_by_agreement.get(agreement.id, [])
 
     def timeline_sort_value(value):
         if isinstance(value, datetime):
@@ -954,7 +1007,18 @@ def patient_detail(request, pk):
         context["modal_panel"] = panel
         return render(request, "clinic/patient_modal_panel.html", context)
 
-    return render(request, "clinic/patient_detail_test.html", context)
+    # The chart marks recorded treatment history; it does not infer clinical status.
+    recorded_teeth = set()
+    for tooth_value in CareHistory.objects.filter(patient=patient).values_list("tooth", flat=True):
+        recorded_teeth.update(re.findall(r"\d+", tooth_value or ""))
+    def tooth_kind(number):
+        position = number % 10
+        return "molar" if position >= 6 else "premolar" if position >= 4 else "canine" if position == 3 else "incisor"
+
+    context["upper_teeth"] = [{"number": n, "kind": tooth_kind(n), "recorded": str(n) in recorded_teeth} for n in [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28]]
+    context["lower_teeth"] = [{"number": n, "kind": tooth_kind(n), "recorded": str(n) in recorded_teeth} for n in [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38]]
+    context["next_appointment"] = patient.appointments.filter(status="scheduled", start__gte=timezone.now()).order_by("start").first()
+    return render(request, "clinic/patient_detail.html", context)
 
 
 @login_required
@@ -1094,7 +1158,7 @@ def add_history(request, pk):
     parent_obj = None
     if parent_id:
         try:
-            parent_obj = CareHistory.objects.get(id=int(parent_id))
+            parent_obj = CareHistory.objects.get(id=int(parent_id), patient=patient)
         except (ValueError, CareHistory.DoesNotExist):
             parent_obj = None
 
@@ -1271,7 +1335,8 @@ def add_orto_history(request, pk):
             doctor=doctor,
             verejtje=verejtje,
         )
-        obj.patien_ortodentics = patient_orto
+        obj.patient = patient_orto
+        obj.emri_i_pacientit = patient_orto.emri_mbiemri
         obj.save()
 
         return redirect("orto_patient_detail", pk=patient_orto.pk)
@@ -1304,7 +1369,7 @@ def edit_history(request, pk):
 
     return render(
         request,
-        "clinic/add_history.html",
+        "clinic/archive_history_form.html",
         {
             "patient": patient,
             "historia": historia,
@@ -1350,8 +1415,7 @@ def _dec(x):
         return Decimal("0")
 
 
-@login_required
-def reports(request):
+def _archive_report_context(request):
     """
     Raport dinamik me filtra:
       mode = day | week | month | year
@@ -1361,6 +1425,7 @@ def reports(request):
       month = YYYY-MM   (input type="month")
       year  = YYYY
     """
+    require_full_reports(request)
     mode = (request.GET.get("mode") or "day").lower()
     if mode not in {"day", "week", "month", "year"}:
         mode = "day"
@@ -1374,7 +1439,7 @@ def reports(request):
     if doctor_filter and doctor_filter not in dict(doctor_choices):
         doctor_filter = ""
 
-    today = now().date()
+    today = timezone.localdate()
 
     if mode == "day":
         day_str = request.GET.get("day")
@@ -1513,7 +1578,20 @@ def reports(request):
         "picked_month": request.GET.get("month") or today.strftime("%Y-%m"),
         "picked_year": request.GET.get("year") or str(today.year),
     }
-    return render(request, "clinic/reports.html", ctx)
+    ctx["report_query"] = request.GET.urlencode()
+    return ctx
+
+
+@login_required
+@never_cache
+def reports(request):
+    return render(request, "clinic/reports.html", _archive_report_context(request))
+
+
+@login_required
+@never_cache
+def reports_pdf(request):
+    return _report_pdf_response(request, _archive_report_context(request), archived=True)
 
 
 
@@ -1601,38 +1679,43 @@ def reports(request):
 
 @login_required
 def shpenzime_list(request):
-    shpenzime = Shpenzimet.objects.all().order_by("-muaji")
+    q = (request.GET.get("q") or "").strip()
+    status = request.GET.get("status") or ""
+    shpenzime = Shpenzimet.objects.all().order_by("-muaji", "-id")
+    if q:
+        shpenzime = shpenzime.filter(Q(shpenzimi__icontains=q) | Q(pershkrimi__icontains=q))
+    if status == "paid":
+        shpenzime = shpenzime.filter(paguar=True)
+    elif status == "unpaid":
+        shpenzime = shpenzime.filter(Q(paguar=False) | Q(paguar__isnull=True))
     total = sum(s.vlera or 0 for s in shpenzime)
-    return render(
-        request,
-        "clinic/shpenzime_list.html",
-        {
-            "shpenzime": shpenzime,
-            "total": total,
-        },
-    )
+    total_paid = sum(s.vlera or 0 for s in shpenzime if s.paguar)
+    return render(request, "clinic/shpenzime_list.html", {
+        "shpenzime": shpenzime, "total": total, "total_paid": total_paid,
+        "total_unpaid": total-total_paid, "q": q, "status": status,
+    })
 
 
 @login_required
 def shpenzime_add(request):
     if request.method == "POST":
-        shpenzimi = request.POST.get("shpenzimi")
-        muaji = request.POST.get("muaji") or None
-        vlera = request.POST.get("vlera") or None
-        paguar = bool(request.POST.get("paguar"))
-        pershkrimi = request.POST.get("pershkrimi")
-
+        shpenzimi = (request.POST.get("shpenzimi") or "").strip()
+        pershkrimi = (request.POST.get("pershkrimi") or "").strip()
+        try:
+            vlera = int(request.POST.get("vlera") or "0")
+            muaji = date.fromisoformat(request.POST["muaji"]) if request.POST.get("muaji") else None
+            if not shpenzimi or len(shpenzimi) > 191 or len(pershkrimi) > 191 or not 0 < vlera <= 2147483647:
+                raise ValueError
+        except ValueError:
+            return render(request, "clinic/shpenzime_form.html", {
+                "error": "Shënoni emërtimin, një shumë pozitive në euro të plota dhe një datë të vlefshme."
+            }, status=400)
         Shpenzimet.objects.create(
-            shpenzimi=shpenzimi,
-            muaji=muaji,
-            vlera=vlera,
-            paguar=paguar,
-            pershkrimi=pershkrimi,
-            created_at=now(),
-            updated_at=now(),
+            shpenzimi=shpenzimi, muaji=muaji, vlera=vlera,
+            paguar=bool(request.POST.get("paguar")), pershkrimi=pershkrimi,
+            created_at=now(), updated_at=now(),
         )
         return redirect("shpenzime_list")
-
     return render(request, "clinic/shpenzime_form.html")
 
 
@@ -1645,16 +1728,39 @@ def shpenzime_delete(request, pk):
     return render(request, "clinic/shpenzime_confirm_delete.html", {"shpenzim": s})
 
 
+@login_required
 def appointments_calendar(request):
     patients = Patient.objects.all().order_by("emri_mbiemri")
-    return render(request, "clinic/appointments_calendar.html", {"patients": patients})
+    selected_patient = None
+    patient_id = request.GET.get("patient")
+    if patient_id and patient_id.isdigit():
+        selected = get_object_or_404(Patient, pk=int(patient_id))
+        selected_patient = {"id": selected.id, "name": selected.emri_mbiemri or "Pa emër"}
+    return render(request, "clinic/appointments_calendar.html", {"patients": patients, "selected_patient": selected_patient})
 
 
+@login_required
 def appointments_events(request):
     qs = Appointment.objects.select_related("patient")
     doctor = request.GET.get("doctor")
     if doctor:
         qs = qs.filter(doctor=doctor)
+
+    # FullCalendar supplies the visible range; avoid loading the entire archive.
+    from django.utils.dateparse import parse_datetime
+    for key, lookup in [("start", "end__gt"), ("end", "start__lt")]:
+        raw = request.GET.get(key)
+        if raw:
+            try:
+                bound = parse_datetime(raw)
+            except ValueError:
+                bound = None
+            if bound is None:
+                return JsonResponse({"error": "Periudhë e pavlefshme."}, status=400)
+            if key == "start":
+                qs = qs.filter(Q(end__gt=bound) | Q(end__isnull=True, start__gte=bound))
+            else:
+                qs = qs.filter(start__lt=bound)
 
     color_map = {
         "scheduled": "#10B981",  
@@ -1677,67 +1783,85 @@ def appointments_events(request):
                 "notes": appt.notes,
                 "patient": appt.patient.id if appt.patient else None,
                 "patient_name": appt.patient.emri_mbiemri if appt.patient else "",
+                "service_title": appt.title,
             },
         })
 
     return JsonResponse(events, safe=False)
 
 
-@csrf_exempt
+def _appointment_values(request, appointment=None):
+    from django.utils import timezone
+    from django.utils.dateparse import parse_datetime
+    data = json.loads(request.body)
+    if not isinstance(data, dict):
+        raise ValueError("Të dhëna të pavlefshme.")
+    values = {}
+    for field, default in [("doctor", ""), ("title", ""), ("status", "scheduled"), ("notes", "")]:
+        value = data.get(field, getattr(appointment, field, default))
+        if not isinstance(value, str):
+            raise ValueError("Të dhëna të pavlefshme.")
+        values[field] = value.strip()
+    if values["doctor"] not in dict(DOCTOR_CHOICES):
+        raise ValueError("Zgjidh doktorin.")
+    if not values["title"] or len(values["title"]) > 191:
+        raise ValueError("Shëno shërbimin (deri në 191 karaktere).")
+    if values["status"] not in dict(Appointment.STATUS_CHOICES):
+        raise ValueError("Status i pavlefshëm.")
+    patient_id = data.get("patient", getattr(appointment, "patient_id", None))
+    try:
+        patient_id = int(patient_id)
+    except (TypeError, ValueError):
+        raise ValueError("Zgjidh pacientin.")
+    values["patient"] = get_object_or_404(Patient, pk=patient_id)
+    for field in ["start", "end"]:
+        raw = data.get(field, getattr(appointment, field, None))
+        if not raw and field == "end":
+            values[field] = None
+            continue
+        parsed = raw if isinstance(raw, datetime) else parse_datetime(raw) if isinstance(raw, str) else None
+        if parsed is None:
+            raise ValueError("Data ose ora nuk është e vlefshme.")
+        values[field] = timezone.make_aware(parsed) if timezone.is_naive(parsed) else parsed
+    if values["end"] and values["end"] <= values["start"]:
+        raise ValueError("Mbarimi duhet të jetë pas fillimit të vizitës.")
+    return values
+
+
+@login_required
+@require_POST
+@csrf_protect
 def appointments_create(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-
-        
-        patient_id = data.get("patient")
-        patient = get_object_or_404(Patient, pk=patient_id)
-
-        appt = Appointment.objects.create(
-            patient=patient,
-            doctor=data.get("doctor"),
-            title=data.get("title", "Takim"),
-            start=data.get("start", now()),
-            end=data.get("end"),
-            status=data.get("status", "scheduled"),
-            notes=data.get("notes", ""),
-        )
-        return JsonResponse({"id": appt.id})
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    try:
+        values = _appointment_values(request)
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Kontrollo pacientin, doktorin dhe orarin e terminit."}, status=400)
+    appt = Appointment.objects.create(**values)
+    return JsonResponse({"id": appt.id})
 
 
-@csrf_exempt
+@login_required
+@require_POST
+@csrf_protect
 def appointments_update(request, pk):
     appt = get_object_or_404(Appointment, pk=pk)
-    if request.method == "POST":
-        data = json.loads(request.body)
-
-        if data.get("patient"):
-            appt.patient = get_object_or_404(Patient, pk=data["patient"])
-        if data.get("doctor"):
-            appt.doctor = data["doctor"]
-        if data.get("title"):
-            appt.title = data["title"]
-        if data.get("start"):
-            appt.start = data["start"]
-        if "end" in data:
-            appt.end = data["end"] or None
-        if data.get("status"):
-            appt.status = data["status"]
-        if "notes" in data:
-            appt.notes = data["notes"]
-
-        appt.save()
-        return JsonResponse({"status": "updated"})
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    try:
+        values = _appointment_values(request, appt)
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Kontrollo pacientin, doktorin dhe orarin e terminit."}, status=400)
+    for field, value in values.items():
+        setattr(appt, field, value)
+    appt.save()
+    return JsonResponse({"status": "updated"})
 
 
-@csrf_exempt
+@login_required
+@require_POST
+@csrf_protect
 def appointments_delete(request, pk):
     appt = get_object_or_404(Appointment, pk=pk)
-    if request.method == "POST":
-        appt.delete()
-        return JsonResponse({"status": "deleted"})
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    appt.delete()
+    return JsonResponse({"status": "deleted"})
 
 
 @login_required
@@ -1938,8 +2062,11 @@ def agreement_close(request, agreement_id):
 
 
 def _period_range(request):
+    if not request.user.is_superuser:
+        day = report_day(request)
+        return day, day
     mode = (request.GET.get("mode") or "day").lower()
-    today = datetime.now().date()
+    today = timezone.localdate()
 
     if mode == "day":
         d_str = request.GET.get("day")
@@ -2017,8 +2144,7 @@ from django.utils import timezone
 # nga kodi yt ekzistojnë _period_range dhe _obj_date
 
 
-@login_required
-def reports_new(request):
+def _financial_report_context(request):
     start_date, end_date = _period_range(request)
     order = (request.GET.get("order") or "desc").lower()
     doctor_choices = DOCTOR_CHOICES
@@ -2081,12 +2207,12 @@ def reports_new(request):
 
     # -------- Pagesa sipas doktorit (vetëm periudha) --------
     payments_by_doctor_hist = (
-        payments_for_histories.values(doctor_name=Coalesce("doctor", "history__doctor"))
+        payments_for_histories.values(doctor_name=Coalesce(NullIf("doctor", Value("")), "history__doctor"))
         .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
         .order_by("-total")
     )
     payments_by_doctor_aggr = (
-        payments_for_agreements.values(doctor_name=Coalesce("doctor", "agreement__doctor"))
+        payments_for_agreements.values(doctor_name=Coalesce(NullIf("doctor", Value("")), "agreement__doctor"))
         .annotate(total=Coalesce(Sum("amount"), ZERO, output_field=DECIMAL))
     )
 
@@ -2251,10 +2377,47 @@ def reports_new(request):
         "doctor_filter": doctor_filter,
     }
 
-    return render(request, "clinic/reports_new.html", context)
+    context.update(day_navigation())
+    context["report_query"] = request.GET.urlencode()
+    return context
 
 
 @login_required
+@never_cache
+def reports_new(request):
+    return render(request, "clinic/reports_new.html", _financial_report_context(request))
+
+
+@login_required
+@never_cache
+def reports_new_pdf(request):
+    return _report_pdf_response(request, _financial_report_context(request), archived=False)
+
+
+def _report_pdf_response(request, context, *, archived):
+    """Render only report content with local assets; no dashboard or remote font requests."""
+    context = dict(context)
+    context["document_title"] = "Raport financiar · Arkiva" if archived else "Raport financiar"
+    context["report_body"] = "clinic/components/archive_report_body.html" if archived else "clinic/components/financial_report_body.html"
+    logo = finders.find("assets/img/logo.svg")
+    context["report_logo_url"] = Path(logo).resolve().as_uri() if logo else ""
+    context["report_styles"] = Path(finders.find("clinic/css/reports_new.css")).read_text()
+    context["pdf_styles"] = Path(finders.find("clinic/css/report_pdf.css")).read_text()
+    if not WEASYPRINT_AVAILABLE:
+        messages.error(request, "Shkarkimi PDF nuk është i disponueshëm. Përdorni Printo dhe zgjidhni ruajtjen si PDF.")
+        route = "reports" if archived else "reports_new"
+        return redirect(f"{reverse(route)}?{request.GET.urlencode()}")
+    html_string = render_to_string("clinic/report_pdf.html", context, request=request)
+    pdf = HTML(string=html_string).write_pdf()
+    response = HttpResponse(pdf, content_type="application/pdf")
+    filename = "raport-arkive" if archived else "raport-financiar"
+    response["Content-Disposition"] = f'attachment; filename="{filename}-{timezone.localdate().isoformat()}.pdf"'
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+@login_required
+@never_cache
 def reports_new_export_excel(request):
     # Filtrat si në UI
     start_date, end_date = _period_range(request)
@@ -2540,47 +2703,36 @@ from django.utils.timezone import now
 @xframe_options_sameorigin
 def agreement_create(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
-
+    context = {"patient": patient, "today": timezone.localdate(),
+               "is_modal": request.GET.get("modal") == "1", "doctor_choices": DOCTOR_CHOICES}
     if request.method == "POST":
-        title = request.POST.get("title") or "Marrëveshje trajtimi"
-        total_amount = Decimal(request.POST.get("total_amount") or "0")
-        notes = request.POST.get("notes") or ""
-        end_date = request.POST.get("end_date") or None
-        doctor = request.POST.get("doctor") or None
-
+        title = (request.POST.get("title") or "").strip()
+        doctor = request.POST.get("doctor") or ""
+        status = request.POST.get("status", "active")
+        end_raw = request.POST.get("end_date") or ""
+        try:
+            total_amount = Decimal(request.POST.get("total_amount") or "0")
+            end_date = date.fromisoformat(end_raw) if end_raw else None
+            if not total_amount.is_finite() or total_amount <= 0 or total_amount >= Decimal("10000000000000000") or total_amount != total_amount.quantize(Decimal("0.01")):
+                raise ValueError
+            if not title or len(title) > 191 or doctor not in dict(DOCTOR_CHOICES) or status not in ("active", "closed"):
+                raise ValueError
+            if end_date and end_date < context["today"]:
+                raise ValueError
+        except (ValueError, InvalidOperation):
+            context["error"] = "Plotësoni titullin, doktorin, një shumë pozitive me deri në dy shifra pas presjes dhe një datë përfundimi të vlefshme."
+            return render(request, "clinic/agreement_form.html", context, status=400)
         Agreement.objects.create(
-            patient=patient,
-            title=title,
-            total_amount=total_amount,
-            notes=notes,
-            status=request.POST.get("status", "active"),
-            start_date=now().date(),  
-            end_date=end_date,
-            doctor=doctor,
-            created_by=request.user,
-            updated_by=request.user,
+            patient=patient, title=title, total_amount=total_amount,
+            notes=request.POST.get("notes") or "", status=status,
+            start_date=context["today"], end_date=end_date, doctor=doctor,
+            created_by=request.user, updated_by=request.user,
         )
-        messages.success(
-            request, f"Marrëveshja për {patient.emri_mbiemri} u krijua me sukses."
-        )
-        if request.GET.get("modal") == "1":
-            return render(
-                request,
-                "clinic/modal_done.html",
-                {"message": "Marrëveshja u krijua me sukses."},
-            )
+        if context["is_modal"]:
+            return render(request, "clinic/modal_done.html", {"message": "Marrëveshja u krijua me sukses."})
+        messages.success(request, "Marrëveshja u krijua me sukses.")
         return redirect_tab(patient.pk, "marreveshjet")
-
-
-    return render(
-        request,
-        "clinic/agreement_form.html",
-        {
-            "patient": patient,
-            "today": now().date(),  
-            "is_modal": request.GET.get("modal") == "1",
-        },
-    )
+    return render(request, "clinic/agreement_form.html", context)
 
 
 @login_required
@@ -2611,6 +2763,10 @@ def checkout(request):
     from django.db.models.functions import Coalesce
     from django.db.models import DecimalField
 
+    if request.method == "POST":
+        patient = get_object_or_404(Patient, pk=request.POST.get("patient"))
+        return add_payment(request, patient.pk)
+
     patient = None
     histories = []
     agreements = []
@@ -2625,7 +2781,7 @@ def checkout(request):
         patient = get_object_or_404(Patient, pk=patient_id)
 
         
-        payments = Payment.objects.filter(patient=patient).order_by("-created_at")
+        payments = Payment.objects.filter(patient=patient).select_related("history", "agreement").order_by("-created_at")
 
         total_paid = payments.aggregate(
             s=Coalesce(Sum("amount", output_field=DECIMAL), ZERO)
@@ -2653,13 +2809,14 @@ def checkout(request):
                 debt_sum=F("total_amount")
                 - Coalesce(Sum("payments__amount", output_field=DECIMAL), ZERO),
             )
-            .filter(debt_sum__gt=0) 
+            .filter(debt_sum__gt=0)
+            .annotate(bal_sum=F("debt_sum"))
             .order_by("-created_at")
         )
 
         
         total_billed = (
-            CareHistory.objects.filter(patient=patient).aggregate(
+            CareHistory.objects.filter(patient=patient, agreement__isnull=True, included_in_agreement=False).aggregate(
                 s=Coalesce(Sum("amount", output_field=DECIMAL), ZERO)
             )["s"]
             or Decimal("0.00")
@@ -2673,70 +2830,6 @@ def checkout(request):
         debt = max(total_billed - total_paid, Decimal("0.00"))
 
     
-    if request.method == "POST":
-        patient_id = request.POST.get("patient")
-        amount = Decimal(request.POST.get("amount") or "0")
-        method = request.POST.get("method") or "cash"
-        notes = request.POST.get("notes") or ""
-        doctor = (request.POST.get("doctor") or "").strip() or None
-
-        history_ids = request.POST.getlist("history_ids")
-        agreement_id = request.POST.get("agreement_id")
-
-        patient = get_object_or_404(Patient, pk=patient_id)
-
-        if amount <= 0:
-            messages.error(request, "Shuma nuk është e vlefshme.")
-            return redirect(f"/checkout/?patient={patient.id}")
-
-        if agreement_id and history_ids:
-            messages.error(request, "Zgjidh ose marrëveshje, ose histori – jo të dyja.")
-            return redirect(f"/checkout/?patient={patient.id}")
-
-        
-        if agreement_id:
-            agreement = get_object_or_404(Agreement, pk=agreement_id, patient=patient)
-            if doctor not in dict(DOCTOR_CHOICES):
-                messages.error(request, "Zgjidh doktorin për këtë pagesë të marrëveshjes.")
-                return redirect(f"/checkout/?patient={patient.id}")
-            Payment.objects.create(
-                patient=patient,
-                amount=amount,
-                method=method,
-                notes=notes,
-                agreement=agreement,
-                doctor=doctor,
-                created_by=request.user,
-            )
-            messages.success(
-                request, f"Pagesa {amount}€ u shtua për marrëveshjen {agreement.title}."
-            )
-            return redirect(f"/checkout/?patient={patient.id}")
-
-        
-        if history_ids:
-            for hid in history_ids:
-                h = CareHistory.objects.filter(id=hid, patient=patient).first()
-                if h:
-                    Payment.objects.create(
-                        patient=patient,
-                        amount=amount,
-                        method=method,
-                        notes=notes,
-                        history=h,
-                        doctor=h.doctor,
-                        created_by=request.user,
-                    )
-            messages.success(
-                request, f"Pagesa {amount}€ u shtua për {len(history_ids)} histori."
-            )
-            return redirect(f"/checkout/?patient={patient.id}")
-
-        messages.error(
-            request, "Zgjidh një histori ose marrëveshje për të kryer pagesën."
-        )
-        return redirect(f"/checkout/?patient={patient.id}")
-
     return render(
         request,
         "clinic/checkout.html",
@@ -2804,7 +2897,7 @@ def care_history_detail_api(request, pk):
     ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
 
     ch = get_object_or_404(
-        CareHistory.objects.select_related("patient", "agreement"), pk=pk
+        CareHistory.objects.select_related("patient", "agreement", "created_by", "parent_history"), pk=pk
     )
 
     
@@ -2826,6 +2919,10 @@ def care_history_detail_api(request, pk):
     data = {
         "id": ch.id,
         "patient_id": ch.patient_id,
+        "parent_history": {
+            "id": ch.parent_history_id,
+            "diagnosis": ch.parent_history.diagnosis or "",
+        } if ch.parent_history_id and ch.parent_history.patient_id == ch.patient_id else None,
         "date": ch.date.strftime("%d/%m/%Y") if ch.date else "",
         "tooth": ch.tooth or "",
         "diagnosis": ch.diagnosis or "",
@@ -3125,6 +3222,7 @@ from .models import Patient, CareHistory, Agreement, Payment, DOCTOR_CHOICES
 
 
 @login_required
+@never_cache
 def debt_report(request):
     """
     Raport profesional i borxheve:
@@ -3132,6 +3230,7 @@ def debt_report(request):
     - kombinon CareHistory + Agreements + Payments pa dyfishime
     - filtrohet dhe renditet nga borxhi më i vjetër / më i ri / borxhi më i madh
     """
+    require_full_reports(request)
     q = (request.GET.get("q") or "").strip()
     doctor_filter = (request.GET.get("doctor") or "").strip()
     order = (request.GET.get("order") or "oldest").lower()
@@ -3146,6 +3245,9 @@ def debt_report(request):
     except (InvalidOperation, ValueError):
         min_debt = Decimal("0.00")
 
+    if not min_debt.is_finite():
+        min_debt = Decimal("0.00")
+
     DECIMAL = DecimalField(max_digits=18, decimal_places=2)
     ZERO = Value(Decimal("0.00"), output_field=DECIMAL)
 
@@ -3158,16 +3260,6 @@ def debt_report(request):
             | Q(telefoni__icontains=q)
             | Q(emaili__icontains=q)
         )
-
-    # 🩺 Filtër sipas doktorit (histori ose marrëveshje) - në nivel pacienti
-    if doctor_filter:
-        qs = qs.filter(
-            Q(care_histories__doctor=doctor_filter)
-            | Q(agreements__doctor=doctor_filter)
-        )
-
-    # Sigurohu që çdo pacient shfaqet vetëm një herë
-    qs = qs.distinct()
 
     # =========================
     #   FILTRAT për Subquery
@@ -3243,17 +3335,8 @@ def debt_report(request):
     #   ANNOTATE për çdo pacient
     # =========================
 
-    # Filtrat për datat e para të borxhit
-    hist_date_q = Q(
-        care_histories__agreement__isnull=True,
-        care_histories__included_in_agreement=False,
-    )
-    if doctor_filter:
-        hist_date_q &= Q(care_histories__doctor=doctor_filter)
-
-    agr_date_q = Q(agreements__status="active")
-    if doctor_filter:
-        agr_date_q &= Q(agreements__doctor=doctor_filter)
+    first_history_date = CareHistory.objects.filter(hist_base_q, patient=OuterRef("pk")).order_by("date").values("date")[:1]
+    first_agreement_date = Agreement.objects.filter(agr_base_q, patient=OuterRef("pk"), status="active").order_by("start_date").values("start_date")[:1]
 
     qs = qs.annotate(
         ch_billed=Coalesce(
@@ -3284,14 +3367,8 @@ def debt_report(request):
             default=ZERO,
             output_field=DECIMAL,
         ),
-        first_hist_date=Min(
-            "care_histories__date",
-            filter=hist_date_q,
-        ),
-        first_agr_date=Min(
-            "agreements__start_date",
-            filter=agr_date_q,
-        ),
+        first_hist_date=Subquery(first_history_date, output_field=DateField()),
+        first_agr_date=Subquery(first_agreement_date, output_field=DateField()),
     ).annotate(
         # Data e parë e borxhit = min(first_hist_date, first_agr_date)
         first_debt_date=Case(

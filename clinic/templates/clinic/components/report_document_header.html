@@ -1,0 +1,6 @@
+{% load static %}
+<header class="report-document-header">
+  <div class="report-document-brand"><img src="{% if report_logo_url %}{{ report_logo_url }}{% else %}{% static 'assets/img/logo.svg' %}{% endif %}" alt="Dr. Labi Dental Clinic"></div>
+  <div class="report-document-title"><h1>{{ document_title }}</h1><p>{% if start_date %}{{ start_date|date:'d.m.Y' }} – {{ end_date|date:'d.m.Y' }}{% elif mode == 'day' %}Data: {{ picked_day }}{% elif mode == 'week' %}Java: {{ picked_week }}{% elif mode == 'month' %}Muaji: {{ picked_month }}{% else %}Viti: {{ picked_year }}{% endif %}</p></div>
+  <div class="report-document-meta"><span>Doktori: {{ doctor_filter|default:'Të gjithë' }}</span><span>Gjeneruar: {% now 'd.m.Y · H:i' %}</span></div>
+</header>

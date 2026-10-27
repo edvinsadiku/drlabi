@@ -1,0 +1,5 @@
+{% extends 'clinic/base.html' %}
+{% block title %}Qasje e kufizuar{% endblock %}
+{% block content %}
+<section class="module-card form-width"><div class="module-body"><p class="eyebrow">QASJE E KUFIZUAR</p><h1>Nuk keni leje për këtë raport.</h1><p class="module-caption">{{ exception|default:'Ky raport nuk është i disponueshëm për llogarinë tuaj.' }}</p><div class="module-actions"><a class="btn btn-primary" href="{% url 'reports_new' %}">Raporti i sotëm</a><a class="btn" href="{% url 'dashboard' %}">Përmbledhja</a></div></div></section>
+{% endblock %}

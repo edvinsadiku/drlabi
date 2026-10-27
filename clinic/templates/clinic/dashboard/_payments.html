@@ -1,0 +1,8 @@
+<section id="dashboard-payments" class="module-card payments-panel" data-dashboard-panel="Pagesat" data-total="{{ day_payment_count }}">
+  <header class="workspace-panel-heading"><h2><i class="ph ph-wallet" aria-hidden="true"></i> Pagesat ditore</h2><a class="icon-button" href="{% url 'reports_new' %}" aria-label="Hap raportin e pagesave" title="Hap raportin"><i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></header>
+  <div class="dashboard-payments-total"><span>Gjithsej</span><strong>{{ day_paid|floatformat:2 }} €</strong></div>
+  <div class="workspace-list" data-dashboard-list>
+    {% for payment in day_payments %}<a class="day-row" data-dashboard-row href="{% url 'patient_detail' payment.patient_id %}?tab=pagesat"><div class="day-person"><strong>{{ payment.patient.emri_mbiemri }}</strong><small>{{ payment.created_at|date:'H:i' }} · {{ payment.get_method_display }}</small></div><strong class="workspace-amount">{{ payment.amount|floatformat:2 }} €</strong></a>{% empty %}<div class="workspace-empty"><i class="ph ph-wallet" aria-hidden="true"></i><p>Nuk ka pagesa të regjistruara.</p></div>{% endfor %}
+  </div>
+  {% include 'clinic/dashboard/_pager.html' with count=day_payment_count limit=8 noun='pagesa' label='Pagesat' %}
+</section>

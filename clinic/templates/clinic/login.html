@@ -1,57 +1,5 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="sq">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hyrje | Clinic DB</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="{% static 'clinic/css/brand.css' %}">
+<html lang="sq"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hyrje · Dr. Labi Dental Clinic</title><link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="{% static 'clinic/css/workspace.css' %}"><link rel="stylesheet" href="{% static 'clinic/css/login.css' %}"><link rel="stylesheet" href="{% static 'clinic/css/glass.css' %}">
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-emerald-50 text-gray-800">
-
-<div class="w-full max-w-md bg-white rounded-2xl shadow-2xl px-8 py-10 mx-4 animate-fadeIn border border-gray-100">
-  <div class="text-center mb-8">
-    <img src="{% static 'assets/img/logo.svg' %}" alt="Logo" class="h-20 md:h-24 mx-auto mb-4 drop-shadow-sm">
-    <h2 class="text-2xl font-semibold text-gray-800">Mirësevini në Dr. Labi</h2>
-    <p class="text-sm text-gray-500">Hyni në sistemin tuaj të menaxhimit klinik</p>
-  </div>
-
-  <form method="post" class="space-y-5">
-    {% csrf_token %}
-    <div>
-      <label class="block text-sm font-medium text-gray-600 mb-1">Email ose përdoruesi</label>
-      <input type="text" name="username" required
-             class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-600 mb-1">Fjalëkalimi</label>
-      <input type="password" name="password" required
-             class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-    </div>
-
-    <div class="flex items-center justify-between text-sm">
-      <label class="flex items-center">
-        <input type="checkbox" name="remember"
-               class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">
-        <span class="ml-2 text-gray-600">Më mbaj mend</span>
-      </label>
-    </div>
-
-    <button type="submit"
-            class="w-full py-3 text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition font-medium shadow-md">
-      Kyçu
-    </button>
-  </form>
-</div>
-
-<style>
-@keyframes fadeIn {
-  from {opacity: 0; transform: translateY(10px);}
-  to {opacity: 1; transform: translateY(0);}
-}
-.animate-fadeIn { animation: fadeIn 0.6s ease-out; }
-</style>
-
-</body>
-</html>
+<body class="clinic-app auth-page"><main class="auth-card"><div class="auth-brand"><img src="{% static 'assets/img/logo.svg' %}" alt="Dr. Labi Dental Clinic"><span>Sistemi i menaxhimit të ordinancës</span></div><div class="auth-content"><header><p class="eyebrow">LLOGARIA E STAFIT</p><h1>Hyrje në sistem</h1><p>Shënoni të dhënat e llogarisë suaj.</p></header>{% if form.errors %}<div class="auth-error" role="alert">Përdoruesi ose fjalëkalimi nuk është i saktë.</div>{% endif %}<form method="post">{% csrf_token %}<input type="hidden" name="next" value="{{ next }}"><label for="username">Përdoruesi</label><input id="username" name="username" value="{{ form.username.value|default:'' }}" autocomplete="username" required autofocus><label for="password">Fjalëkalimi</label><div class="password-field"><input id="password" name="password" type="password" autocomplete="current-password" required><button type="button" id="password-toggle" class="icon-button" aria-controls="password" aria-pressed="false">Shfaq</button></div><button type="submit" class="btn btn-primary auth-submit">Hyr në sistem <span aria-hidden="true">→</span></button></form></div><footer>Dr. Labi · Dental Clinic</footer></main><script>document.getElementById('password-toggle').addEventListener('click', function(){const input=document.getElementById('password');const show=input.type==='password';input.type=show?'text':'password';this.textContent=show?'Fshih':'Shfaq';this.setAttribute('aria-pressed',String(show));});</script></body></html>

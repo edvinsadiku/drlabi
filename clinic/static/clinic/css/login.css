@@ -1,0 +1,107 @@
+body.auth-page{
+  margin:0;
+  min-height:100svh;
+  display:grid;
+  place-items:center;
+  padding:32px 20px;
+  background:radial-gradient(ellipse at 10% 10%,#c7eafa80,transparent 50%),radial-gradient(ellipse at 90% 85%,#c9eee5b0,transparent 55%),#eff5f7
+}
+.auth-card{
+  width:min(100%,460px);
+  background:#ffffffcf;
+  border:1px solid white;
+  border-radius: var(--radius);
+  box-shadow:0 24px 90px #315e6b0d;
+  overflow:hidden
+}
+.auth-brand{
+  padding:35px 32px 25px;
+  text-align:center;
+  border-bottom:1px solid #e1ecef;
+  background:linear-gradient(115deg,#e4f2f9aa,#e5f4ef99)
+}
+.auth-brand img{
+  width:124px;
+  height:94px;
+  object-fit:contain
+}
+.auth-brand span{
+  display:block;
+  font-size:12px;
+  color:#67828d;
+  margin-top:14px
+}
+.auth-content{
+  padding:34px 38px 28px
+}
+.auth-content h1{
+  font-size:29px;
+  font-weight:500;
+  letter-spacing:-.9px;
+  margin:8px 0
+}
+.auth-content header>p:last-child{
+  font-size:13px;
+  color:#6a808b;
+  margin:0 0 28px
+}
+.auth-content label{
+  display:block;
+  font-size:12px;
+  font-weight:550;
+  color:#476672;
+  margin:19px 0 8px
+}
+.auth-content input:not([type=hidden]){
+  width:100%;
+  height:48px;
+  border:1px solid #d3e3e8;
+  border-radius: var(--radius-control);
+  background:#fff;
+  padding:12px 14px;
+  color:#173643
+}
+.auth-content .password-field{
+  position:relative
+}
+.password-field input{
+  padding-right:65px!important
+}
+.password-field button{
+  position:absolute;
+  right:4px;
+  top:4px;
+  color:#087f8c;
+  border-color:transparent;
+  background:none
+}
+.auth-submit{
+  margin-top:28px
+}
+.auth-card footer{
+  text-align:center;
+  padding:18px;
+  border-top:1px solid #e4edef;
+  color:#81939c;
+  font-size:11px
+}
+.auth-error{
+  font-size:13px;
+  border-radius: var(--radius);
+  padding:14px;
+  background:#fff0eb;
+  color:#a44e36
+}
+@media(max-width:480px){
+  body.auth-page{
+    padding:18px
+  }
+  .auth-content{
+    padding:27px 24px
+  }
+  .auth-brand{
+    padding:25px
+  }
+  .auth-card{
+    border-radius: var(--radius)}
+}

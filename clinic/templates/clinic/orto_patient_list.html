@@ -22,7 +22,7 @@
         </div>
         <div class="flex items-center mt-4 gap-x-3">
             <a href="{% url 'add_patient' %}"
-               class="flex items-center justify-center px-5 py-2 text-sm tracking-wide text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+               class="btn btn-primary">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      fill="none"
                      viewBox="0 0 24 24"
@@ -51,7 +51,7 @@
                 <input type="text"
                        name="q"
                        value="{{ q }}"
-                       placeholder="Kërko pacient orto..."
+                       aria-label="Kërko pacient ortodontik" placeholder="Kërko pacient orto..."
                        class="block w-full py-2 pl-11 pr-4 text-gray-700 bg-white border rounded-lg border-gray-200 focus:border-emerald-500 focus:ring focus:ring-emerald-300 focus:ring-opacity-40">
             </form>
         </div>
@@ -59,7 +59,7 @@
         <div class="flex flex-col mt-6">
         <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
             <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                <div class="overflow-hidden border border-gray-200 md:rounded-lg">
+                <div class="overflow-hidden border border-gray-200 surface-panel table-surface">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -135,9 +135,9 @@
                                     </td>
                                                                         <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
                                         <a href="{% url 'orto_patient_detail' p.id %}"
-                                           class="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50">Shiko</a>
+                                           class="btn">Shiko</a>
                                         <a href="{% url 'add_patient' %}?edit={{ p.id }}"
-                                           class="px-3 py-1.5 text-sm rounded-md border border-emerald-600 text-emerald-600 hover:bg-emerald-50">Ndrysho</a>
+                                           class="btn">Ndrysho</a>
                                     </td>
                                 </tr>
                             {% empty %}

@@ -1,0 +1,14 @@
+<dl class="report-totals">
+  <div><dt>Vlera e regjistruar</dt><dd>{{ total_billed|floatformat:2 }} €</dd></div>
+  <div><dt>Arkëtuar gjatë periudhës</dt><dd>{{ total_paid|floatformat:2 }} €</dd></div>
+  <div><dt>Detyrime të trajtimeve</dt><dd>{{ outstanding|floatformat:2 }} €</dd></div>
+</dl>
+<p class="report-note">Vlera përfshin trajtimet e faturuara dhe arkëtimet e marrëveshjeve. Detyrimet tregojnë gjendjen aktuale të trajtimeve në raport.</p>
+<section class="report-section report-doctors">
+  <h2>Arkëtimet sipas doktorit</h2>
+  <div class="report-table-scroll"><table class="report-table report-doctor-table">
+    <thead><tr><th>Doktori</th><th class="money">Trajtime</th><th class="money">Marrëveshje</th><th class="money">Gjithsej</th></tr></thead>
+    <tbody>{% for doctor,vals in payments_by_doctor_total.items %}<tr><td>{{ doctor|default:'Doktor i pacaktuar' }}</td><td class="money">{{ vals.from_histories|floatformat:2 }} €</td><td class="money">{{ vals.from_agreements|floatformat:2 }} €</td><td class="money"><strong>{{ vals.total|floatformat:2 }} €</strong></td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<section class="report-section"><header class="report-section-heading"><div><h2>Lëvizjet financiare</h2></div><span class="report-record-count">{{ histories_and_agreements|length }} regjistrime</span></header><div class="report-table-scroll"><table class="report-table report-transactions"><thead><tr><th>Data</th><th>Pacienti / Shërbimi</th><th>Doktori</th><th>Metoda</th><th class="money">Vlera</th><th class="money">Arkëtuar</th><th class="money">Mbetur</th></tr></thead><tbody>{% for h in histories_and_agreements %}<tr><td>{% if h.obj_type == 'payment_agreement' %}{{ h.created_at|date:'d.m.Y' }}<small>{{ h.created_at|date:'H:i' }}</small>{% else %}{{ h.date|date:'d.m.Y' }}{% endif %}</td><td><a href="{% url 'patient_detail' h.patient_id %}?tab=pagesat">{{ h.patient.emri_mbiemri }}</a><small>{% if h.obj_type == 'payment_agreement' %}Marrëveshje · {{ h.agreement.title }}{% else %}Trajtim · {{ h.history_diagnosis|default:'—' }}{% endif %}</small></td><td>{{ h.doctor|default:'—' }}</td><td>{% if h.obj_type == 'care_history' %}—{% else %}{{ h.get_method_display|default:h.method|default:'—' }}{% endif %}</td><td class="money">{{ h.amount_display|floatformat:2 }} €</td><td class="money"><strong>{{ h.paid_sum|floatformat:2 }} €</strong></td><td class="money">{% if h.obj_type == 'payment_agreement' %}—{% else %}{{ h.debt_sum|floatformat:2 }} €{% endif %}</td></tr>{% empty %}<tr><td class="table-empty" colspan="7">Nuk ka lëvizje financiare për këtë periudhë.</td></tr>{% endfor %}</tbody></table></div></section>

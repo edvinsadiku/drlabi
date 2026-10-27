@@ -39,16 +39,25 @@ document.addEventListener('keydown', function (e) {
 
 // -------- Modal CareHistory --------
 let __chCurrentId=null;
+let careRequest=null;
 window.openCareHistoryModal = function(id){
   __chCurrentId=id;
   const modal=document.getElementById("careHistoryModal");
   const card=document.getElementById("careHistoryCard");
-  modal.classList.remove("hidden"); modal.classList.add("flex");
+  if (!modal || !card) return;
+  careRequest?.abort(); careRequest = new AbortController();
+  modal.querySelectorAll('[id^="ch"]').forEach(el => { if (!el.children.length) el.textContent='—'; });
+  document.getElementById('chAgreementWrap').classList.add('hidden');
+  if (!modal.open) modal.showModal();
   setTimeout(()=>{card.classList.remove("scale-95","opacity-0");card.classList.add("scale-100","opacity-100");},10);
 
-  fetch(`/care-history/${id}/json/`,{headers:{"X-Requested-With":"XMLHttpRequest"}})
+  fetch(`/care-history/${id}/json/`,{signal:careRequest.signal,headers:{"X-Requested-With":"XMLHttpRequest"}})
     .then(r=>r.ok?r.json():Promise.reject())
     .then(d=>{
+      if (__chCurrentId !== id) return;
+      document.getElementById("chRelation").textContent=d.parent_history
+        ? `Vazhdim i trajtimit #${d.parent_history.id}${d.parent_history.diagnosis ? ' · '+d.parent_history.diagnosis : ''}`
+        : `Trajtimi fillestar #${d.id}`;
       document.getElementById("chDate").textContent=d.date||"—";
       document.getElementById("chTooth").textContent=d.tooth||"—";
       document.getElementById("chDiagnosis").textContent=d.diagnosis||"—";
@@ -71,14 +80,16 @@ window.openCareHistoryModal = function(id){
       if(d.created_at){ try{ parts.push(new Date(d.created_at).toLocaleString()); }catch(_){} }
       createdEl.textContent=parts.join(" • ")||"";
     })
-    .catch(()=>{ document.getElementById("chDiagnosis").textContent="Gabim gjatë ngarkimit."; });
+    .catch(error=>{ if(error?.name!=="AbortError") document.getElementById("chDiagnosis").textContent="Nuk u ngarkuan detajet. Mbylle dhe provo përsëri."; });
 }
 
 window.closeCareHistoryModal = function(){
   const modal=document.getElementById("careHistoryModal");
   const card=document.getElementById("careHistoryCard");
+  if (!modal || !card || !modal.open) return;
+  careRequest?.abort(); __chCurrentId=null;
   card.classList.add("scale-95","opacity-0");
-  setTimeout(()=>{modal.classList.add("hidden"); modal.classList.remove("flex");},150);
+  modal.close();
 }
 
 document.getElementById("careHistoryModal")?.addEventListener("click",e=>{

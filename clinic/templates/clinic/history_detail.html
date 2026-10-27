@@ -1,57 +1,58 @@
 {% extends "clinic/base.html" %}
 {% block title %}Historia — {{ history.patient.emri_mbiemri }}{% endblock %}
 {% block content %}
-    <div class="bg-white rounded-2xl shadow p-6 max-w-3xl mx-auto">
+    <div class="module-card p-6 max-w-3xl mx-auto">
         <div class="flex items-center justify-between mb-5">
             <h1 class="text-xl font-semibold">Detajet e historisë</h1>
+            <a class="btn" href="{% url 'patient_detail' history.patient_id %}?tab=arkiva-histori">Kthehu te arkiva</a>
         </div>
         <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
                 <dt class="text-gray-500">Data</dt>
                 <dd class="font-medium">
-                    {{ history.data }}
+                    {{ history.data|default:"—" }}
                 </dd>
             </div>
             <div>
                 <dt class="text-gray-500">Dhëmbi</dt>
                 <dd class="font-medium">
-                    {{ history.dhembi }}
+                    {{ history.dhembi|default:"—" }}
                 </dd>
             </div>
             <div>
                 <dt class="text-gray-500">Diagnoza</dt>
                 <dd class="font-medium">
-                    {{ history.diagnoza }}
+                    {{ history.diagnoza|default:"—" }}
                 </dd>
             </div>
             <div>
                 <dt class="text-gray-500">Trajtimi</dt>
                 <dd class="font-medium">
-                    {{ history.trajtimi }}
+                    {{ history.trajtimi|default:"—" }}
                 </dd>
             </div>
             <div>
                 <dt class="text-gray-500">Vlera</dt>
                 <dd class="font-medium">
-                    {{ history.vlera }}
+                    {% if history.vlera != None %}{{ history.vlera|floatformat:2 }} €{% else %}—{% endif %}
                 </dd>
             </div>
             <div>
                 <dt class="text-gray-500">Paguar</dt>
                 <dd class="font-medium text-emerald-700">
-                    {{ history.paguar }}
+                    {% if history.paguar != None %}{{ history.paguar|floatformat:2 }} €{% else %}—{% endif %}
                 </dd>
             </div>
             <div>
                 <dt class="text-gray-500">Borxh</dt>
                 <dd class="font-medium text-red-700">
-                    {{ history.borgji }}
+                    {% if history.borgji != None %}{{ history.borgji|floatformat:2 }} €{% else %}—{% endif %}
                 </dd>
             </div>
             <div>
                 <dt class="text-gray-500">Doktori</dt>
                 <dd class="font-medium">
-                    {{ history.doctor }}
+                    {{ history.doctor|default:"—" }}
                 </dd>
             </div>
             {% if history.pasqyra_e_dhembit %}
@@ -90,14 +91,14 @@
         {% if request.user.is_admin %}
         <div class="mt-6 flex gap-3">
             <a href="{% url 'edit_history' history.id %}"
-               class="px-4 py-2 rounded-lg bg-emerald-600 text-white">Edito</a>
+               class="btn btn-primary">Edito</a>
             <form method="post"
                   action="{% url 'delete_history' history.id %}"
                   onsubmit="return confirm('A je i sigurt?');">
                 {% csrf_token %}
-                <button class="px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">Fshij</button>
+                <button class="btn btn-danger">Fshij</button>
             </form>
         </div>
-    </div>
     {% endif %}
+    </div>
 {% endblock %}
