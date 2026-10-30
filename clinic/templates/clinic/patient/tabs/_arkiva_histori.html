@@ -1,6 +1,6 @@
 <section x-show="active==='arkiva-histori'" x-cloak class="module-card">
 <header class="module-card-head"><h2>Trajtimet e arkivuara</h2><span class="pill pill-neutral">{{ historias|length }} regjistrime</span></header>
-<p class="archive-note"><i class="ph ph-archive" aria-hidden="true"></i>Regjistrime të sistemit të mëparshëm.</p>
+
 <div class="module-scroll"><table class="module-table"><thead><tr><th>Data</th><th>Diagnoza / Trajtimi</th><th>Dhëmbi</th><th>Doktori</th><th>Vlera</th><th>Paguar</th><th>Mbetur</th><th>Veprime</th></tr></thead><tbody>
 {% for h in historias %}<tr><td>{{ h.data }}</td><td><strong>{{ h.diagnoza|default:'—' }}</strong><small>{{ h.trajtimi|default:'—' }}</small></td><td>{{ h.dhembi|default:'—' }}</td><td>{{ h.doctor|default:'—' }}</td><td class="money">{{ h.vlera|default:'0' }} €</td><td class="money">{{ h.paguar|default:'0' }} €</td><td class="money">{{ h.borgji|default:'0' }} €</td><td><div class="module-actions"><a class="btn btn-subtle" href="{% url 'history_detail' h.id %}">Detajet</a>{% if request.user.is_admin %}<a class="btn" href="{% url 'edit_history' h.id %}">Ndrysho</a><form method="post" action="{% url 'delete_history' h.id %}" onsubmit="return confirm('Ta fshij trajtimin e arkivuar?');">{% csrf_token %}<button type="submit" class="btn btn-danger">Fshij</button></form>{% endif %}</div></td></tr>{% empty %}<tr><td colspan="8" class="table-empty">Nuk ka regjistrime të arkivuara.</td></tr>{% endfor %}
 </tbody></table></div></section>

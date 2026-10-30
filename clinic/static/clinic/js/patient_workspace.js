@@ -33,8 +33,7 @@ document.addEventListener("alpine:init", () => {
       sessionStorage.removeItem(key);
       window.addEventListener("popstate", () => {
         const tab = new URL(location).searchParams.get("tab");
-        this.active = this.allowed.includes(tab) ? tab : "overview";
-        this.$nextTick(() => this.revealActiveTab());
+        this.activateTab(this.allowed.includes(tab) ? tab : "overview");
       });
       window.addEventListener("message", (event) => {
         if (
@@ -63,10 +62,17 @@ document.addEventListener("alpine:init", () => {
       if (item.left < container.left) tabs.scrollLeft -= container.left - item.left + 8;
       else if (item.right > container.right) tabs.scrollLeft += item.right - container.right + 8;
     },
-    set(tab) {
-      if (!this.allowed.includes(tab)) return;
+    activateTab(tab) {
+      if (this.active === "trajtimet" && tab !== "trajtimet") {
+        this.query = "";
+        this.tooth = "";
+      }
       this.active = tab;
       this.$nextTick(() => this.revealActiveTab());
+    },
+    set(tab) {
+      if (!this.allowed.includes(tab)) return;
+      this.activateTab(tab);
       const url = new URL(location);
       url.searchParams.set("tab", tab);
       url.searchParams.delete("workflow");

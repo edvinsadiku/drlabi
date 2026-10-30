@@ -100,7 +100,7 @@
   .report-panel { border: 0; padding: 0; overflow: visible; }
   .report-document-header { display: grid; grid-template-columns: 1fr auto; gap: 8pt 18pt; padding-bottom: 8pt; border-bottom: 1pt solid #333; margin-bottom: 10pt; }
   .report-document-brand { display: flex; align-items: center; gap: 10pt; }
-  .report-document-brand img { width: 66pt; height: 46pt; object-fit: contain; }
+  .report-document-brand img { width: 116pt; height: 35pt; object-fit: contain; }
   .report-document-title { text-align: right; align-self: center; }
   .report-document-title h1 { font-size: 16pt; font-weight: 600; margin: 0 0 5pt; letter-spacing: 0; }
   .report-document-title p { font-size: 10pt; }

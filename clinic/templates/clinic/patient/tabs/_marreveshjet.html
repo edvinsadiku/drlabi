@@ -1,5 +1,5 @@
 <section x-show="active==='marreveshjet'" x-cloak>
-  <header class="module-heading"><div><h2>Marrëveshjet e trajtimit</h2><p>Plani, vlera dhe trajtimet e përfshira.</p></div><button class="btn btn-primary" @click="openModal('Marrëveshje e re', '{% url 'agreement_create' patient.id %}?modal=1', 'marreveshjet')"><i class="ph ph-plus" aria-hidden="true"></i> Krijo marrëveshje</button></header>
+  <header class="module-heading"><div><h2>Marrëveshjet e trajtimit</h2></div><button class="btn btn-primary" @click="openModal('Marrëveshje e re', '{% url 'agreement_create' patient.id %}?modal=1', 'marreveshjet')"><i class="ph ph-plus" aria-hidden="true"></i> Krijo marrëveshje</button></header>
   <div class="module-stack">
     {% for ag in agreements_new %}
     <article class="module-card agreement-card">
@@ -10,6 +10,6 @@
       <div class="module-actions">{% if ag.status == 'active' and ag.bal_sum <= 0 %}<a class="btn btn-subtle" href="{% url 'agreement_close' ag.id %}">Mbyll marrëveshjen <i class="ph ph-check" aria-hidden="true"></i></a>{% endif %}<small class="module-caption">Regjistruar nga {% firstof ag.created_by.get_full_name ag.created_by.username '—' %}{% if ag.created_at %} · {{ ag.created_at|date:'d.m.Y' }}{% endif %}</small></div>
       <details class="agreement-history"><summary>Trajtimet e marrëveshjes · {{ ag.workspace_histories|length }}</summary><div class="module-scroll"><table class="module-table"><thead><tr><th>Data / Doktori</th><th>Trajtimi</th><th>Dhëmbi</th><th class="money">Vlera</th></tr></thead><tbody>{% for h in ag.workspace_histories %}<tr><td>{{ h.date|date:'d.m.Y' }}<small>{{ h.doctor|default:'—' }} · {% firstof h.created_by.get_full_name h.created_by.username '—' %}</small></td><td><strong>{{ h.diagnosis|default:'—' }}</strong><small>{{ h.treatment|default:'' }}{% if h.punim_protetikor %} · {{ h.punim_protetikor }}{% endif %}</small></td><td>{{ h.tooth|default:'—' }}</td><td class="money">{% if h.included_in_agreement %}<span class="status-chip">Përfshirë</span>{% else %}{{ h.amount|floatformat:2 }} €{% endif %}</td></tr>{% empty %}<tr><td colspan="4" class="table-empty">Nuk ka trajtime të lidhura me këtë marrëveshje.</td></tr>{% endfor %}</tbody></table></div></details>
     </article>
-    {% empty %}<div class="module-card empty-state"><i class="ph ph-handshake" aria-hidden="true"></i><h3>Nuk ka marrëveshje të regjistruara</h3><p>Marrëveshjet e pacientit do të shfaqen këtu.</p></div>{% endfor %}
+    {% empty %}<div class="module-card empty-state"><i class="ph ph-handshake" aria-hidden="true"></i><h3>Nuk ka marrëveshje të regjistruara</h3></div>{% endfor %}
   </div>
 </section>

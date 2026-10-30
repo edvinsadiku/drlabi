@@ -1,21 +1,22 @@
-{% load static %}
+{% load static custom_filters %}
 <!DOCTYPE html><html lang="sq"><head>
 <script>try{if(localStorage.getItem("clinic.sidebar.collapsed")==="1")document.documentElement.classList.add("sidebar-collapsed")}catch(e){}</script>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Dr. Labi{% endblock %} · Dental Clinic</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;450;500;550;600;650;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="{% versioned_static 'clinic/vendor/inter-tight/font.css' %}">
 <link rel="stylesheet" href="{% static 'clinic/css/utilities.css' %}"><link rel="stylesheet" href="{% static 'clinic/vendor/phosphor/style.css' %}">
-<link rel="stylesheet" href="{% static 'clinic/css/brand.css' %}"><link rel="stylesheet" href="{% static 'clinic/css/workspace.css' %}">
+<link rel="stylesheet" href="{% static 'clinic/css/brand.css' %}"><link rel="stylesheet" href="{% versioned_static 'clinic/css/workspace.css' %}">
 <link rel="stylesheet" href="{% static 'clinic/css/dental_chart.css' %}">
 <link rel="stylesheet" href="{% static 'clinic/css/modules.css' %}">
 {% block extra_head %}{% endblock %}
-<link rel="stylesheet" href="{% static 'clinic/css/glass.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'clinic/css/glass.css' %}">
+{% include 'clinic/components/brand_icons.html' %}
 </head><body class="clinic-app">
 <a class="skip-link" href="#main-content">Kalo te përmbajtja</a>
 {% with name=request.resolver_match.url_name %}
 <aside id="sidebar" class="app-sidebar" aria-label="Menuja kryesore">
-<div class="sidebar-heading"><a class="clinic-brand" href="{% url 'dashboard' %}" aria-label="Dr. Labi · Përmbledhja"><img src="{% static 'assets/img/logo.svg' %}" alt="Dr. Labi Dental Clinic"><i class="ph ph-tooth brand-mark" aria-hidden="true"></i></a></div>
+<div class="sidebar-heading"><a class="clinic-brand" href="{% url 'dashboard' %}" aria-label="Dr. Labi · Përmbledhja"><img class="brand-logo" src="{% versioned_static 'assets/img/logo.svg' %}" alt="Dr. Labi Dental Clinic"><img class="brand-mark" src="{% versioned_static 'assets/img/brand-icon.svg' %}" alt="" aria-hidden="true"></a></div>
 <nav><div class="nav-group"><p class="nav-label">HAPËSIRA E PUNËS</p><a href="{% url 'dashboard' %}" class="nav-link {% if name == 'dashboard' or name == 'home' %}is-active{% endif %}" {% if name == 'dashboard' or name == 'home' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='dashboard' only %}<span>Përmbledhja</span></a><a href="{% url 'patient_list' %}" class="nav-link {% if name == 'patient_list' or name == 'patient_detail' or name == 'add_patient' or name == 'edit_patient' or name == 'add_history' %}is-active{% endif %}" {% if name == 'patient_list' or name == 'patient_detail' or name == 'add_patient' or name == 'edit_patient' or name == 'add_history' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='patients' only %}<span>Pacientët</span></a><a href="{% url 'orto_patient_list' %}" class="nav-link {% if name == 'orto_patient_list' or name == 'orto_patient_detail' or name == 'add_orto_history' %}is-active{% endif %}" {% if name == 'orto_patient_list' or name == 'orto_patient_detail' or name == 'add_orto_history' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='orthodontics' only %}<span>Ortodoncia</span></a><a href="{% url 'appointments_calendar' %}" class="nav-link {% if name == 'appointments_calendar' %}is-active{% endif %}" {% if name == 'appointments_calendar' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='calendar' only %}<span>Terminet</span></a></div><div class="nav-group"><p class="nav-label">MENAXHIMI</p><a href="{% url 'checkout' %}" class="nav-link {% if name == 'checkout' %}is-active{% endif %}" {% if name == 'checkout' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='payments' only %}<span>Pagesat</span></a>{% if request.user.is_superuser %}<a href="{% url 'debt_report' %}" class="nav-link {% if name == 'debt_report' %}is-active{% endif %}" {% if name == 'debt_report' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='debts' only %}<span>Detyrimet</span></a>{% endif %}<a href="{% url 'reports_new' %}" class="nav-link {% if name == 'reports_new' %}is-active{% endif %}" {% if name == 'reports_new' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='reports' only %}<span>Raportet</span></a>{% if request.user.is_superuser %}<a href="{% url 'reports' %}" class="nav-link {% if name == 'reports' %}is-active{% endif %}" {% if name == 'reports' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='archive' only %}<span>Arkiva e raporteve</span></a>{% endif %}<a href="{% url 'shpenzime_list' %}" class="nav-link {% if name == 'shpenzime_list' or name == 'shpenzime_add' %}is-active{% endif %}" {% if name == 'shpenzime_list' or name == 'shpenzime_add' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='expenses' only %}<span>Shpenzimet</span></a><a href="{% url 'social_media' %}" class="nav-link {% if name == 'social_media' or name == 'social_media_edit' or name == 'social_media_result' %}is-active{% endif %}" {% if name == 'social_media' or name == 'social_media_edit' or name == 'social_media_result' %}aria-current="page"{% endif %}>{% include 'clinic/components/nav_icon.html' with name='social' only %}<span>Studio sociale</span></a></div>
 {% if request.user.is_authenticated and request.user.role == 'admin' %}<a href="/admin/" class="nav-link">{% include 'clinic/components/nav_icon.html' with name='settings' only %}<span>Administrimi</span></a>{% endif %}
 </nav>
@@ -25,10 +26,10 @@
 <div class="app-shell"><button id="menu-toggle" class="icon-button mobile-menu" aria-label="Hap menunë" aria-expanded="false" aria-controls="sidebar"><i class="ph ph-list" aria-hidden="true"></i></button><main id="main-content" class="app-content" data-page="{{ name }}">
 {% if messages %}<div class="notice-stack" role="status">{% for message in messages %}<div class="notice {% if message.tags == 'error' %}notice-error{% endif %}">{{ message }}</div>{% endfor %}</div>{% endif %}
 {% block content %}{% endblock %}
-</main><footer class="app-footer"><span>Dr. Labi · Dental Clinic</span><span>Kujdesi fillon këtu.</span></footer></div>
+</main><footer class="app-footer"><span>Dr. Labi · Dental Clinic</span></footer></div>
 {% endwith %}
-<script src="{% static 'clinic/js/base.js' %}" defer></script>
-{% if request.resolver_match.url_name == 'add_history' or request.resolver_match.url_name == 'edit_history' or request.resolver_match.url_name == 'edit_care_history' %}<script src="{% static 'clinic/js/add_history.js' %}" defer></script>{% endif %}
+<script src="{% versioned_static 'clinic/js/base.js' %}" defer></script>
+{% if request.resolver_match.url_name == 'add_history' or request.resolver_match.url_name == 'edit_history' or request.resolver_match.url_name == 'edit_care_history' %}<script src="{% versioned_static 'clinic/js/add_history.js' %}" defer></script>{% endif %}
 {% if request.resolver_match.url_name == 'appointments_calendar' %}<script src="{% static 'clinic/js/appointments_calendar.js' %}" defer></script>{% endif %}
 {% if request.resolver_match.url_name == 'reports_new' or request.resolver_match.url_name == 'reports' %}<script src="{% static 'clinic/js/reports_new.js' %}" defer></script>{% endif %}
 </body></html>

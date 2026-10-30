@@ -1,9 +1,9 @@
 <dl class="report-totals">
-  <div><dt>Vlera e regjistruar</dt><dd>{{ total_billed|floatformat:2 }} €</dd></div>
+  <div><dt>Trajtime të faturuara + arkëtime marrëveshjesh</dt><dd>{{ total_billed|floatformat:2 }} €</dd></div>
   <div><dt>Arkëtuar gjatë periudhës</dt><dd>{{ total_paid|floatformat:2 }} €</dd></div>
-  <div><dt>Detyrime të trajtimeve</dt><dd>{{ outstanding|floatformat:2 }} €</dd></div>
+  <div><dt>Detyrimet aktuale të trajtimeve</dt><dd>{{ outstanding|floatformat:2 }} €</dd></div>
 </dl>
-<p class="report-note">Vlera përfshin trajtimet e faturuara dhe arkëtimet e marrëveshjeve. Detyrimet tregojnë gjendjen aktuale të trajtimeve në raport.</p>
+
 <section class="report-section report-doctors">
   <h2>Arkëtimet sipas doktorit</h2>
   <div class="report-table-scroll"><table class="report-table report-doctor-table">

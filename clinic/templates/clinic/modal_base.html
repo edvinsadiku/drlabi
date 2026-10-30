@@ -1,4 +1,4 @@
-{% load static %}
+{% load static custom_filters %}
 <!DOCTYPE html>
 <html lang="sq">
 <head>
@@ -9,21 +9,22 @@
   <link rel="stylesheet" href="{% static 'clinic/vendor/phosphor/style.css' %}">
   <link rel="stylesheet" href="{% static 'clinic/css/brand.css' %}">
   <link rel="stylesheet" href="{% static 'clinic/css/add_history.css' %}">
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;550;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'clinic/css/workspace.css' %}">
+  <link rel="stylesheet" href="{% versioned_static 'clinic/vendor/inter-tight/font.css' %}">
+  <link rel="stylesheet" href="{% versioned_static 'clinic/css/workspace.css' %}">
   <link rel="stylesheet" href="{% static 'clinic/css/dental_chart.css' %}">
 <link rel="stylesheet" href="{% static 'clinic/css/modules.css' %}">
   <style>
     body { font-family: 'Inter Tight', sans-serif; }
   </style>
-<link rel="stylesheet" href="{% static 'clinic/css/glass.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'clinic/css/glass.css' %}">
+{% include 'clinic/components/brand_icons.html' %}
 </head>
 <body class="clinic-modal">
   <main class="p-4 md:p-5">
     {% block content %}{% endblock %}
   </main>
   {% if needs_history_js %}
-    <script src="{% static 'clinic/js/add_history.js' %}" defer></script>
+    <script src="{% versioned_static 'clinic/js/add_history.js' %}" defer></script>
   {% endif %}
   <script src="{% static 'clinic/js/patient_detail.js' %}" defer></script>
   <script src="{% static 'clinic/vendor/alpine.min.js' %}" defer></script>

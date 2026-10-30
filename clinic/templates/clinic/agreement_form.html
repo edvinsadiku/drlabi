@@ -2,11 +2,11 @@
 {% block title %}Marrëveshje e re · {{ patient.emri_mbiemri }}{% endblock %}
 {% block content %}
 <div class="form-width">
-  {% if not is_modal %}<header class="module-heading"><div><p class="eyebrow">{{ patient.emri_mbiemri }} · #{{ patient.id }}</p><h2>Marrëveshje e re</h2><p>Përcaktoni planin e trajtimit dhe kushtet financiare.</p></div></header>{% endif %}
+  {% if not is_modal %}<header class="module-heading"><div><p class="eyebrow">{{ patient.emri_mbiemri }} · #{{ patient.id }}</p><h2>Marrëveshje e re</h2></div></header>{% endif %}
   {% if error %}<div class="module-error" role="alert">{{ error }}</div>{% endif %}
   <form method="post" class="module-card module-form">{% csrf_token %}
     <section class="form-section"><h2>Plani i trajtimit</h2><div class="field-grid">
-      <label class="field full">Titulli i marrëveshjes<input name="title" value="{{ request.POST.title }}" maxlength="191" required placeholder="p.sh. Trajtim ortodontik"></label>
+      <label class="field full">Titulli i marrëveshjes<input name="title" value="{{ request.POST.title }}" maxlength="191" required></label>
       <label class="field">Vlera totale (€)<input name="total_amount" value="{{ request.POST.total_amount }}" type="number" step="0.01" min="0.01" required placeholder="0.00"></label>
       <label class="field">Doktori<select name="doctor" required><option value="">Zgjidh doktorin</option>{% for value,label in doctor_choices %}<option value="{{ value }}" {% if request.POST.doctor == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
       <label class="field">Data e fillimit<input value="{{ today|date:'d.m.Y' }}" readonly></label>

@@ -1,6 +1,6 @@
 <div x-show="active==='pagesat'" x-cloak class="patient-payments" x-data="{ paymentQuery: '', paymentMethod: 'all', matchesPayment(el) { return (this.paymentMethod==='all' || el.dataset.method===this.paymentMethod || (this.paymentMethod==='transfer' &amp;&amp; el.dataset.method==='bank')) &amp;&amp; (!this.paymentQuery || el.dataset.search.toLocaleLowerCase().includes(this.paymentQuery.toLocaleLowerCase())); }, hasPayments() { return [...this.$root.querySelectorAll('.payment-entry')].some(el => this.matchesPayment(el)); } }">
   <header class="payments-heading">
-    <div><h2>Financat e pacientit</h2><p>Bilanci dhe të gjitha pagesat, në një vend.</p></div>
+    <div><h2>Financat e pacientit</h2></div>
     <button type="button" class="btn btn-primary" @click="openModal('Regjistro pagesën', '{% url 'patient_detail' patient.id %}?workflow=modal&amp;panel=shto-pages', 'pagesat')"><i class="ph ph-plus" aria-hidden="true"></i> Regjistro pagesë</button>
   </header>
   <div class="payment-summary">

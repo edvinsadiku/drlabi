@@ -685,9 +685,14 @@ def patient_list(request):
 
     # 📊 Statistikë dhe renditje
     qs = qs.annotate(
-        historias_count=Count("historias"),
-        last_historia=Max("historias__created_at"),
-        last_care=Max("care_histories__date"),
+        last_historia=Subquery(
+            Historia.objects.filter(patient=OuterRef("pk"), created_at__isnull=False)
+            .order_by("-created_at").values("created_at")[:1]
+        ),
+        last_care=Subquery(
+            CareHistory.objects.filter(patient=OuterRef("pk"), date__isnull=False)
+            .order_by("-date").values("date")[:1]
+        ),
     ).annotate(
         last_history=Case(
             When(last_care__isnull=True, then=F("last_historia")),
@@ -1153,120 +1158,84 @@ def _parse_date_any(value):
 @xframe_options_sameorigin
 def add_history(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
-
-    parent_id = request.GET.get("parent")
     parent_obj = None
-    if parent_id:
-        try:
-            parent_obj = CareHistory.objects.get(id=int(parent_id), patient=patient)
-        except (ValueError, CareHistory.DoesNotExist):
-            parent_obj = None
+    parent_id = request.GET.get("parent", "")
+    if parent_id.isdigit():
+        parent_obj = CareHistory.objects.filter(pk=parent_id, patient=patient).first()
 
+    agreements = list(patient.agreements.filter(status="active").order_by("-created_at"))
+    selected_id = request.GET.get("agreement", "") or str(getattr(parent_obj, "agreement_id", "") or "")
+    mode = "agreement" if selected_id else "standalone"
+    values = {}
+    errors = []
     if request.method == "POST":
-        date_obj = now().date()
+        values = request.POST
+        selected_id = request.POST.get("agreement_id", "")
+        # Older open forms may not yet send the explicit registration mode.
+        mode = request.POST.get("registration_mode", "agreement" if selected_id else "standalone")
+        agreement = next((a for a in agreements if str(a.pk) == selected_id), None) if mode == "agreement" else None
+        if mode not in ("standalone", "agreement"):
+            errors.append("Zgjidh llojin e regjistrimit.")
+        elif mode == "agreement" and agreement is None:
+            errors.append("Zgjidh një marrëveshje aktive të këtij pacienti.")
+        doctor = request.POST.get("doctor", "")
+        if doctor not in dict(DOCTOR_CHOICES):
+            errors.append("Zgjidh doktorin.")
 
-        
-        dhembi   = request.POST.get("dhembi") or None
-        diagnoza = request.POST.get("diagnoza") or None
-        trajtimi = request.POST.get("trajtimi") or None
-        doctor   = request.POST.get("doctor") or None
-        punim_protetikor = request.POST.get("punim_protetikor") or None
-        tekniku  = request.POST.get("tekniku") or None
-        verejtje = request.POST.get("verejtje") or None
-
-        
-        vlera  = _to_decimal(request.POST.get("vlera"))
-        paguar = _to_decimal(request.POST.get("paguar"))
-
-        
-        agreement = None
-        agreement_id = request.POST.get("agreement_id") or None
-        if agreement_id and str(agreement_id).isdigit():
-            agreement = Agreement.objects.filter(
-                id=int(agreement_id),
-                patient=patient,
-                status="active",
-            ).first()
-
-        included = bool(agreement)
-
-        
-        
-        
-        amount_for_history = Decimal("0.00") if included else vlera
-
-        if not included and amount_for_history == Decimal("0.00") and paguar > Decimal("0.00"):
-            messages.error(request, "Nuk mund të regjistrohet pagesë kur vlera është 0.")
-            if request.GET.get("modal") == "1":
-                return redirect(f"{reverse('add_history', args=[patient.pk])}?modal=1")
-            return redirect("add_history", pk=patient.pk)
-
-        
-        ch = CareHistory.objects.create(
-            patient=patient,
-            date=date_obj,
-            tooth=dhembi,
-            diagnosis=diagnoza,
-            treatment=trajtimi,
-            amount=amount_for_history,                 
-            notes=verejtje,
-            doctor=doctor,
-            punim_protetikor=punim_protetikor,
-            tekniku=tekniku,
-            agreement=(agreement if included else None),
-            included_in_agreement=included,
-            parent_history=parent_obj,
-            created_by=request.user,
-            updated_by=request.user,
-        )
-
-        
-        if paguar > Decimal("0.00"):
-            if included and agreement:
-                
-                Payment.objects.create(
-                    patient=patient,
-                    amount=paguar,
-                    method=request.POST.get("method") or "cash",
-                    agreement=agreement,
-                    doctor=doctor,
-                    notes="Pagesë për marrëveshje (nga forma e historisë)",
-                    created_by=request.user,
-                    updated_by=request.user,
-                )
+        amount = paid = Decimal("0.00")
+        method = request.POST.get("method") or "cash"
+        # Agreement treatment entries never bill or collect money. Payments use add_payment.
+        if mode == "standalone":
+            try:
+                amount = Decimal((request.POST.get("vlera") or "0").replace(",", "."))
+                paid = Decimal((request.POST.get("paguar") or "0").replace(",", "."))
+                if any(not v.is_finite() or v < 0 or v > Decimal("9999999999999999.99") or v != v.quantize(Decimal("0.01")) for v in (amount, paid)):
+                    raise InvalidOperation
+            except (InvalidOperation, ValueError):
+                errors.append("Vlera dhe pagesa duhet të jenë shuma të vlefshme, jo negative, me deri dy shifra dhjetore.")
             else:
-                
-                Payment.objects.create(
-                    patient=patient,
-                    amount=paguar,
-                    method=request.POST.get("method") or "cash",
-                    history=ch,
-                    doctor=doctor,
-                    notes="Pagesë nga forma e historisë",
-                    created_by=request.user,
-                    updated_by=request.user,
-                )
+                if amount == 0 and paid > 0:
+                    errors.append("Nuk mund të regjistrohet pagesë kur vlera është 0.")
+            if method not in dict(Payment.METHOD):
+                errors.append("Zgjidh metodën e pagesës.")
 
-        if request.GET.get("modal") == "1":
-            return render(
-                request,
-                "clinic/modal_done.html",
-                {"message": "Trajtimi u ruajt me sukses."},
-            )
-        return redirect_tab(patient.pk, "trajtimet")
+        if not errors:
+            with transaction.atomic():
+                # Recheck under a lock in case the agreement was closed while the form was open.
+                if agreement:
+                    agreement = Agreement.objects.select_for_update().filter(pk=agreement.pk, patient=patient, status="active").first()
+                    if agreement is None:
+                        errors.append("Marrëveshja nuk është më aktive.")
+                if not errors:
+                    ch = CareHistory.objects.create(
+                        patient=patient, date=now().date(),
+                        tooth=request.POST.get("dhembi") or None,
+                        diagnosis=request.POST.get("diagnoza") or None,
+                        treatment=request.POST.get("trajtimi") or None,
+                        doctor=doctor, amount=amount,
+                        notes=request.POST.get("verejtje") or None,
+                        punim_protetikor=request.POST.get("punim_protetikor") or None,
+                        tekniku=request.POST.get("tekniku") or None,
+                        agreement=agreement, included_in_agreement=bool(agreement),
+                        parent_history=parent_obj, created_by=request.user, updated_by=request.user,
+                    )
+                    if paid > 0:
+                        Payment.objects.create(
+                            patient=patient, amount=paid, method=method, history=ch,
+                            doctor=doctor, notes="Pagesë nga forma e historisë",
+                            created_by=request.user, updated_by=request.user,
+                        )
+            if not errors:
+                if request.GET.get("modal") == "1":
+                    return render(request, "clinic/modal_done.html", {"message": "Trajtimi u ruajt me sukses."})
+                return redirect_tab(patient.pk, "trajtimet")
 
-    return render(
-        request,
-        "clinic/add_history.html",
-        {
-            "patient": patient,
-            "today": now().date(),
-            "agreements": patient.agreements.filter(status="active").order_by("-created_at"),
-            "parent": parent_obj,
-            "is_modal": request.GET.get("modal") == "1",
-            "needs_history_js": True,
-        },
-    )
+    return render(request, "clinic/add_history.html", {
+        "patient": patient, "today": now().date(), "agreements": agreements,
+        "parent": parent_obj, "is_modal": request.GET.get("modal") == "1",
+        "needs_history_js": True, "registration_mode": mode,
+        "selected_agreement_id": selected_id, "form_values": values, "form_errors": errors,
+    }, status=400 if errors else 200)
 
 
 @login_required
@@ -1298,6 +1267,16 @@ def edit_care_history(request, pk):
             "historia": historia,
             "patient": patient,
             "today": historia.date or now().date(),
+            "agreements": [historia.agreement] if historia.agreement_id else [],
+            "registration_mode": "agreement" if historia.agreement_id else "standalone",
+            "selected_agreement_id": str(historia.agreement_id or ""),
+            "form_values": {
+                "doctor": historia.doctor, "diagnoza": historia.diagnosis,
+                "trajtimi": historia.treatment, "dhembi": historia.tooth,
+                "punim_protetikor": historia.punim_protetikor, "tekniku": historia.tekniku,
+                "verejtje": historia.notes, "vlera": historia.amount,
+                "has_punim": "po" if historia.punim_protetikor or historia.tekniku else "jo",
+            },
         },
     )
 
@@ -2399,7 +2378,7 @@ def _report_pdf_response(request, context, *, archived):
     context = dict(context)
     context["document_title"] = "Raport financiar · Arkiva" if archived else "Raport financiar"
     context["report_body"] = "clinic/components/archive_report_body.html" if archived else "clinic/components/financial_report_body.html"
-    logo = finders.find("assets/img/logo.svg")
+    logo = finders.find("assets/img/logo-horizontal.svg")
     context["report_logo_url"] = Path(logo).resolve().as_uri() if logo else ""
     context["report_styles"] = Path(finders.find("clinic/css/reports_new.css")).read_text()
     context["pdf_styles"] = Path(finders.find("clinic/css/report_pdf.css")).read_text()

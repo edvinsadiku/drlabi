@@ -1,0 +1,16 @@
+<section class="registration-choice" data-visit-panel="0">
+  <fieldset {% if historia %}disabled{% endif %}><legend>Regjistrimi</legend>
+    <div class="registration-options">
+      <label class="registration-option"><input type="radio" name="registration_mode" value="standalone" {% if registration_mode != "agreement" %}checked{% endif %}><i class="ph ph-tooth" aria-hidden="true"></i><span><strong>Trajtim i veçantë</strong></span><span class="registration-check" aria-hidden="true">✓</span></label>
+      <label class="registration-option"><input type="radio" name="registration_mode" value="agreement" {% if registration_mode == "agreement" %}checked{% endif %}><i class="ph ph-handshake" aria-hidden="true"></i><span><strong>Pjesë e marrëveshjes</strong></span><span class="registration-check" aria-hidden="true">✓</span></label>
+    </div>
+  </fieldset>
+  <div id="treatment-agreement" {% if registration_mode != "agreement" %}hidden{% endif %}>
+    <label for="fldAgreement">Marrëveshja aktive</label>
+    <select class="border rounded w-full p-2" name="agreement_id" id="fldAgreement" {% if registration_mode != "agreement" or historia %}disabled{% endif %}>
+      <option value="">Zgjidh marrëveshjen</option>
+      {% for a in agreements %}<option value="{{ a.id }}" {% if selected_agreement_id == a.id|stringformat:"s" %}selected{% endif %}>{{ a.title }}</option>{% endfor %}
+    </select>
+    {% if not agreements %}<p class="muted">Nuk ka marrëveshje aktive.</p>{% endif %}
+  </div>
+</section>

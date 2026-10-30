@@ -10,12 +10,23 @@
   }
 
   body.clinic-app {
+    background: #edf5f8;
+    isolation: isolate;
+    overflow-x: clip;
+  }
+  /* A fixed painted layer keeps the same glass backdrop without repainting it on scroll. */
+  body.clinic-app::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background:
       radial-gradient(ellipse at 90% 5%, #9edbe6a6, transparent 48%),
       radial-gradient(ellipse at 28% 65%, #a9dfd58c, transparent 48%),
       radial-gradient(ellipse at 80% 95%, #c5e4f699, transparent 50%), #edf5f8;
-    background-attachment: fixed;
   }
+  body.auth-page::before { display: none; }
   body.auth-page {
     background:
       radial-gradient(ellipse at 20% 15%, #9bd4eda6, transparent 52%),
@@ -42,8 +53,8 @@
     background: var(--glass-surface);
     border-color: var(--glass-edge);
     box-shadow: var(--glass-shadow);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   .app-sidebar { box-shadow: var(--glass-shadow), 8px 0 40px #24596805; }
   .nav-link.is-active {
@@ -87,18 +98,18 @@
   .drawer-content > header {
     background: var(--glass-surface);
     box-shadow: inset 0 1px 0 #fff, 0 1px 0 #ffffffb3;
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
-  /* One glass layer per ledger, with transparent table internals so it stays visible. */
+  /* Reflective gradients preserve the glass finish without filtering entire scrolling ledgers. */
   .patient-directory, .table-surface, .module-card:has(.module-table),
   .report-panel, .payment-ledger {
     background: var(--glass-surface);
     border-color: var(--glass-edge);
     box-shadow: var(--glass-shadow);
-    -webkit-backdrop-filter: blur(12px) saturate(125%);
-    backdrop-filter: blur(12px) saturate(125%);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   .table-surface { border-radius: var(--radius); }
   :is(.app-content, .clinic-modal)
@@ -189,6 +200,9 @@
     flex-wrap: wrap;
   }
   #patientModalHint { color: #607b86; }
+  @media (max-width: 900px) {
+    .patient-tabs { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  }
   @media (max-width: 600px) {
     #patientCard > .border-b, #patientCard > .border-t, #patientForm {
       padding-left: 18px;
@@ -202,7 +216,7 @@
   }
   @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
     :root { --glass-surface: #fff; --glass-blur: none; }
-    .app-sidebar, .patient-tabs, .auth-card, .drawer-content > header { background: #fff; }
+    .app-sidebar, .patient-tabs, .auth-card, .drawer-content > header { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
     .patient-directory, .table-surface, .module-card:has(.module-table),
     .report-panel, .payment-ledger {
       background: #fff;

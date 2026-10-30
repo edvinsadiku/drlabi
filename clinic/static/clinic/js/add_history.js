@@ -101,49 +101,6 @@
   });
   sync();
 
-  const fldAgreement = document.getElementById("fldAgreement"),
-    fldIncluded = document.getElementById("fldIncluded"),
-    priceRow = document.getElementById("priceRow"),
-    vlera = document.getElementById("fldVlera");
-  function togglePriceFields() {
-    const included = fldIncluded.checked;
-    priceRow.querySelectorAll("input").forEach((inp) => {
-      if (included) inp.value = "";
-      inp.disabled = included;
-    });
-    priceRow.classList.toggle("opacity-55", included);
-    priceRow.classList.toggle("pointer-events-none", included);
-  }
-  fldAgreement.addEventListener("change", () => {
-    fldIncluded.checked = !!fldAgreement.value;
-    togglePriceFields();
-  });
-  fldIncluded.addEventListener("change", togglePriceFields);
-  togglePriceFields();
-
-  document.getElementById("historyForm").addEventListener("submit", (e) => {
-    const vleraVal = parseFloat(vlera.value) || 0;
-    const paguarVal =
-      parseFloat(document.getElementById("fldPaguar").value) || 0;
-
-    if (vleraVal === 0 && paguarVal > 0) {
-      e.preventDefault();
-      alert("❌ Nuk mund të regjistrohet pagesë nëse vlera është 0.");
-      return;
-    }
-
-    if (vleraVal === 0 && paguarVal === 0) return;
-    if (fldIncluded.checked || fldAgreement.value) return;
-
-    // ❌ Në raste tjera kërko vlerë ose marrëveshje
-    if (!fldAgreement.value && vleraVal <= 0 && paguarVal <= 0) {
-      e.preventDefault();
-      alert(
-        "Ju lutem shënoni vlerën e shërbimit ose zgjidhni një marrëveshje.",
-      );
-    }
-  });
-
   const radioPo = document.getElementById("radioPo"),
     radioJo = document.getElementById("radioJo"),
     punimFields = document.getElementById("punimFields");

@@ -1,18 +1,12 @@
 {% extends "clinic/base.html" %}
-{% load static %}
+{% load static custom_filters %}
 {% block title %}Recetë – {{ patient.emri_mbiemri }}{% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-3xl bg-white shadow-sm ring-1 ring-gray-200 surface-panel p-6 md:p-8 print:shadow-none print:ring-0">
   <!-- Header -->
   <header class="flex items-center justify-between gap-6 border-b pb-4">
-    <div class="flex items-center gap-4">
-      <img src="{% static 'assets/img/logo.svg' %}" alt="DR. LABI" class="h-10 w-10">
-      <div>
-        <div class="text-lg font-bold tracking-tight">DR. LABI</div>
-        <div class="text-sm text-gray-500">Dental Clinic</div>
-      </div>
-    </div>
+    <img src="{% versioned_static 'assets/img/logo-horizontal.svg' %}" alt="Dr. Labi Dental Clinic" style="width:180px;max-width:45%;height:auto">
     <div class="text-right text-sm text-gray-600">
       <div>📍 Rr. Ali Pashë Tepelena</div>
       <div>📞 +383 45 654 288</div>
@@ -79,9 +73,9 @@
 
       <div id="allergyNotesWrap" class="mt-3 hidden">
         <label for="allergyNotes" class="block text-sm font-medium text-gray-700 mb-1">Detaje të alergjisë (opsionale)</label>
-        <textarea id="allergyNotes" rows="2" placeholder="p.sh. Penicilina, anestetikë lokalë, lateks…"
+        <textarea id="allergyNotes" rows="2"
           class="w-full rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 resize-y"></textarea>
-        <p class="mt-1 text-xs text-gray-500">Shënimet e alergjisë ruhen si tekst në recetë.</p>
+
       </div>
     </div>
     <!-- /Alergjia -->

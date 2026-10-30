@@ -1,6 +1,6 @@
 <section x-show="active==='arkiva-ortho'" x-cloak class="module-card">
 <header class="module-card-head"><h2>Ortodoncia e arkivuar</h2><span class="pill pill-neutral">{{ ortho_histories|length }} regjistrime</span></header>
-<p class="archive-note"><i class="ph ph-archive" aria-hidden="true"></i>Regjistrime të sistemit të mëparshëm.</p>
+
 <div class="module-scroll"><table class="module-table"><thead><tr><th>Data</th><th>Diagnoza / Trajtimi</th><th>Doktori</th><th>Vlera</th><th>Paguar</th><th>Mbetur</th></tr></thead><tbody>
 {% for h in ortho_histories %}<tr><td>{{ h.data }}</td><td><strong>{{ h.diagnoza|default:'—' }}</strong><small>{{ h.trajtimi|default:'—' }}</small></td><td>{{ h.doctor|default:'—' }}</td><td class="money">{{ h.vlera|default:'0' }} €</td><td class="money">{{ h.paguar|default:'0' }} €</td><td class="money">{{ h.borgji|default:'0' }} €</td></tr>{% empty %}<tr><td colspan="6" class="table-empty">Nuk ka regjistrime të arkivuara.</td></tr>{% endfor %}
 </tbody></table></div></section>

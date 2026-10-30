@@ -1,11 +1,11 @@
 {% extends 'clinic/base.html' %}
-{% load static %}
+{% load static custom_filters %}
 {% block title %}Arkiva e raporteve{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'clinic/css/reports_new.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% versioned_static 'clinic/css/reports_new.css' %}">{% endblock %}
 {% block content %}
 <div class="report-page">
 {% include 'clinic/components/report_document_header.html' with document_title='Raport financiar · Arkiva' %}
-<header class="page-heading"><div><p class="eyebrow">ARKIVA</p><h1>Raportet e arkivuara<span class="title-dot">.</span></h1><p>Të dhënat financiare nga sistemi i mëparshëm.</p></div><div class="module-actions report-actions"><button class="btn" type="button" onclick="window.print()"><i class="ph ph-printer" aria-hidden="true"></i> Printo</button><a class="btn btn-primary" href="{% url 'reports_pdf' %}?{{ report_query }}"><i class="ph ph-file-pdf" aria-hidden="true"></i> Shkarko PDF</a><a class="btn" href="{% url 'reports_new' %}">Raportet aktuale <i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></div></header>
+<header class="page-heading"><div><p class="eyebrow">ARKIVA</p><h1>Raportet e arkivuara<span class="title-dot">.</span></h1></div><div class="module-actions report-actions"><button class="btn" type="button" onclick="window.print()"><i class="ph ph-printer" aria-hidden="true"></i> Printo</button><a class="btn btn-primary" href="{% url 'reports_pdf' %}?{{ report_query }}"><i class="ph ph-file-pdf" aria-hidden="true"></i> Shkarko PDF</a><a class="btn" href="{% url 'reports_new' %}">Raportet aktuale <i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></div></header>
 <div class="report-panel"><div class="report-filter-area">
 {% include 'clinic/components/report_filters.html' %}
 </div>

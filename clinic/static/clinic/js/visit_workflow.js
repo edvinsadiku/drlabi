@@ -6,6 +6,21 @@
   const back = document.getElementById("visitBack"),
     next = document.getElementById("visitNext");
   let current = 0;
+  const agreement = document.getElementById("fldAgreement");
+  const editing = form.dataset.editing === "true";
+  const linked = () => form.elements.registration_mode.value === "agreement";
+  const sequence = () => (linked() || editing) ? [0, 2] : [0, 1, 2];
+  function syncRegistration() {
+    document.getElementById("treatment-agreement").hidden = !linked();
+    agreement.disabled = !linked() || editing;
+    agreement.required = linked() && !editing;
+    steps[1].hidden = linked() || editing;
+    steps[2].querySelector("span").textContent = sequence().length === 2 ? "02" : "03";
+    document.querySelector(".visit-steps").classList.toggle("agreement-flow", sequence().length === 2);
+    for (const input of form.querySelectorAll('[data-visit-panel="1"] input, [data-visit-panel="1"] select')) input.disabled = linked() || editing;
+    show(0);
+  }
+  form.querySelectorAll('[name="registration_mode"]').forEach(input => input.addEventListener("change", syncRegistration));
   const value = (name) => form.elements.namedItem(name)?.value?.trim() || "—";
   function review() {
     const target = document.getElementById("visitReview");
@@ -16,17 +31,10 @@
       ["Diagnoza", value("diagnoza")],
       ["Trajtimi", value("trajtimi")],
       ["Punimi protetikor", value("punim_protetikor")],
-      [
-        "Vlera",
-        value("agreement_id") !== "—"
-          ? "Përfshirë në marrëveshje"
-          : (value("vlera") === "—" ? "0.00" : value("vlera")) + " €",
-      ],
-      [
-        "Paguar në këtë vizitë",
-        (value("paguar") === "—" ? "0.00" : value("paguar")) + " €",
-      ],
     ];
+    rows.unshift(["Regjistrimi", linked() ? "Pjesë e marrëveshjes" : "Trajtim i veçantë"]);
+    if (linked()) rows.splice(1, 0, ["Marrëveshja", agreement.selectedOptions[0]?.textContent || "—"]);
+    else if (!editing) rows.push(["Vlera", (value("vlera") === "—" ? "0.00" : value("vlera")) + " €"], ["Paguar në këtë vizitë", (value("paguar") === "—" ? "0.00" : value("paguar")) + " €"]);
     rows.forEach(([label, text]) => {
       const wrap = document.createElement("div"),
         dt = document.createElement("dt"),
@@ -52,6 +60,7 @@
     return true;
   }
   function show(step) {
+    if (!sequence().includes(step)) return;
     current = step;
     panels.forEach((p) => (p.hidden = Number(p.dataset.visitPanel) !== step));
     steps.forEach((b, i) => {
@@ -60,30 +69,27 @@
     });
     back.hidden = step === 0;
     next.hidden = step === 2;
-    document.getElementById("visitStepHint").textContent = [
-      "Hapi 1 nga 3 · Kujdesi klinik",
-      "Hapi 2 nga 3 · Vlera dhe arkëtimi",
-      "Hapi 3 nga 3 · Kontrollo të dhënat",
-    ][step];
+    const position = sequence().indexOf(step) + 1;
+    document.getElementById("visitStepHint").textContent = `Hapi ${position} nga ${sequence().length}`;
     if (step === 2) review();
   }
   steps.forEach((b, i) =>
     b.addEventListener("click", () => {
       if (
         i <= current ||
-        Array.from({ length: i }, (_, n) => n).every(validStep)
+        sequence().filter(n => n < i).every(validStep)
       )
         show(i);
     }),
   );
   next.addEventListener("click", () => {
     if (validStep(current)) {
-      show(current + 1);
+      show(sequence()[sequence().indexOf(current) + 1]);
       steps[current].focus();
     }
   });
   back.addEventListener("click", () => {
-    show(Math.max(0, current - 1));
+    show(sequence()[Math.max(0, sequence().indexOf(current) - 1)]);
     steps[current].focus();
   });
   form.addEventListener(
@@ -94,12 +100,14 @@
     },
     true,
   );
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", event => {
     if (current !== 2) {
       event.preventDefault();
-      if (validStep(current)) show(current + 1);
+      if (validStep(current)) show(sequence()[sequence().indexOf(current) + 1]);
+      return;
     }
+    if (!sequence().every(validStep)) event.preventDefault();
   });
   form.classList.add("visit-form-ready");
-  show(0);
+  syncRegistration();
 })();

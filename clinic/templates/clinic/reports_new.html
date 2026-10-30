@@ -1,7 +1,7 @@
 {% extends 'clinic/base.html' %}
-{% load static %}
+{% load static custom_filters %}
 {% block title %}Raportet financiare{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'clinic/css/reports_new.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% versioned_static 'clinic/css/reports_new.css' %}">{% endblock %}
 {% block content %}
 <div class="report-page">
 {% include 'clinic/components/report_document_header.html' with document_title='Raport financiar' %}

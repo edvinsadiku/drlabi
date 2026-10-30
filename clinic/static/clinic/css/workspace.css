@@ -1474,9 +1474,9 @@ input[type="file"]::file-selector-button {
 
 /* Collapsible desktop navigation; mobile keeps the full labelled menu. */
 .sidebar-heading { position: relative; flex-shrink: 0; height: 120px; }
-.sidebar-heading .clinic-brand { height: 76px; padding: 12px 20px 4px; position: relative; }
-.sidebar-heading .clinic-brand img { height: 60px; width: 108px; transition: opacity 180ms ease, transform 280ms ease; }
-.brand-mark { position: absolute; top: 24px; font-size: 32px; color: var(--action); opacity: 0; transform: scale(.85); transition: opacity 180ms ease, transform 280ms ease; }
+.sidebar-heading .clinic-brand { height: 120px; padding: 12px 20px; position: relative; justify-content: center; }
+.sidebar-heading .clinic-brand .brand-logo { height: 78px; width: 117px; flex-shrink: 0; transition: opacity 180ms ease, transform 280ms ease; }
+.sidebar-heading .clinic-brand .brand-mark { position: absolute; top: 24px; height: 34px; width: 34px; opacity: 0; transform: scale(.85); transition: opacity 180ms ease, transform 280ms ease; }
 /* Outside the clipped sidebar so the control sits across its right edge. */
 #sidebar-collapse { --button-height: 30px; position: fixed; top: 101px; left: calc(var(--sidebar) + 1px); z-index: 41; background: #fff; border-color: var(--line); color: var(--action); box-shadow: 0 3px 12px #17364312; transition: left 280ms cubic-bezier(.2,.8,.2,1), background-color 150ms ease, box-shadow 150ms ease; }
 #sidebar-collapse svg { width: 14px; height: 14px; flex-shrink: 0; transition: transform 280ms cubic-bezier(.2,.8,.2,1); }
@@ -1491,6 +1491,7 @@ input[type="file"]::file-selector-button {
 .sidebar-tooltip[hidden] { display: none; }
 @media (min-width: 901px) {
   .app-sidebar { transition: width 280ms cubic-bezier(.2,.8,.2,1); }
+  /* Match the sidebar width transition so content resizes continuously, without a FLIP width jump. */
   .app-shell { transition: margin-left 280ms cubic-bezier(.2,.8,.2,1); }
   .app-content { padding-left: var(--workspace-gutter); margin-left: 0; margin-right: 0; }
   .app-footer { padding-left: var(--workspace-gutter); }
@@ -1498,8 +1499,8 @@ input[type="file"]::file-selector-button {
   .nav-link { transition: padding 280ms ease, gap 280ms ease, background-color 150ms ease; }
   .sidebar-collapsed .app-sidebar { width: 76px; }
   .sidebar-collapsed .app-shell { margin-left: 92px; }
-  .sidebar-collapsed .clinic-brand img { opacity: 0; transform: scale(.85); }
-  .sidebar-collapsed .brand-mark { opacity: 1; transform: scale(1); }
+  .sidebar-collapsed .clinic-brand .brand-logo { opacity: 0; transform: scale(.85); }
+  .sidebar-collapsed .clinic-brand .brand-mark { opacity: 1; transform: scale(1); }
   .sidebar-collapsed .app-sidebar nav { padding: 0 10px; }
   .sidebar-collapsed .nav-link { padding-left: 17px; padding-right: 17px; gap: 0; }
   .sidebar-collapsed .nav-link > span { opacity: 0; width: 0; }
@@ -1515,7 +1516,8 @@ input[type="file"]::file-selector-button {
 }
 @media (max-width: 900px) {
   #sidebar-collapse { display: none; }
-  .sidebar-heading { height: 85px; }
+  .sidebar-heading, .sidebar-heading .clinic-brand { height: 104px; }
+  .sidebar-heading .clinic-brand .brand-logo { height: 66px; width: 99px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-sidebar, .app-shell, .app-sidebar nav, .nav-link, .nav-link > span, .sidebar-heading .clinic-brand img, .brand-mark, .account, .account > .avatar, .account > div, #sidebar-collapse, #sidebar-collapse svg { transition: none; }
@@ -1524,3 +1526,22 @@ input[type="file"]::file-selector-button {
 @media print {
   #sidebar-collapse, .sidebar-tooltip, .sidebar-overlay { display: none !important; }
 }
+
+/* Treatment registration mode. */
+.visit-steps.agreement-flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+.registration-choice fieldset{border:0;padding:0;margin:0;min-width:0}
+.registration-choice legend{font-size:14px;font-weight:600;margin-bottom:12px}
+.registration-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.registration-option{position:relative;display:flex;align-items:center;gap:10px;padding:16px;min-height:62px;border:1px solid #d8e5e9;border-radius:var(--radius-control);background:#ffffffa3;cursor:pointer}
+.registration-option:has(input:checked){border-color:#15939d;background:linear-gradient(130deg,#ebf8fa,#e0f3ef);box-shadow:inset 0 0 0 1px #15939d}
+.registration-option:has(input:focus-visible){outline:3px solid #3fa9f570;outline-offset:3px}
+.registration-option input{position:absolute;opacity:0;width:1px;height:1px}
+.registration-option>i{color:var(--action);font-size:23px;flex-shrink:0}
+.registration-option>span:not(.registration-check){flex:1}
+.registration-option strong{display:block;font-size:13px;font-weight:600;color:var(--ink)}
+.registration-check{width:17px;height:17px;border:1.5px solid #bccfd5;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:transparent;font-size:11px}
+.registration-option:has(input:checked) .registration-check{border-color:var(--action);background:var(--action);color:white}
+#treatment-agreement{margin-top:16px}#treatment-agreement label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+#treatment-agreement select{width:100%}
+@media(max-width:600px){.registration-options{grid-template-columns:1fr}.registration-option{min-height:58px;padding:13px}}
+.visit-steps [hidden], #treatment-agreement[hidden] { display: none !important; }

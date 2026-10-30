@@ -1,5 +1,5 @@
 <section x-show="active==='recetat'" x-cloak x-data="RecetaTab({listUrl:'{% url 'prescription_list_json' patient.id %}',saveUrl:'{% url 'prescription_save' patient.id %}',printTpl:'{% url 'prescription_print' 0 %}'})">
-  {% if not embedded %}<header class="module-heading"><div><h2>Recetat</h2><p>Përshkrimi i terapisë dhe historiku i recetave.</p></div><span class="pill pill-neutral" x-text="items.length + ' receta'"></span></header>{% endif %}
+  {% if not embedded %}<header class="module-heading"><div><h2>Recetat</h2></div><span class="pill pill-neutral" x-text="items.length + ' receta'"></span></header>{% endif %}
   <div class="module-success" x-show="savedId" x-cloak role="status">Receta u ruajt.</div>
   <div class="prescription-layout">
     <form class="module-card module-form" @submit.prevent="save">{% csrf_token %}
