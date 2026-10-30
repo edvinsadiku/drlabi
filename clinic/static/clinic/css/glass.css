@@ -201,6 +201,8 @@
   }
   #patientModalHint { color: #607b86; }
   @media (max-width: 900px) {
+    /* Mobile navigation overlays live content, so it needs a readable, solid surface. */
+    .app-sidebar { background: linear-gradient(145deg, #f8fcfd, #eaf5f6); }
     .patient-tabs { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
   }
   @media (max-width: 600px) {

@@ -1516,8 +1516,41 @@ input[type="file"]::file-selector-button {
 }
 @media (max-width: 900px) {
   #sidebar-collapse { display: none; }
-  .sidebar-heading, .sidebar-heading .clinic-brand { height: 104px; }
+  .app-sidebar {
+    inset: max(16px, env(safe-area-inset-top)) auto max(16px, env(safe-area-inset-bottom)) 16px;
+    width: 228px;
+    max-width: calc(100% - 80px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .sidebar-heading, .sidebar-heading .clinic-brand { height: 84px; }
   .sidebar-heading .clinic-brand .brand-logo { height: 66px; width: 99px; }
+  .mobile-menu svg { width: 20px; height: 20px; }
+  .mobile-menu { top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); }
+  body.mobile-nav-open { position: fixed; width: 100%; overflow: hidden; }
+  /* Keep the original single-column rail; never create a second scrolling list inside it. */
+  .app-sidebar nav { overflow: visible; flex: 1 0 auto; }
+  .app-sidebar .nav-group { margin: 4px 0 8px; }
+  .app-sidebar .nav-label { margin-bottom: 4px; line-height: 14px; }
+  .app-sidebar .nav-link { min-height: 38px; padding-top: 6px; padding-bottom: 6px; margin: 0; }
+  .app-sidebar .sidebar-bottom { padding: 8px 12px; }
+  .app-sidebar .account { padding-top: 8px; }
+}
+@media (max-width: 900px) and (max-height: 600px) {
+  .sidebar-heading, .sidebar-heading .clinic-brand { height: 60px; }
+  .sidebar-heading .clinic-brand { padding: 6px 20px; }
+  .sidebar-heading .clinic-brand .brand-logo { height: 48px; width: 72px; }
+  .app-sidebar .nav-group { margin: 2px 0 4px; }
+  .app-sidebar .nav-label { margin-bottom: 2px; line-height: 12px; }
+  .app-sidebar .nav-link { min-height: 32px; padding-top: 4px; padding-bottom: 4px; }
+  .app-sidebar .sidebar-bottom { padding: 4px 12px; }
+  .app-sidebar .account { padding-top: 4px; }
+}
+@media (max-width: 900px) and (max-height: 500px) {
+  .sidebar-heading, .sidebar-heading .clinic-brand { height: 46px; }
+  .sidebar-heading .clinic-brand { padding-top: 4px; padding-bottom: 4px; }
+  .sidebar-heading .clinic-brand .brand-logo { height: 38px; width: 57px; }
+  .app-sidebar .nav-link { min-height: 28px; padding-top: 2px; padding-bottom: 2px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-sidebar, .app-shell, .app-sidebar nav, .nav-link, .nav-link > span, .sidebar-heading .clinic-brand img, .brand-mark, .account, .account > .avatar, .account > div, #sidebar-collapse, #sidebar-collapse svg { transition: none; }
